@@ -1,0 +1,35 @@
+{
+  "name": "lendroid-protocol",
+  "version": "2.0.0",
+  "description": "Version 2.0 of the Lendroid protocol",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "ganache-cli": "^6.4.1",
+    "openzeppelin-solidity": "^2.0.0",
+    "solidity-coverage": "^0.5.11",
+    "truffle": "^4.1.14",
+    "truper": "0.0.2"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/truffle test",
+    "test-cov": "./node_modules/.bin/solidity-coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lendroidproject/protocol.1.0.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lendroidproject/protocol.1.0/issues"
+  },
+  "homepage": "https://github.com/lendroidproject/protocol.1.0#readme",
+  "devDependencies": {
+    "webpack": "^4.26.1",
+    "webpack-cli": "^3.1.2"
+  }
+}

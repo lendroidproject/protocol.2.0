@@ -1,0 +1,7 @@
+/out
+.DS_Store
+/node_modules
+/build
+/coverage
+coverage.json
+.solcover.js
