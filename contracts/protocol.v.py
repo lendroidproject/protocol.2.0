@@ -25,9 +25,11 @@ contract Position:
     def owed_value(_filled_value: uint256, _kernel_daily_interest_rate: uint256, _position_duration_in_seconds: uint256(sec)) -> uint256: constant
     def escape_hatch_token(_recipient: address, _token_address: address) -> bool: modifying
     def initialize(_index: uint256, _kernel_creator: address, _addresses: address[6], _values: uint256[7], _nonce: uint256, _kernel_daily_interest_rate: uint256, _position_duration_in_seconds: uint256(sec), _approval_expires: uint256(sec, positional), _sig_data: bytes[65]) -> bool: modifying
-    def topup(_caller: address, _borrow_currency_increment: uint256) -> bool: modifying
+    def topup_collateral(_caller: address, _borrow_currency_increment: uint256) -> bool: modifying
+    def withdraw_collateral(_caller: address, _borrow_currency_decrement: uint256) -> bool: modifying
     def liquidate(_caller: address) -> bool: modifying
     def close(_caller: address) -> bool: modifying
+    def rollover(_caller: address, _new_position_address: address, _protocol_token_address: address) -> bool: modifying
     def index() -> uint256: constant
     def kernel_creator() -> address: constant
     def lender() -> address: constant
@@ -385,6 +387,14 @@ def open_position(
             _values[2]
         )
         assert token_transfer, "Error during relayerFeeLST transfer from kernel creator to relayer"
+    # transfer rolloverFeeLST from kernel borrower to position contract
+    if as_unitless_number(_values[4]) > 0:
+        token_transfer = ERC20(self.protocol_token_address).transferFrom(
+            _addresses[1],
+            _position_address,
+            _values[4]
+        )
+        assert token_transfer, "Error during rolloverFeeLST transfer from borrower to position contract"
     # unlock position_non_reentrant after loan creation
     self.unlock_position(_position_address)
 
@@ -392,11 +402,79 @@ def open_position(
 
 
 @public
-def topup_position(_position_address: address, _borrow_currency_increment: uint256) -> bool:
+def rollover_position(
+        _old_position_address: address,
+        _addresses: address[6],
+        # _addresses: lender, borrower, relayer, wrangler, collateralToken, loanToken
+        _values: uint256[7],
+        # _values: collateralAmount, loanAmountOffered, relayerFeeLST, monitoringFeeLST, rolloverFeeLST, closureFeeLST, loanAmountFilled
+        _nonce: uint256,
+        _kernel_daily_interest_rate: uint256,
+        _is_creator_lender: bool,
+        wrangler_approval_expires_at: timestamp,
+        # kernel_expires_at, wrangler_approval_expires_at
+        _position_duration_in_seconds: timedelta,
+        # loanDuration
+        _sig_data_wrangler: bytes[65]
+        # v, r, s of wrangler
+        ) -> bool:
+    assert self.supported_tokens[_addresses[4]]
+    # validate _loanToken is a contract address
+    assert self.supported_tokens[_addresses[5]]
+    # validate wrangler's activation status
+    assert self.wranglers[_addresses[3]]
+    # validate wrangler's approval expiry
+    assert _timestamps[1] > block.timestamp
+
+    _kernel_creator: address = _addresses[1]
+    if _is_creator_lender:
+        _kernel_creator = _addresses[0]
+
+    # validate wrangler's nonce
+    assert _nonce == self.wrangler_nonces[_addresses[3]][_kernel_creator] + 1
+    # lock position_non_reentrant before rollover
+    self.lock_position(_old_position_address)
+    self.remove_position(_old_position_address)
+    # increment wrangler's nonce for kernel creator
+    self.wrangler_nonces[_addresses[3]][_kernel_creator] += 1
+
+    # open position
+    _new_position_address: address = create_forwarder_to(self.position_template_address)
+    # lock position_non_reentrant before loan creation
+    self.lock_position(_new_position_address)
+    _position_updated: bool = Position(_new_position_address).initialize(
+        self.last_position_index,
+        _kernel_creator, _addresses, _values,
+        _nonce, _kernel_daily_interest_rate,
+        _position_duration_in_seconds, wrangler_approval_expires_at, _sig_data_wrangler
+    )
+    assert _position_updated
+    # update position index
+    self.position_index[self.last_position_index] = _new_position_address
+    self.last_position_index += 1
+    # record position
+    self.record_position(_addresses[0], _addresses[1], _new_position_address)
+    token_transfer: bool = False
+    # update old position contract, transfer borrow_currency_current_value from old to new position contract
+    _old_position_updated: bool = Position(_old_position_address).rollover(
+        msg.sender, _new_position_address, self.protocol_token_address
+    )
+    assert _old_position_updated
+    # unlock position_non_reentrant after loan creation
+    self.unlock_position(_position_address)
+
+    # unlock position_non_reentrant after rollover
+    self.unlock_position(_old_position_address)
+
+    return True
+
+
+@public
+def topup_collateral(_position_address: address, _borrow_currency_increment: uint256) -> bool:
     # lock position_non_reentrant before topup
     self.lock_position(_position_address)
     # update position
-    _position_updated: bool = Position(_position_address).topup(
+    _position_updated: bool = Position(_position_address).topup_collateral(
         msg.sender, _borrow_currency_increment
     )
     assert _position_updated
@@ -407,6 +485,21 @@ def topup_position(_position_address: address, _borrow_currency_increment: uint2
         _borrow_currency_increment
     )
     assert token_transfer
+    # unlock position_non_reentrant after topup
+    self.unlock_position(_position_address)
+
+    return True
+
+
+@public
+def withdraw_collateral(_position_address: address, _borrow_currency_decrement: uint256) -> bool:
+    # lock position_non_reentrant before topup
+    self.lock_position(_position_address)
+    # update position
+    _position_updated: bool = Position(_position_address).withdraw_collateral(
+        msg.sender, _borrow_currency_decrement
+    )
+    assert _position_updated
     # unlock position_non_reentrant after topup
     self.unlock_position(_position_address)
 

@@ -46,7 +46,9 @@ SECONDS_PER_DAY: public(uint256)
 POSITION_STATUS_OPEN: public(uint256)
 POSITION_STATUS_CLOSED: public(uint256)
 POSITION_STATUS_LIQUIDATED: public(uint256)
-POSITION_TOPPED_UP: public(uint256)
+POSITION_STATUS_ROLLED_OVER: public(uint256)
+COLLATERAL_TOPPED_UP: public(uint256)
+COLLATERAL_WITHDRAWN: public(uint256)
 
 
 # constant functions
@@ -165,7 +167,9 @@ def initialize(
     self.POSITION_STATUS_OPEN = 1
     self.POSITION_STATUS_CLOSED = 2
     self.POSITION_STATUS_LIQUIDATED = 3
-    self.POSITION_TOPPED_UP = 1
+    self.POSITION_STATUS_ROLLED_OVER = 4
+    self.COLLATERAL_TOPPED_UP = 1
+    self.COLLATERAL_WITHDRAWN = 2
     # calculate owed value
     _lend_currency_owed_value: uint256 = self.owed_value(_values[6], _kernel_daily_interest_rate, _position_duration_in_seconds)
     # create position from struct
@@ -203,7 +207,7 @@ def initialize(
 
 
 @public
-def topup(_caller: address, _borrow_currency_increment: uint256) -> bool:
+def topup_collateral(_caller: address, _borrow_currency_increment: uint256) -> bool:
     assert msg.sender == self.protocol_address, "Only protocol can call this function"
     # confirm sender is borrower
     assert _caller == self.borrower
@@ -213,8 +217,31 @@ def topup(_caller: address, _borrow_currency_increment: uint256) -> bool:
     assert self.status == self.POSITION_STATUS_OPEN
     # perform topup
     self.borrow_currency_current_value += _borrow_currency_increment
-    # Notify wrangler that a position has been topped up
-    log.PositionUpdateNotification(self.wrangler, self, "borrow_currency_value", self.POSITION_TOPPED_UP)
+    # Notify wrangler that a collateral has been topped up
+    log.PositionUpdateNotification(self.wrangler, self, "borrow_currency_value", self.COLLATERAL_TOPPED_UP)
+
+    return True
+
+
+@public
+def withdraw_collateral(_caller: address, _borrow_currency_decrement: uint256) -> bool:
+    assert msg.sender == self.protocol_address, "Only protocol can call this function"
+    # confirm sender is borrower
+    assert _caller == self.borrower
+    # confirm position has not expired yet
+    assert self.expires_at >= block.timestamp
+    # confirm position is still active
+    assert self.status == self.POSITION_STATUS_OPEN
+    # perform topup
+    self.borrow_currency_current_value -= _borrow_currency_decrement
+    # transfer _borrow_currency_decrement from this address to borrower
+    token_transfer: bool = ERC20(self.borrow_currency_address).transfer(
+        self.borrower,
+        _borrow_currency_decrement
+    )
+    assert token_transfer
+    # Notify wrangler that a collateral has been withdrawn
+    log.PositionUpdateNotification(self.wrangler, self, "borrow_currency_value", self.COLLATERAL_WITHDRAWN)
 
     return True
 
@@ -261,5 +288,34 @@ def close(_caller: address) -> bool:
     assert token_transfer
     # Notify wrangler that a position has been closed
     log.PositionUpdateNotification(self.wrangler, self, "status", self.POSITION_STATUS_CLOSED)
+
+    return True
+
+
+@public
+def rollover(_caller: address, _new_position_address: address, _protocol_token_address: address) -> bool:
+    assert msg.sender == self.protocol_address, "Only protocol can call this function"
+    assert _new_position_address.is_contract, "New position should be a contract"
+    assert as_unitless_number(self.rollover_fee) > 0, "Cannot perform rollover since is 0"
+    # confirm sender is wrangler
+    assert _caller == self.wrangler
+    # confirm position is still active
+    assert self.status == self.POSITION_STATUS_OPEN
+    # perform rollover
+    self.status = self.POSITION_STATUS_ROLLED_OVER
+    # transfer borrow_currency_current_value from this address to _new_position_address
+    token_transfer: bool = ERC20(self.borrow_currency_address).transfer(
+        _new_position_address,
+        self.borrow_currency_current_value
+    )
+    assert token_transfer
+    # transfer rollover_fee from this address to wrangler
+    token_transfer = ERC20(_protocol_token_address).transfer(
+        self.wrangler,
+        self.rollover_fee
+    )
+    assert token_transfer
+    # Notify wrangler that a position has been closed
+    log.PositionUpdateNotification(self.wrangler, self, "status", self.POSITION_STATUS_ROLLED_OVER)
 
     return True
