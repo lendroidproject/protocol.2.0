@@ -7,11 +7,10 @@
     "test": "test"
   },
   "dependencies": {
-    "ganache-cli": "^6.4.1",
-    "openzeppelin-solidity": "^2.0.0",
-    "solidity-coverage": "^0.5.11",
-    "truffle": "^4.1.14",
-    "truper": "0.0.2"
+    "ganache-cli": "latest",
+    "truffle": "latest",
+    "truper": "latest",
+    "web3": "latest"
   },
   "scripts": {
     "test": "./node_modules/.bin/truffle test",
@@ -19,17 +18,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lendroidproject/protocol.1.0.git"
+    "url": "git+https://github.com/lendroidproject/protocol.2.0.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Lendroid",
+  "license": "Lendroid",
   "bugs": {
-    "url": "https://github.com/lendroidproject/protocol.1.0/issues"
+    "url": "https://github.com/lendroidproject/protocol.2.0/issues"
   },
-  "homepage": "https://github.com/lendroidproject/protocol.1.0#readme",
+  "homepage": "https://github.com/lendroidproject/protocol.2.0#readme",
   "devDependencies": {
-    "webpack": "^4.26.1",
-    "webpack-cli": "^3.1.2"
+    "webpack": "latest",
+    "webpack-cli": "latest"
   }
 }
