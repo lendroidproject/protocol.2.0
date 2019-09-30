@@ -12,6 +12,8 @@ TransferSingle: event({_operator: address, _from: address, _to: address, _id: ui
 TransferBatch: event({_operator: address, _from: address, _to: address, _ids: uint256[5], _values: uint256[5]})
 ApprovalForAll: event({_owner: address, _operator: address, _approved: bool})
 
+# owner => balance
+totalBalances: map(address, uint256)
 # id => (owner => balance)
 balances: map(uint256, map(address, uint256))
 # owner => (operator => approved)
@@ -84,6 +86,7 @@ def create_token_type(_initialSupply: uint256, _uri: string[64]) -> uint256:
     _id: uint256 = self.nonce + 1
     self.creators[_id] = msg.sender
     self.balances[_id][msg.sender] = _initialSupply
+    self.totalBalances[msg.sender] = _initialSupply
 
     # Transfer event with mint semantic
     log.TransferSingle(msg.sender, ZERO_ADDRESS, msg.sender, _id, _initialSupply)
@@ -99,6 +102,7 @@ def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
 
     # Grant the items to the caller
     self.balances[_id][_to] += _quantity
+    self.totalBalances[_to] += _quantity
 
     # Emit the Transfer/Mint event.
     # the 0x0 source address implies a mint
@@ -136,7 +140,9 @@ def safeTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256
     # SafeMath will throw with insuficient funds _from
     # or if _id is not valid (balance will be 0)
     self.balances[_id][_from] -= _value
+    self.totalBalances[_from] -= _value
     self.balances[_id][_to] += _value
+    self.totalBalances[_to] += _value
 
     # MUST emit event
     log.TransferSingle(msg.sender, _from, _to, _id, _value)
@@ -177,7 +183,9 @@ def safeBatchTransferFrom(_from: address, _to: address, _ids: uint256[5], _value
         # SafeMath will throw with insuficient funds _from
         # or if _id is not valid (balance will be 0)
         self.balances[id][_from] -= value
+        self.totalBalances[_from] -= value
         self.balances[id][_to] += value
+        self.totalBalances[_to] += value
 
     # Note: instead of the below batch versions of event and acceptance check you MAY have emitted a TransferSingle
     # event and a subsequent call to _doSafeTransferAcceptanceCheck in above loop for each balance change instead.
@@ -191,6 +199,21 @@ def safeBatchTransferFrom(_from: address, _to: address, _ids: uint256[5], _value
     # # call onERC1155BatchReceived if the destination is a contract.
     if _to.is_contract:
         self._doSafeBatchTransferAcceptanceCheck(msg.sender, _from, _to, _ids, _values, _data)
+
+
+@constant
+@public
+def totalBalanceOf(_owner: address) -> uint256:
+    """
+        @notice Get the total balance of an account's Tokens.
+        @param _owner  The address of the token holder
+        @return        The _owner's total balance of all Token types
+    """
+    # The balance of any account can be calculated from the Transfer events history.
+    # However, since we need to keep the balances to validate transfer request,
+    # there is no extra cost to also privide a querry function.
+    return self.totalBalances[_owner]
+
 
 @constant
 @public

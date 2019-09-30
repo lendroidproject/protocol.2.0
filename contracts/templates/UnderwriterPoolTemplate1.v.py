@@ -20,7 +20,6 @@ operator: public(address)
 name: public(string[64])
 symbol: public(string[32])
 initial_exchange_rate: public(uint256)
-total_l_currency_balance: public(uint256)
 lend_currency_address: public(address)
 collateral_currency_address: public(address)
 l_currency_address: public(address)
@@ -55,7 +54,6 @@ def initialize(_operator: address,
     self.operator = _operator
     self.name = _name
     self.initial_exchange_rate = _initial_exchange_rate
-    self.total_l_currency_balance = 0
     self.lend_currency_address = _lend_currency_address
     self.collateral_currency_address = _collateral_currency_address
     # erc20 token
@@ -108,9 +106,9 @@ def _s_currency_balance(_erc1155_id: uint256) -> uint256:
 @private
 @constant
 def _exchange_rate() -> uint256:
-    if (as_unitless_number(self.total_l_currency_balance) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
+    if (as_unitless_number(self._l_currency_balance()) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
         return self.initial_exchange_rate
-    return as_unitless_number(self.total_l_currency_balance) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
+    return as_unitless_number(self._l_currency_balance()) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
 
 
 @private
@@ -217,8 +215,6 @@ def remove_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
 
 @public
 def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
-    # increment self.total_l_currency_balance
-    self.total_l_currency_balance += _l_currency_value
     # ask Dao to deposit l_tokens to self
     _external_call_successful: bool = Dao(self.owner).deposit_l_tokens_to_underwriter_pool(self.lend_currency_address, msg.sender, _l_currency_value)
     assert _external_call_successful
@@ -232,9 +228,8 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
 
 @public
 def increment_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
-    # decrement self.total_l_currency_balance
-    assert self.total_l_currency_balance >= _l_currency_value
-    self.total_l_currency_balance -= _l_currency_value
+    # validate _l_currency_value
+    assert self._l_currency_balance() >= _l_currency_value
     # validate sender
     assert msg.sender == self.operator
     # validate expiry

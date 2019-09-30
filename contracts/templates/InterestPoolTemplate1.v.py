@@ -20,7 +20,6 @@ operator: public(address)
 name: public(string[64])
 symbol: public(string[32])
 initial_exchange_rate: public(uint256)
-total_l_currency_balance: public(uint256)
 currency_address: public(address)
 l_currency_address: public(address)
 i_currency_address: public(address)
@@ -52,7 +51,6 @@ def initialize(_operator: address,
     self.operator = _operator
     self.name = _name
     self.initial_exchange_rate = _initial_exchange_rate
-    self.total_l_currency_balance = 0
     self.currency_address = _currency_address
     # erc20 token
     _pool_currency_address: address = create_forwarder_to(_erc20_currency_template_address)
@@ -78,6 +76,12 @@ def _l_currency_balance() -> uint256:
 
 @private
 @constant
+def _total_i_currency_balance() -> uint256:
+    return ERC1155(self.i_currency_address).totalBalanceOf(self)
+
+
+@private
+@constant
 def _i_currency_balance(_erc1155_id: uint256) -> uint256:
     return ERC1155(self.i_currency_address).balanceOf(self, _erc1155_id)
 
@@ -90,10 +94,22 @@ def _f_currency_balance(_erc1155_id: uint256) -> uint256:
 
 @private
 @constant
+def _total_f_currency_balance() -> uint256:
+    return ERC1155(self.f_currency_address).totalBalanceOf(self)
+
+
+@private
+@constant
+def _total_l_currency_balance() -> uint256:
+    return as_unitless_number(self._l_currency_balance()) + as_unitless_number(self._total_f_currency_balance())
+
+
+@private
+@constant
 def _exchange_rate() -> uint256:
-    if (as_unitless_number(self.total_l_currency_balance) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
+    if (as_unitless_number(self._total_l_currency_balance()) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
         return self.initial_exchange_rate
-    return as_unitless_number(self.total_l_currency_balance) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
+    return as_unitless_number(self._total_l_currency_balance()) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
 
 
 @private
@@ -106,6 +122,12 @@ def _estimated_pool_tokens(_l_currency_value: uint256) -> uint256:
 def _set_expiry_status(_sender: address, _expiry_label: string[3], _status: bool):
     assert _sender == self.operator
     self.expiries_offered[_expiry_label] = _status
+
+
+@public
+@constant
+def total_l_currency_balance() -> uint256:
+    return self._total_l_currency_balance()
 
 
 @public
@@ -194,8 +216,6 @@ def remove_expiry(_expiry_label: string[3]) -> bool:
 
 @public
 def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
-    # increment self.total_l_currency_balance
-    self.total_l_currency_balance += _l_currency_value
     # ask Dao to deposit l_tokens to self
     _external_call_successful: bool = Dao(self.owner).deposit_l_tokens_to_interest_pool(self.currency_address, msg.sender, _l_currency_value)
     assert _external_call_successful
@@ -238,8 +258,6 @@ def purchase_i_tokens(_expiry_label: string[3], _i_currency_value: uint256, _l_c
     assert self.sufi_currency_offered_expiries[self.i_currency_address][_expiry_label].has_id, "expiry does not have a valid id"
     # transfer l_tokens as fee from msg.sender to self
     if as_unitless_number(_l_currency_fee) > 0:
-        # increment self.total_l_currency_balance
-        self.total_l_currency_balance += _l_currency_fee
         _external_call_successful: bool = ERC20(self.l_currency_address).transferFrom(
             msg.sender, self, _l_currency_fee)
         assert _external_call_successful
@@ -263,12 +281,10 @@ def redeem_f_tokens(_expiry_label: string[3], _pool_currency_value: uint256) -> 
     _l_currency_transfer_value: uint256 = 0
     _current_f_currency_balance: uint256 = self._f_currency_balance(self.sufi_currency_offered_expiries[self.f_currency_address][_expiry_label].erc1155_id)
     # THIS IS AN IMPORANT ASSUMPTION FOR THIS VERSION!
-    assert as_unitless_number(self.total_l_currency_balance) >= as_unitless_number(_current_f_currency_balance), "l_token balance cannot be less than f_token balance"
+    assert as_unitless_number(self._l_currency_balance()) >= as_unitless_number(_current_f_currency_balance), "l_token balance cannot be less than f_token balance"
     if as_unitless_number(_current_f_currency_balance) < _f_currency_transfer_value:
         _f_currency_transfer_value = as_unitless_number(_current_f_currency_balance)
-        _l_currency_transfer_value = as_unitless_number(self.total_l_currency_balance) - as_unitless_number(_current_f_currency_balance)
-    # decrement self.total_l_currency_balance
-    self.total_l_currency_balance -= as_unitless_number(_f_currency_transfer_value) + as_unitless_number(_l_currency_transfer_value)
+        _l_currency_transfer_value = as_unitless_number(self._l_currency_balance()) - as_unitless_number(_current_f_currency_balance)
     # burn pool_tokens from msg.sender by self
     _external_call_successful: bool = ERC20(self.pool_currency_address).burnFrom(
         msg.sender, _pool_currency_value)

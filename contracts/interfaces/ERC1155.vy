@@ -42,6 +42,11 @@ def safeBatchTransferFrom(_from: address, _to: address, _ids: uint256[5], _value
 
 @constant
 @public
+def totalBalanceOf(_owner: address) -> uint256:
+    pass
+
+@constant
+@public
 def balanceOf(_owner: address, _id: uint256) -> uint256:
     pass
 

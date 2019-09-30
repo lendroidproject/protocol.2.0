@@ -74,11 +74,6 @@ def initial_exchange_rate() -> uint256:
 
 @constant
 @public
-def total_l_currency_balance() -> uint256:
-    pass
-
-@constant
-@public
 def lend_currency_address() -> address:
     pass
 

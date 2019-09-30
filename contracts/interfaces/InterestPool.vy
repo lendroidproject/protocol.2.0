@@ -6,6 +6,11 @@ def initialize(_operator: address, _name: string[64], _symbol: string[32], _init
 
 @constant
 @public
+def total_l_currency_balance() -> uint256:
+    pass
+
+@constant
+@public
 def exchange_rate() -> uint256:
     pass
 
@@ -82,11 +87,6 @@ def symbol() -> string[32]:
 @constant
 @public
 def initial_exchange_rate() -> uint256:
-    pass
-
-@constant
-@public
-def total_l_currency_balance() -> uint256:
     pass
 
 @constant
