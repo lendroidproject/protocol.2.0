@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _f_currency_address: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _lend_currency_address: address, _collateral_currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -47,18 +47,6 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
 def increment_i_tokens_offered(_expiry_label: string[3], _l_currency_value: uint256) -> bool:
     pass
 
-@public
-def decrement_i_tokens_offered(_expiry_label: string[3], _l_currency_value: uint256) -> bool:
-    pass
-
-@public
-def purchase_i_tokens(_expiry_label: string[3], _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
-    pass
-
-@public
-def redeem_f_tokens(_expiry_label: string[3], _pool_currency_value: uint256) -> bool:
-    pass
-
 @constant
 @public
 def owner() -> address:
@@ -91,7 +79,12 @@ def total_l_currency_balance() -> uint256:
 
 @constant
 @public
-def currency_address() -> address:
+def lend_currency_address() -> address:
+    pass
+
+@constant
+@public
+def collateral_currency_address() -> address:
     pass
 
 @constant
@@ -106,7 +99,12 @@ def i_currency_address() -> address:
 
 @constant
 @public
-def f_currency_address() -> address:
+def s_currency_address() -> address:
+    pass
+
+@constant
+@public
+def u_currency_address() -> address:
     pass
 
 @constant
