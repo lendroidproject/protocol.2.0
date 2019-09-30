@@ -29,7 +29,7 @@ s_currency_address: public(address)
 u_currency_address: public(address)
 pool_currency_address: public(address)
 
-expiries_offered: public(map(string[3], bool))
+expiries_offered: public(map(bytes32, bool))
 sufi_currency_offered_expiries: public(map(address, map(string[3], SUFITokenOfferedExpiryStat)))
 
 # ERC1155TokenReceiver interface variables
@@ -77,6 +77,12 @@ def initialize(_operator: address,
 
 @private
 @constant
+def _shield_hash(_expiry_label: string[3], _strike_price: uint256) -> bytes32:
+    return Dao(self.owner).shield_hash(self.lend_currency_address, self.collateral_currency_address, _strike_price, _expiry_label)
+
+
+@private
+@constant
 def _l_currency_balance() -> uint256:
     return ERC20(self.l_currency_address).balanceOf(self)
 
@@ -114,9 +120,10 @@ def _estimated_pool_tokens(_l_currency_value: uint256) -> uint256:
 
 
 @private
-def _set_expiry_status(_sender: address, _expiry_label: string[3], _status: bool):
+def _set_expiry_status(_sender: address, _expiry_label: string[3], _strike_price: uint256, _status: bool):
     assert _sender == self.operator
-    self.expiries_offered[_expiry_label] = _status
+    _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
+    self.expiries_offered[_shield_hash] = _status
 
 
 @public
@@ -175,13 +182,13 @@ def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5],
 
 
 @public
-def offer_new_expiry(_expiry_label: string[3]) -> bool:
-    self._set_expiry_status(msg.sender, _expiry_label, True)
+def offer_new_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
+    self._set_expiry_status(msg.sender, _expiry_label, _strike_price, True)
     _external_call_successful: bool = False
     _s_currency_expiry_id: uint256 = 0
     _u_currency_expiry_id: uint256 = 0
     _i_currency_expiry_id: uint256 = 0
-    _external_call_successful, _s_currency_expiry_id, _u_currency_expiry_id, _i_currency_expiry_id = Dao(self.owner).register_expiry_offer_from_underwriter_pool(self.lend_currency_address, self.collateral_currency_address, _expiry_label)
+    _external_call_successful, _s_currency_expiry_id, _u_currency_expiry_id, _i_currency_expiry_id = Dao(self.owner).register_expiry_offer_from_underwriter_pool(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _strike_price)
     assert _external_call_successful
     self.sufi_currency_offered_expiries[self.s_currency_address][_expiry_label] = SUFITokenOfferedExpiryStat({
         has_id: True,
@@ -200,9 +207,9 @@ def offer_new_expiry(_expiry_label: string[3]) -> bool:
 
 
 @public
-def remove_expiry(_expiry_label: string[3]) -> bool:
-    self._set_expiry_status(msg.sender, _expiry_label, False)
-    _external_call_successful: bool = Dao(self.owner).remove_expiry_offer_from_pool(_expiry_label)
+def remove_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
+    self._set_expiry_status(msg.sender, _expiry_label, _strike_price, False)
+    _external_call_successful: bool = Dao(self.owner).remove_expiry_offer_from_underwriter_pool(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _strike_price)
     assert _external_call_successful
 
     return True
@@ -213,7 +220,7 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
     # increment self.total_l_currency_balance
     self.total_l_currency_balance += _l_currency_value
     # ask Dao to deposit l_tokens to self
-    _external_call_successful: bool = Dao(self.owner).deposit_l_tokens_to_pool(self.lend_currency_address, msg.sender, _l_currency_value)
+    _external_call_successful: bool = Dao(self.owner).deposit_l_tokens_to_underwriter_pool(self.lend_currency_address, msg.sender, _l_currency_value)
     assert _external_call_successful
     # mint pool tokens to msg.sender
     _external_call_successful = ERC20(self.pool_currency_address).mintAndAuthorizeMinter(
@@ -224,15 +231,16 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
 
 
 @public
-def increment_i_tokens_offered(_expiry_label: string[3], _l_currency_value: uint256) -> bool:
+def increment_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
     # decrement self.total_l_currency_balance
     assert self.total_l_currency_balance >= _l_currency_value
     self.total_l_currency_balance -= _l_currency_value
     # validate sender
     assert msg.sender == self.operator
     # validate expiry
-    assert self.expiries_offered[_expiry_label] == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_s_and_u_currency(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _l_currency_value)
+    _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
+    assert self.expiries_offered[_shield_hash] == True, "expiry is not offered"
+    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_s_and_u_currency(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _strike_price, _l_currency_value)
     assert _external_call_successful
 
     return True

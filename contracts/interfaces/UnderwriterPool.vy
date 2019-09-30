@@ -32,11 +32,11 @@ def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5],
     pass
 
 @public
-def offer_new_expiry(_expiry_label: string[3]) -> bool:
+def offer_new_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
     pass
 
 @public
-def remove_expiry(_expiry_label: string[3]) -> bool:
+def remove_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
     pass
 
 @public
@@ -44,7 +44,7 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
     pass
 
 @public
-def increment_i_tokens_offered(_expiry_label: string[3], _l_currency_value: uint256) -> bool:
+def increment_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
     pass
 
 @constant
@@ -114,7 +114,7 @@ def pool_currency_address() -> address:
 
 @constant
 @public
-def expiries_offered(arg0: string[3]) -> bool:
+def expiries_offered(arg0: bytes32) -> bool:
     pass
 
 @constant

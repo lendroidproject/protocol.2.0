@@ -186,7 +186,7 @@ def offer_new_expiry(_expiry_label: string[3]) -> bool:
 @public
 def remove_expiry(_expiry_label: string[3]) -> bool:
     self._set_expiry_status(msg.sender, _expiry_label, False)
-    _external_call_successful: bool = Dao(self.owner).remove_expiry_offer_from_pool(_expiry_label)
+    _external_call_successful: bool = Dao(self.owner).remove_expiry_offer_from_interest_pool(_expiry_label)
     assert _external_call_successful
 
     return True
@@ -197,7 +197,7 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
     # increment self.total_l_currency_balance
     self.total_l_currency_balance += _l_currency_value
     # ask Dao to deposit l_tokens to self
-    _external_call_successful: bool = Dao(self.owner).deposit_l_tokens_to_pool(self.currency_address, msg.sender, _l_currency_value)
+    _external_call_successful: bool = Dao(self.owner).deposit_l_tokens_to_interest_pool(self.currency_address, msg.sender, _l_currency_value)
     assert _external_call_successful
     # mint pool tokens to msg.sender
     _external_call_successful = ERC20(self.pool_currency_address).mintAndAuthorizeMinter(
