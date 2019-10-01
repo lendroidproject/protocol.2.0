@@ -294,7 +294,7 @@ def purchase_s_tokens(_expiry_label: string[3], _strike_price: uint256, _s_curre
         _s_currency_value, EMPTY_BYTES32)
     assert _external_call_successful
     # transfer u_tokens from self to msg.sender
-    _external_call_successful: bool = ERC1155(self.u_currency_address).safeTransferFrom(
+    _external_call_successful = ERC1155(self.u_currency_address).safeTransferFrom(
         self, msg.sender,
         self.sufi_currency_offered_expiries[self.u_currency_address][_shield_hash].erc1155_id,
         _s_currency_value, EMPTY_BYTES32)
