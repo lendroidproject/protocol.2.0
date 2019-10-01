@@ -29,7 +29,7 @@ u_currency_address: public(address)
 pool_currency_address: public(address)
 
 expiries_offered: public(map(bytes32, bool))
-sufi_currency_offered_expiries: public(map(address, map(string[3], SUFITokenOfferedExpiryStat)))
+sufi_currency_offered_expiries: public(map(address, map(bytes32, SUFITokenOfferedExpiryStat)))
 
 # ERC1155TokenReceiver interface variables
 shouldReject: public(bool)
@@ -188,15 +188,16 @@ def offer_new_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
     _i_currency_expiry_id: uint256 = 0
     _external_call_successful, _s_currency_expiry_id, _u_currency_expiry_id, _i_currency_expiry_id = Dao(self.owner).register_expiry_offer_from_underwriter_pool(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _strike_price)
     assert _external_call_successful
-    self.sufi_currency_offered_expiries[self.s_currency_address][_expiry_label] = SUFITokenOfferedExpiryStat({
+    _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
+    self.sufi_currency_offered_expiries[self.s_currency_address][_shield_hash] = SUFITokenOfferedExpiryStat({
         has_id: True,
         erc1155_id: _s_currency_expiry_id
     })
-    self.sufi_currency_offered_expiries[self.u_currency_address][_expiry_label] = SUFITokenOfferedExpiryStat({
+    self.sufi_currency_offered_expiries[self.u_currency_address][_shield_hash] = SUFITokenOfferedExpiryStat({
         has_id: True,
         erc1155_id: _u_currency_expiry_id
     })
-    self.sufi_currency_offered_expiries[self.i_currency_address][_expiry_label] = SUFITokenOfferedExpiryStat({
+    self.sufi_currency_offered_expiries[self.i_currency_address][_shield_hash] = SUFITokenOfferedExpiryStat({
         has_id: True,
         erc1155_id: _i_currency_expiry_id
     })
@@ -236,6 +237,61 @@ def increment_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256,
     _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
     assert self.expiries_offered[_shield_hash] == True, "expiry is not offered"
     _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_s_and_u_currency(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _strike_price, _l_currency_value)
+    assert _external_call_successful
+
+    return True
+
+
+@public
+def decrement_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
+    # validate sender
+    assert msg.sender == self.operator
+    # validate expiry
+    _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
+    assert self.expiries_offered[_shield_hash] == True, "expiry is not offered"
+    _external_call_successful: bool = Dao(self.owner).l_currency_from_i_and_s_and_u_currency(self.lend_currency_address, self.collateral_currency_address, _expiry_label, _strike_price, _l_currency_value)
+    assert _external_call_successful
+
+    return True
+
+
+@public
+def purchase_i_tokens(_expiry_label: string[3], _strike_price: uint256, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+    # validate expiry
+    _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
+    assert self.expiries_offered[_shield_hash] == True, "expiry is not offered"
+    assert self.sufi_currency_offered_expiries[self.i_currency_address][_shield_hash].has_id, "expiry does not have a valid id"
+    # transfer l_tokens as fee from msg.sender to self
+    if as_unitless_number(_l_currency_fee) > 0:
+        _external_call_successful: bool = ERC20(self.l_currency_address).transferFrom(
+            msg.sender, self, _l_currency_fee)
+        assert _external_call_successful
+    # transfer i_tokens from self to msg.sender
+    _external_call_successful: bool = ERC1155(self.i_currency_address).safeTransferFrom(
+        self, msg.sender,
+        self.sufi_currency_offered_expiries[self.i_currency_address][_shield_hash].erc1155_id,
+        _i_currency_value, EMPTY_BYTES32)
+    assert _external_call_successful
+
+    return True
+
+
+@public
+def purchase_s_tokens(_expiry_label: string[3], _strike_price: uint256, _s_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+    # validate expiry
+    _shield_hash: bytes32 = self._shield_hash(_expiry_label, _strike_price)
+    assert self.expiries_offered[_shield_hash] == True, "expiry is not offered"
+    assert self.sufi_currency_offered_expiries[self.s_currency_address][_shield_hash].has_id, "expiry does not have a valid id"
+    # transfer l_tokens as fee from msg.sender to self
+    if as_unitless_number(_l_currency_fee) > 0:
+        _external_call_successful: bool = ERC20(self.l_currency_address).transferFrom(
+            msg.sender, self, _l_currency_fee)
+        assert _external_call_successful
+    # transfer i_tokens from self to msg.sender
+    _external_call_successful: bool = ERC1155(self.s_currency_address).safeTransferFrom(
+        self, msg.sender,
+        self.sufi_currency_offered_expiries[self.s_currency_address][_shield_hash].erc1155_id,
+        _s_currency_value, EMPTY_BYTES32)
     assert _external_call_successful
 
     return True

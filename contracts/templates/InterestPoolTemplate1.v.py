@@ -229,6 +229,8 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
 
 @public
 def increment_i_tokens_offered(_expiry_label: string[3], _l_currency_value: uint256) -> bool:
+    # validate _l_currency_value
+    assert self._l_currency_balance() >= _l_currency_value
     # validate sender
     assert msg.sender == self.operator
     # validate expiry

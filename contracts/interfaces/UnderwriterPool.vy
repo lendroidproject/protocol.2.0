@@ -47,6 +47,18 @@ def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
 def increment_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
     pass
 
+@public
+def decrement_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
+    pass
+
+@public
+def purchase_i_tokens(_expiry_label: string[3], _strike_price: uint256, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+    pass
+
+@public
+def purchase_s_tokens(_expiry_label: string[3], _strike_price: uint256, _s_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+    pass
+
 @constant
 @public
 def owner() -> address:
@@ -114,12 +126,12 @@ def expiries_offered(arg0: bytes32) -> bool:
 
 @constant
 @public
-def sufi_currency_offered_expiries__has_id(arg0: address, arg1: string[3]) -> bool:
+def sufi_currency_offered_expiries__has_id(arg0: address, arg1: bytes32) -> bool:
     pass
 
 @constant
 @public
-def sufi_currency_offered_expiries__erc1155_id(arg0: address, arg1: string[3]) -> uint256:
+def sufi_currency_offered_expiries__erc1155_id(arg0: address, arg1: bytes32) -> uint256:
     pass
 
 @constant

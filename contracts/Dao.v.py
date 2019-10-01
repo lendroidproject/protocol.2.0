@@ -62,7 +62,6 @@ ProtocolParameterExpiryUpdateNotification: event({_notification_key: indexed(str
 # Variables of the protocol.
 protocol_currency_address: public(address)
 owner: public(address)
-dai_per_s_currency: public(uint256)
 
 supported_expiry: public(map(timestamp, bool))
 expiry_to_label: public(map(timestamp, string[3]))
@@ -76,13 +75,13 @@ fi_offered_expiries: public(map(address, map(string[3], SUFITokenOfferedExpirySt
 underwriter_pools: public(map(address, UnderwriterPoolStat))
 currency_pairs: public(map(bytes32, CurrencyPairStat))
 su_offered_expiries: public(map(address, map(bytes32, SUFITokenOfferedExpiryStat)))
+su_currency_price_per_lend_currency: public(map(bytes32, uint256))
 
 
 @public
 def __init__(_protocol_currency_address: address):
     self.owner = msg.sender
     self.protocol_currency_address = _protocol_currency_address
-    self.dai_per_s_currency = 100
     # after init, need to set the following template addresses:
     #. currency_pool_template
     #. ERC20_template
@@ -312,6 +311,15 @@ def set_currency_pair_support(
         self.currency_pairs[_currency_pair_hash].is_supported = False
 
     log.CurrencyPairSupportNotification(_lend_currency_address, _collateral_currency_address, convert(_is_active, uint256))
+    return True
+
+
+@public
+def set_su_currency_price_per_lend_currency(_lend_currency_address: address, _collateral_currency_address: address, _label: string[3], _strike_price: uint256, _price: uint256) -> bool:
+    assert msg.sender == self.owner
+    _shield_hash: bytes32 = self._shield_hash(_lend_currency_address, _collateral_currency_address, _strike_price, _label)
+    self.su_currency_price_per_lend_currency[_shield_hash] = _price
+
     return True
 
 
@@ -546,6 +554,9 @@ def l_currency_to_i_and_s_and_u_currency(_lend_currency_address: address, _colla
     assert self.currencies[_collateral_currency_address].is_supported == True
     # burn l_token from interest_pool account
     self._burn_as_self_authorized_erc20(self.currencies[_lend_currency_address].l_currency_address, msg.sender, _value)
+    # calculate su currency quantitites to be minted
+    assert not as_unitless_number(self.su_currency_price_per_lend_currency[_shield_hash]) == 0, "SU currency price per lend currency has not been set"
+    _su_currencies_to_mint: uint256 = as_unitless_number(_value) / as_unitless_number(self.su_currency_price_per_lend_currency[_shield_hash])
     # mint i_token into interest_pool account
     self._mint_erc1155(
         self.currencies[_lend_currency_address].i_currency_address,
@@ -557,12 +568,55 @@ def l_currency_to_i_and_s_and_u_currency(_lend_currency_address: address, _colla
         self.currency_pairs[_currency_pair_hash].s_currency_address,
         self.su_offered_expiries[self.currency_pairs[_currency_pair_hash].s_currency_address][_shield_hash].erc1155_id,
         msg.sender,
-        1
+        _su_currencies_to_mint
     )
     self._mint_erc1155(
         self.currency_pairs[_currency_pair_hash].u_currency_address,
         self.su_offered_expiries[self.currency_pairs[_currency_pair_hash].u_currency_address][_shield_hash].erc1155_id,
         msg.sender,
-        1
+        _su_currencies_to_mint
     )
+    return True
+
+
+@public
+def l_currency_from_i_and_s_and_u_currency(_lend_currency_address: address, _collateral_currency_address: address, _expiry_label: string[3], _strike_price: uint256, _value: uint256) -> bool:
+    # validate i token type exists for expiry
+    assert self.fi_offered_expiries[self.currencies[_lend_currency_address].i_currency_address][_expiry_label].has_id
+    # validate s and u token types exist for currency pair
+    _currency_pair_hash: bytes32 = self._currency_pair_hash(_lend_currency_address, _collateral_currency_address)
+    _shield_hash: bytes32 = self._shield_hash(_lend_currency_address, _collateral_currency_address, _strike_price, _expiry_label)
+    assert self.su_offered_expiries[self.currency_pairs[_currency_pair_hash].s_currency_address][_shield_hash].has_id
+    assert self.su_offered_expiries[self.currency_pairs[_currency_pair_hash].u_currency_address][_shield_hash].has_id
+    # validate underwriter_pool
+    self._validate_underwriter_pool(msg.sender)
+    # validate _lend_currency_address
+    assert self.currencies[_lend_currency_address].is_supported == True
+    # validate _collateral_currency_address
+    assert self.currencies[_collateral_currency_address].is_supported == True
+    # burn l_token from interest_pool account
+    self._mint_and_self_authorize_erc20(self.currencies[_lend_currency_address].l_currency_address, msg.sender, _value)
+    # calculate su currency quantitites to be minted
+    assert not as_unitless_number(self.su_currency_price_per_lend_currency[_shield_hash]) == 0, "SU currency price per lend currency has not been set"
+    _su_currencies_to_burn: uint256 = as_unitless_number(_value) / as_unitless_number(self.su_currency_price_per_lend_currency[_shield_hash])
+    # mint i_token into interest_pool account
+    self._burn_erc1155(
+        self.currencies[_lend_currency_address].i_currency_address,
+        self.fi_offered_expiries[self.currencies[_lend_currency_address].i_currency_address][_expiry_label].erc1155_id,
+        msg.sender,
+        _value
+    )
+    self._burn_erc1155(
+        self.currency_pairs[_currency_pair_hash].s_currency_address,
+        self.su_offered_expiries[self.currency_pairs[_currency_pair_hash].s_currency_address][_shield_hash].erc1155_id,
+        msg.sender,
+        _su_currencies_to_burn
+    )
+    self._burn_erc1155(
+        self.currency_pairs[_currency_pair_hash].u_currency_address,
+        self.su_offered_expiries[self.currency_pairs[_currency_pair_hash].u_currency_address][_shield_hash].erc1155_id,
+        msg.sender,
+        _su_currencies_to_burn
+    )
+
     return True

@@ -34,6 +34,10 @@ def set_currency_pair_support(_lend_currency_address: address, _collateral_curre
     pass
 
 @public
+def set_su_currency_price_per_lend_currency(_lend_currency_address: address, _collateral_currency_address: address, _label: string[3], _strike_price: uint256, _price: uint256) -> bool:
+    pass
+
+@public
 def set_expiry_support(_expiry_timestamp: uint256(sec, positional), _expiry_label: string[3], _is_active: bool) -> bool:
     pass
 
@@ -85,6 +89,10 @@ def deposit_l_tokens_to_underwriter_pool(_currency_address: address, _from: addr
 def l_currency_to_i_and_s_and_u_currency(_lend_currency_address: address, _collateral_currency_address: address, _expiry_label: string[3], _strike_price: uint256, _value: uint256) -> bool:
     pass
 
+@public
+def l_currency_from_i_and_s_and_u_currency(_lend_currency_address: address, _collateral_currency_address: address, _expiry_label: string[3], _strike_price: uint256, _value: uint256) -> bool:
+    pass
+
 @constant
 @public
 def protocol_currency_address() -> address:
@@ -93,11 +101,6 @@ def protocol_currency_address() -> address:
 @constant
 @public
 def owner() -> address:
-    pass
-
-@constant
-@public
-def dai_per_s_currency() -> uint256:
     pass
 
 @constant
@@ -248,4 +251,9 @@ def su_offered_expiries__has_id(arg0: address, arg1: bytes32) -> bool:
 @constant
 @public
 def su_offered_expiries__erc1155_id(arg0: address, arg1: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def su_currency_price_per_lend_currency(arg0: bytes32) -> uint256:
     pass
