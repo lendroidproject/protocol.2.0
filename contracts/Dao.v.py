@@ -54,6 +54,16 @@ struct LoanMarketStat:
     expiry: timestamp
     market_address: address
 
+
+struct PoolOfferRegistrationStat:
+    minimum_fee: uint256
+    minimum_interval: timestamp
+    fee_multiplier: uint256
+    fee_multiplier_decimals: uint256
+    last_registered_at: timestamp
+    last_paid_fee: uint256
+
+
 # Events of the protocol.
 CurrencySupportNotification: event({_address: indexed(address), _notification_value: uint256})
 CurrencyPairSupportNotification: event({_lend_currency_address: indexed(address), _collateral_currency_address: indexed(address), _notification_value: uint256})
@@ -77,17 +87,30 @@ currency_pairs: public(map(bytes32, CurrencyPairStat))
 su_offered_expiries: public(map(address, map(bytes32, SUFITokenOfferedExpiryStat)))
 su_currency_price_per_lend_currency: public(map(bytes32, uint256))
 
+# pool_type => PoolOfferRegistrationStat
+offer_registrations: public(map(uint256, PoolOfferRegistrationStat))
+
+POOL_TYPE_INTEREST_POOL: public(uint256)
+POOL_TYPE_UNDERWRITER_POOL: public(uint256)
+
 
 @public
 def __init__(_protocol_currency_address: address):
     self.owner = msg.sender
     self.protocol_currency_address = _protocol_currency_address
+    self.POOL_TYPE_INTEREST_POOL = 1
+    self.POOL_TYPE_UNDERWRITER_POOL = 2
     # after init, need to set the following template addresses:
     #. currency_pool_template
     #. ERC20_template
     #. ERC1155_template
     #. InterestPool_template
     #. UnderwriterPool_template
+
+
+@private
+@constant
+
 
 
 @private
@@ -171,6 +194,11 @@ def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value
 
 
 @private
+def _validate_pool_type(_pool_type: uint256):
+    assert _pool_type == self.POOL_TYPE_INTEREST_POOL or _pool_type == self.POOL_TYPE_UNDERWRITER_POOL, "invalid pool type"
+
+
+@private
 def _validate_interest_pool(_pool_address: address):
     # validate pool address
     assert _pool_address.is_contract
@@ -228,6 +256,23 @@ def l_currency_balance(_currency_address: address) -> uint256:
 def set_template(_label: string[64], _address: address) -> bool:
     assert msg.sender == self.owner
     self.templates[_label] = _address
+    return True
+
+
+@public
+def set_pool_offer_registration_stat(_pool_type: uint256, _fee_multiplier: uint256,
+    _minimum_fee: uint256, _fee_multiplier_decimals: uint256,
+    _minimum_interval: timestamp, _last_registered_at: timestamp, _last_paid_fee: uint256
+    ) -> bool:
+    self._validate_pool_type(_pool_type)
+    self.offer_registrations[_pool_type] = PoolOfferRegistrationStat({
+        minimum_fee: _minimum_fee,
+        minimum_interval: _minimum_interval,
+        fee_multiplier: _fee_multiplier,
+        fee_multiplier_decimals: _fee_multiplier_decimals,
+        last_registered_at: _last_registered_at,
+        last_paid_fee: _last_paid_fee
+    })
     return True
 
 
@@ -373,11 +418,39 @@ def register_interest_pool(_currency_address: address, _name: string[62], _symbo
     return True
 
 
+@private
+@constant
+def _duration_since_last_registration(_pool_type: uint256) -> uint256:
+    return as_unitless_number(block.timestamp - self.offer_registrations[_pool_type].last_registered_at)
+
+
+@private
+@constant
+def _offer_creation_fee(_pool_type: uint256) -> uint256:
+    if self._duration_since_last_registration(_pool_type) >= self.offer_registrations[_pool_type].minimum_interval:
+        return self.offer_registrations[_pool_type].minimum_fee
+    else:
+        return as_unitless_number(self.offer_registrations[_pool_type].last_paid_fee) * as_unitless_number(self.offer_registrations[_pool_type].fee_multiplier) / self.offer_registrations[_pool_type].fee_multiplier_decimals
+
+
+@private
+def _accept_fee_for_offer_creation(_pool_type: uint256, _from: address):
+    self._validate_pool_type(_pool_type)
+    _fee_amount: uint256 = self._offer_creation_fee(_pool_type)
+    if as_unitless_number(_fee_amount) > 0:
+        self._deposit_erc20(self.protocol_currency_address, _from, self, _fee_amount)
+
+
 @public
-def register_expiry_offer_from_interest_pool(_currency_address: address, _label: string[3]) -> (bool, uint256, uint256):
+def register_expiry_offer_from_interest_pool(_pool_operator: address, _currency_address: address, _label: string[3]) -> (bool, uint256, uint256):
     self._set_expiry_offer_status_from_interest_pool(msg.sender, _label, True)
     _f_currency_expiry_id: uint256 = self.fi_offered_expiries[self.currencies[_currency_address].f_currency_address][_label].erc1155_id
     _i_currency_expiry_id: uint256 = self.fi_offered_expiries[self.currencies[_currency_address].i_currency_address][_label].erc1155_id
+    # pay lst as fee to create fi currency if it has not been created
+    if not self.fi_offered_expiries[self.currencies[_currency_address].f_currency_address][_label].has_id or \
+       not self.fi_offered_expiries[self.currencies[_currency_address].i_currency_address][_label].has_id:
+       self._accept_fee_for_offer_creation(self.POOL_TYPE_INTEREST_POOL, _pool_operator)
+
     if not self.fi_offered_expiries[self.currencies[_currency_address].f_currency_address][_label].has_id:
         _f_currency_expiry_id = self._create_erc1155_type(self.currencies[_currency_address].f_currency_address, _label)
         self.fi_offered_expiries[self.currencies[_currency_address].f_currency_address][_label] = SUFITokenOfferedExpiryStat({
