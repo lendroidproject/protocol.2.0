@@ -42,11 +42,11 @@ def register_expiry_from_interest_pool(_pool_hash: bytes32, _expiry: uint256(sec
     pass
 
 @public
-def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _value: uint256) -> bool:
+def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_from_i_and_f_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _value: uint256) -> bool:
+def l_currency_from_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
     pass
 
 @public
@@ -54,11 +54,11 @@ def register_expiry_from_underwriter_pool(_pool_hash: bytes32, _expiry: uint256(
     pass
 
 @public
-def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
+def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
+def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
     pass
 
 @constant

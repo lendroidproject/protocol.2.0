@@ -232,7 +232,9 @@ def increment_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
     assert msg.sender == self.operator
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_f_currency(self.pool_hash, _expiry, _l_currency_value)
+    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_f_currency(
+        self.pool_hash, self.expiries[_expiry].i_currency_hash,
+        self.expiries[_expiry].f_currency_hash, _l_currency_value)
     assert _external_call_successful
 
     return True
@@ -244,7 +246,9 @@ def decrement_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
     assert msg.sender == self.operator
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_from_i_and_f_currency(self.pool_hash, _expiry, _l_currency_value)
+    _external_call_successful: bool = Dao(self.owner).l_currency_from_i_and_f_currency(
+        self.pool_hash, self.expiries[_expiry].i_currency_hash,
+        self.expiries[_expiry].f_currency_hash, _l_currency_value)
     assert _external_call_successful
 
     return True

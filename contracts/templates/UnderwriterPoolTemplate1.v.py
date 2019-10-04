@@ -248,7 +248,10 @@ def increment_i_currency_supply(_expiry: timestamp, _underlying_address: address
     # validate expiry
     _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
     assert self.expiries[_expiry_hash].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_s_and_u_currency(self.pool_hash, _expiry, _underlying_address, _strike_price, _l_currency_value)
+    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_s_and_u_currency(
+        self.pool_hash, self.expiries[_expiry_hash].s_currency_hash,
+        self.expiries[_expiry_hash].u_currency_hash,
+        self.expiries[_expiry_hash].i_currency_hash, _l_currency_value)
     assert _external_call_successful
 
     return True
@@ -261,7 +264,10 @@ def decrement_i_currency_supply(_expiry: timestamp, _underlying_address: address
     # validate expiry
     _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
     assert self.expiries[_expiry_hash].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_from_i_and_s_and_u_currency(self.pool_hash, _expiry, _underlying_address, _strike_price, _l_currency_value)
+    _external_call_successful: bool = Dao(self.owner).l_currency_from_i_and_s_and_u_currency(
+        self.pool_hash, self.expiries[_expiry_hash].s_currency_hash,
+        self.expiries[_expiry_hash].u_currency_hash,
+        self.expiries[_expiry_hash].i_currency_hash, _l_currency_value)
     assert _external_call_successful
 
     return True
