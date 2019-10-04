@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _lend_currency_address: address, _collateral_currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_pool_type: uint256, _pool_hash: bytes32, _operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -32,31 +32,41 @@ def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5],
     pass
 
 @public
-def offer_new_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
+def register_expiry(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def remove_expiry(_expiry_label: string[3], _strike_price: uint256) -> bool:
+def remove_expiry(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def purchase_pool_tokens(_l_currency_value: uint256) -> bool:
+def purchase_pool_currency(_l_currency_value: uint256) -> bool:
     pass
 
 @public
-def increment_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
+def increment_i_currency_supply(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _l_currency_value: uint256) -> bool:
     pass
 
 @public
-def decrement_i_tokens_offered(_expiry_label: string[3], _strike_price: uint256, _l_currency_value: uint256) -> bool:
+def decrement_i_currency_supply(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _l_currency_value: uint256) -> bool:
     pass
 
 @public
-def purchase_i_tokens(_expiry_label: string[3], _strike_price: uint256, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+def purchase_i_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
     pass
 
 @public
-def purchase_s_tokens(_expiry_label: string[3], _strike_price: uint256, _s_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+def purchase_s_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_currency_value: uint256, _l_currency_fee: uint256) -> bool:
+    pass
+
+@constant
+@public
+def pool_type() -> uint256:
+    pass
+
+@constant
+@public
+def pool_hash() -> bytes32:
     pass
 
 @constant
@@ -86,12 +96,7 @@ def initial_exchange_rate() -> uint256:
 
 @constant
 @public
-def lend_currency_address() -> address:
-    pass
-
-@constant
-@public
-def collateral_currency_address() -> address:
+def currency_address() -> address:
     pass
 
 @constant
@@ -121,17 +126,47 @@ def pool_currency_address() -> address:
 
 @constant
 @public
-def expiries_offered(arg0: bytes32) -> bool:
+def expiries__expiry_timestamp(arg0: bytes32) -> uint256(sec, positional):
     pass
 
 @constant
 @public
-def sufi_currency_offered_expiries__has_id(arg0: address, arg1: bytes32) -> bool:
+def expiries__i_currency_hash(arg0: bytes32) -> bytes32:
     pass
 
 @constant
 @public
-def sufi_currency_offered_expiries__erc1155_id(arg0: address, arg1: bytes32) -> uint256:
+def expiries__i_currency_id(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def expiries__s_currency_hash(arg0: bytes32) -> bytes32:
+    pass
+
+@constant
+@public
+def expiries__s_currency_id(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def expiries__u_currency_hash(arg0: bytes32) -> bytes32:
+    pass
+
+@constant
+@public
+def expiries__u_currency_id(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def expiries__is_active(arg0: bytes32) -> bool:
+    pass
+
+@constant
+@public
+def expiries__hash(arg0: bytes32) -> bytes32:
     pass
 
 @constant

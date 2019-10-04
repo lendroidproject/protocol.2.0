@@ -53,11 +53,3 @@ def update_total_supplied(_amount: uint256) -> bool:
     self.total_supplied += as_unitless_number(_amount)
 
     return True
-
-
-# @public
-# def borrow_currency(_borrower: address, _amount: uint256):
-#     assert as_unitless_number(self.total_supplied) - as_unitless_number(self.total_borrowed) >= as_unitless_number(_amount)
-#     _currency_transfer: bool = ERC20(self.CURRENCY_ADDRESS).transfer(_borrower, _amount)
-#     assert _currency_transfer
-#     self.total_borrowed += as_unitless_number(_amount)

@@ -1,24 +1,16 @@
-# Events
-
-CurrencySupportNotification: event({_address: address, _notification_value: uint256})
-CurrencyPairSupportNotification: event({_lend_currency_address: address, _collateral_currency_address: address, _notification_value: uint256})
-ProtocolParameterExpiryUpdateNotification: event({_notification_key: string[64], _timestamp: uint256(sec, positional), _notification_value: uint256})
-
 # Functions
 
 @constant
 @public
-def shield_hash(_lend_currency_address: address, _underlying_currency_address: address, _strike_price: uint256, _expiry_label: string[3]) -> bytes32:
+def offer_registration_fee(_pool_type: uint256) -> uint256:
     pass
 
-@constant
 @public
-def sufi_currency_id_by_expiry(_sufi_currency_address: address, _expiry_label: string[3]) -> uint256:
+def set_expiry_support(_timestamp: uint256(sec, positional), _label: string[3], _is_active: bool) -> bool:
     pass
 
-@constant
 @public
-def l_currency_balance(_currency_address: address) -> uint256:
+def set_currency_support(_currency_address: address, _is_active: bool, _pool_type: uint256, _currency_name: string[64], _currency_symbol: string[32], _currency_decimals: uint256, _supply: uint256) -> bool:
     pass
 
 @public
@@ -26,71 +18,47 @@ def set_template(_label: string[64], _address: address) -> bool:
     pass
 
 @public
-def set_currency_support(_currency_address: address, _is_active: bool, _currency_name: string[64], _currency_symbol: string[32], _currency_decimals: uint256, _supply: uint256) -> bool:
+def set_offer_registration_fee_lookup(_pool_type: uint256, _fee_multiplier: uint256, _minimum_fee: uint256, _fee_multiplier_decimals: uint256, _minimum_interval: uint256(sec, positional), _last_registered_at: uint256(sec, positional), _last_paid_fee: uint256) -> bool:
     pass
 
 @public
-def set_currency_pair_support(_lend_currency_address: address, _collateral_currency_address: address, _is_active: bool) -> bool:
+def set_shield_currency_price(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
     pass
 
 @public
-def set_su_currency_price_per_lend_currency(_lend_currency_address: address, _collateral_currency_address: address, _label: string[3], _strike_price: uint256, _price: uint256) -> bool:
+def currency_to_l_currency(_currency_address: address, _value: uint256) -> bool:
     pass
 
 @public
-def set_expiry_support(_expiry_timestamp: uint256(sec, positional), _expiry_label: string[3], _is_active: bool) -> bool:
+def register_pool(_pool_type: uint256, _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bytes32:
     pass
 
 @public
-def l_currency_from_original_currency(_currency_address: address, _value: uint256) -> bool:
+def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
     pass
 
 @public
-def register_interest_pool(_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bool:
+def register_expiry_from_interest_pool(_pool_hash: bytes32, _expiry: uint256(sec, positional)) -> (bool, bytes32, bytes32, uint256, uint256):
     pass
 
 @public
-def register_expiry_offer_from_interest_pool(_currency_address: address, _label: string[3]) -> (bool, uint256, uint256):
+def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _value: uint256) -> bool:
     pass
 
 @public
-def remove_expiry_offer_from_interest_pool(_label: string[3]) -> bool:
+def l_currency_from_i_and_f_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _value: uint256) -> bool:
     pass
 
 @public
-def deposit_l_tokens_to_interest_pool(_currency_address: address, _from: address, _value: uint256) -> bool:
+def register_expiry_from_underwriter_pool(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (bool, bytes32, bytes32, bytes32, uint256, uint256, uint256):
     pass
 
 @public
-def l_currency_to_i_and_f_currency(_currency_address: address, _expiry_label: string[3], _value: uint256) -> bool:
+def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_from_i_and_f_currency(_currency_address: address, _expiry_label: string[3], _value: uint256) -> bool:
-    pass
-
-@public
-def register_underwriter_pool(_lend_currency_address: address, _collateral_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bool:
-    pass
-
-@public
-def register_expiry_offer_from_underwriter_pool(_lend_currency_address: address, _collateral_currency_address: address, _label: string[3], _strike_price: uint256) -> (bool, uint256, uint256, uint256):
-    pass
-
-@public
-def remove_expiry_offer_from_underwriter_pool(_lend_currency_address: address, _collateral_currency_address: address, _expiry_label: string[3], _strike_price: uint256) -> bool:
-    pass
-
-@public
-def deposit_l_tokens_to_underwriter_pool(_currency_address: address, _from: address, _value: uint256) -> bool:
-    pass
-
-@public
-def l_currency_to_i_and_s_and_u_currency(_lend_currency_address: address, _collateral_currency_address: address, _expiry_label: string[3], _strike_price: uint256, _value: uint256) -> bool:
-    pass
-
-@public
-def l_currency_from_i_and_s_and_u_currency(_lend_currency_address: address, _collateral_currency_address: address, _expiry_label: string[3], _strike_price: uint256, _value: uint256) -> bool:
+def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @constant
@@ -105,62 +73,22 @@ def owner() -> address:
 
 @constant
 @public
-def supported_expiry(arg0: uint256(sec, positional)) -> bool:
+def expiries__expiry_timestamp(arg0: uint256(sec, positional)) -> uint256(sec, positional):
     pass
 
 @constant
 @public
-def expiry_to_label(arg0: uint256(sec, positional)) -> string[3]:
+def expiries__expiry_label(arg0: uint256(sec, positional)) -> string[3]:
     pass
 
 @constant
 @public
-def label_to_expiry(arg0: string[3]) -> uint256(sec, positional):
+def expiries__is_active(arg0: uint256(sec, positional)) -> bool:
     pass
 
 @constant
 @public
-def supported_currencies(arg0: address) -> bool:
-    pass
-
-@constant
-@public
-def currency_pools(arg0: address) -> address:
-    pass
-
-@constant
-@public
-def templates(arg0: string[64]) -> address:
-    pass
-
-@constant
-@public
-def interest_pools__name(arg0: address) -> string[64]:
-    pass
-
-@constant
-@public
-def interest_pools__is_active(arg0: address) -> bool:
-    pass
-
-@constant
-@public
-def interest_pools__expiries_offered__is_active(arg0: address, arg1: string[3]) -> bool:
-    pass
-
-@constant
-@public
-def interest_pools__expiries_offered__has_id(arg0: address, arg1: string[3]) -> bool:
-    pass
-
-@constant
-@public
-def interest_pools__expiries_offered__erc1155_id(arg0: address, arg1: string[3]) -> uint256:
-    pass
-
-@constant
-@public
-def currencies__pool_address(arg0: address) -> address:
+def currencies__currency_address(arg0: address) -> address:
     pass
 
 @constant
@@ -180,80 +108,105 @@ def currencies__f_currency_address(arg0: address) -> address:
 
 @constant
 @public
-def currencies__is_supported(arg0: address) -> bool:
+def currencies__s_currency_address(arg0: address) -> address:
     pass
 
 @constant
 @public
-def fi_offered_expiries__has_id(arg0: address, arg1: string[3]) -> bool:
+def currencies__u_currency_address(arg0: address) -> address:
     pass
 
 @constant
 @public
-def fi_offered_expiries__erc1155_id(arg0: address, arg1: string[3]) -> uint256:
+def templates(arg0: string[64]) -> address:
     pass
 
 @constant
 @public
-def underwriter_pools__name(arg0: address) -> string[64]:
+def pools__pool_type(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def underwriter_pools__is_active(arg0: address) -> bool:
+def pools__currency_address(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def underwriter_pools__expiries_offered__is_active(arg0: address, arg1: bytes32) -> bool:
+def pools__pool_name(arg0: bytes32) -> string[64]:
     pass
 
 @constant
 @public
-def underwriter_pools__expiries_offered__has_id(arg0: address, arg1: bytes32) -> bool:
+def pools__pool_address(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def underwriter_pools__expiries_offered__erc1155_id(arg0: address, arg1: bytes32) -> uint256:
+def pools__pool_operator(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def currency_pairs__lend_currency_address(arg0: bytes32) -> address:
+def pools__hash(arg0: bytes32) -> bytes32:
     pass
 
 @constant
 @public
-def currency_pairs__collateral_currency_address(arg0: bytes32) -> address:
+def offer_registration_fee_lookups__minimum_fee(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def currency_pairs__s_currency_address(arg0: bytes32) -> address:
+def offer_registration_fee_lookups__minimum_interval(arg0: uint256) -> uint256(sec, positional):
     pass
 
 @constant
 @public
-def currency_pairs__u_currency_address(arg0: bytes32) -> address:
+def offer_registration_fee_lookups__fee_multiplier(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def currency_pairs__is_supported(arg0: bytes32) -> bool:
+def offer_registration_fee_lookups__fee_multiplier_decimals(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def su_offered_expiries__has_id(arg0: address, arg1: bytes32) -> bool:
+def offer_registration_fee_lookups__last_registered_at(arg0: uint256) -> uint256(sec, positional):
     pass
 
 @constant
 @public
-def su_offered_expiries__erc1155_id(arg0: address, arg1: bytes32) -> uint256:
+def offer_registration_fee_lookups__last_paid_fee(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def su_currency_price_per_lend_currency(arg0: bytes32) -> uint256:
+def shield_currency_prices(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def REGISTRATION_TYPE_POOL() -> uint256:
+    pass
+
+@constant
+@public
+def REGISTRATION_TYPE_OFFER() -> uint256:
+    pass
+
+@constant
+@public
+def POOL_TYPE_CURRENCY_POOL() -> uint256:
+    pass
+
+@constant
+@public
+def POOL_TYPE_INTEREST_POOL() -> uint256:
+    pass
+
+@constant
+@public
+def POOL_TYPE_UNDERWRITER_POOL() -> uint256:
     pass
