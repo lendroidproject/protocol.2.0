@@ -54,6 +54,13 @@ struct MultiFungibleCurrency:
     hash: bytes32
 
 
+struct Position:
+    borrower: address
+    expiry_timestamp: timestamp
+    multi_fungible_currency_hash: bytes32
+    status: uint256
+    id: uint256
+
 # Events of the protocol.
 
 # Variables of the protocol.
@@ -73,6 +80,16 @@ offer_registration_fee_lookups: public(map(uint256, OfferRegistrationFeeLookup))
 multi_fungible_currencies: map(bytes32, MultiFungibleCurrency)
 # currency_hash => quantity per currency_address
 shield_currency_prices: public(map(bytes32, uint256))
+# loan_id
+last_position_id: public(uint256)
+# expiry => (loan_id => Loan)
+positions: public(map(uint256, Position))
+# borrower_address => loan_count
+borrow_position_count: public(map(address, uint256))
+# borrower_address => (loan_id => borrow_position_count)
+borrow_position_index: public(map(address, map(uint256, uint256)))
+# borrower_address => (borrow_position_count => loan_id)
+borrow_position: public(map(address, map(uint256, uint256)))
 
 REGISTRATION_TYPE_POOL: public(uint256)
 REGISTRATION_TYPE_OFFER: public(uint256)
@@ -80,6 +97,10 @@ REGISTRATION_TYPE_OFFER: public(uint256)
 POOL_TYPE_CURRENCY_POOL: public(uint256)
 POOL_TYPE_INTEREST_POOL: public(uint256)
 POOL_TYPE_UNDERWRITER_POOL: public(uint256)
+
+LOAN_STATUS_ACTIVE: public(uint256)
+LOAN_STATUS_LIQUIDATED: public(uint256)
+LOAN_STATUS_CLOSED: public(uint256)
 
 
 @public
@@ -91,6 +112,9 @@ def __init__(_protocol_currency_address: address):
     self.POOL_TYPE_CURRENCY_POOL = 1
     self.POOL_TYPE_INTEREST_POOL = 2
     self.POOL_TYPE_UNDERWRITER_POOL = 3
+    self.LOAN_STATUS_ACTIVE = 1
+    self.LOAN_STATUS_LIQUIDATED = 2
+    self.LOAN_STATUS_CLOSED = 3
     # after init, need to set the following template addresses:
     #. currency_pool_template
     #. ERC20_template
@@ -151,6 +175,20 @@ def _multi_fungible_currency_hash(parent_currency_address: address, _currency_ad
     )
 
 
+@private
+@constant
+def _loan_hash(_borrower: address, _expiry: timestamp, _multi_fungible_currency_hash: bytes32, _loan_id: uint256) -> bytes32:
+    return keccak256(
+        concat(
+            convert(self, bytes32),
+            convert(_borrower, bytes32),
+            convert(_expiry, bytes32),
+            _multi_fungible_currency_hash,
+            convert(_loan_id, bytes32)
+        )
+    )
+
+
 # internal validations
 
 
@@ -179,6 +217,13 @@ def _validate_currency(_currency_address: address):
 def _deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256):
     _external_call_successful: bool = ERC20(_currency_address).transferFrom(
         _from, _to, _value)
+    assert _external_call_successful
+
+
+@private
+def _send_erc20(_currency_address: address, _to: address, _value: uint256):
+    _external_call_successful: bool = ERC20(_currency_address).transfer(
+        _to, _value)
     assert _external_call_successful
 
 
@@ -646,5 +691,91 @@ def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32
         msg.sender,
         _value
     )
+
+    return True
+
+
+@private
+def _create_position(_borrower: address, _s_hash: bytes32):
+    _expiry: timestamp = self.multi_fungible_currencies[_s_hash].expiry_timestamp
+    self.last_position_id += 1
+    _position_id: uint256 = self.last_position_id
+
+    self.positions[_position_id] = Position({
+        borrower: _borrower,
+        expiry_timestamp: _expiry,
+        multi_fungible_currency_hash: _s_hash,
+        status: self.LOAN_STATUS_ACTIVE,
+        id: _position_id
+    })
+    self.borrow_position_count[_borrower] += 1
+    self.borrow_position_index[_borrower][_position_id] = self.borrow_position_count[_borrower]
+    self.borrow_position[_borrower][self.borrow_position_count[_borrower]] = _position_id
+
+
+@private
+def _close_position(_position_id: uint256):
+    self.positions[_position_id].status = self.LOAN_STATUS_CLOSED
+    _borrower: address = self.positions[_position_id].borrower
+    _current_position_index: uint256 = self.borrow_position_index[_borrower][_position_id]
+    _last_position_index: uint256 = self.borrow_position_count[_borrower]
+    _last_position_id: uint256 = self.borrow_position[_borrower][_last_position_index]
+    self.borrow_position[_borrower][_current_position_index] = self.borrow_position[_borrower][_last_position_index]
+    clear(self.borrow_position[_borrower][_last_position_index])
+    clear(self.borrow_position_index[_borrower][_position_id])
+    self.borrow_position_index[_borrower][_last_position_id] = _current_position_index
+    self.borrow_position_count[_borrower] -= 1
+
+
+@public
+def avail_loan(_s_hash: bytes32) -> bool:
+    assert self.multi_fungible_currencies[_s_hash].has_id
+    _lend_currency_address: address = self.multi_fungible_currencies[_s_hash].currency_address
+    _borrow_currency_address: address = self.multi_fungible_currencies[_s_hash].underlying_address
+    self._validate_currency(_lend_currency_address)
+    self._validate_currency(_borrow_currency_address)
+    # create position
+    self._create_position(msg.sender, _s_hash)
+    # transfer l_borrow_currency from borrower to self
+    _collateral_amount: uint256 = as_unitless_number(self.shield_currency_prices[_s_hash]) / as_unitless_number(self.multi_fungible_currencies[_s_hash].strike_price)
+    self._deposit_erc20(self.currencies[_borrow_currency_address].l_currency_address,
+        msg.sender, self, _collateral_amount)
+    # transfer lend_currency to msg.sender
+    _lend_pool_hash: bytes32 = self._pool_hash(self.POOL_TYPE_CURRENCY_POOL, _lend_currency_address, self)
+    # release_currency from currency pool
+    _external_call_successful: bool = ContinuousCurrencyPoolERC20(self.pools[_lend_pool_hash].pool_address).release_currency(
+        msg.sender,
+        as_unitless_number(self.multi_fungible_currencies[_s_hash].strike_price))
+    assert _external_call_successful
+
+    return True
+
+
+@public
+def repay_loan(_position_id: uint256) -> bool:
+    # validate borrower
+    assert self.positions[_position_id].borrower == msg.sender
+    # validate position currencies
+    _s_hash: bytes32 = self.positions[_position_id].multi_fungible_currency_hash
+    assert self.multi_fungible_currencies[_s_hash].has_id
+    _lend_currency_address: address = self.multi_fungible_currencies[_s_hash].currency_address
+    _borrow_currency_address: address = self.multi_fungible_currencies[_s_hash].underlying_address
+    self._validate_currency(_lend_currency_address)
+    self._validate_currency(_borrow_currency_address)
+    # close position
+    self._close_position(_position_id)
+    # transfer l_borrow_currency to msg.sender
+    _collateral_amount: uint256 = as_unitless_number(self.shield_currency_prices[_s_hash]) / as_unitless_number(self.multi_fungible_currencies[_s_hash].strike_price)
+    self._send_erc20(self.currencies[_borrow_currency_address].l_currency_address,
+        msg.sender, _collateral_amount)
+    # transfer lend_currency from msg.sender to currency_pool
+    _lend_pool_hash: bytes32 = self._pool_hash(self.POOL_TYPE_CURRENCY_POOL, _lend_currency_address, self)
+    _lend_currency_value: uint256 = as_unitless_number(self.multi_fungible_currencies[_s_hash].strike_price)
+    self._deposit_erc20(_lend_currency_address, msg.sender,
+        self.pools[_lend_pool_hash].pool_address,
+        _lend_currency_value)
+    # release_currency from currency pool
+    _external_call_successful: bool = ContinuousCurrencyPoolERC20(self.pools[_lend_pool_hash].pool_address).update_total_supplied(_lend_currency_value)
+    assert _external_call_successful
 
     return True

@@ -136,8 +136,8 @@ def exchange_rate() -> uint256:
 @constant
 def estimated_pool_tokens(_l_currency_value: uint256) -> uint256:
     return self._estimated_pool_tokens(_l_currency_value)
-#
-#
+
+
 # START of ERC1155TokenReceiver interface functions
 @public
 def setShouldReject(_value: bool):

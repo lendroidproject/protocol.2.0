@@ -22,6 +22,10 @@ def destroy() -> bool:
 def update_total_supplied(_amount: uint256) -> bool:
     pass
 
+@public
+def release_currency(_to: address, _amount: uint256) -> bool:
+    pass
+
 @constant
 @public
 def owner() -> address:
