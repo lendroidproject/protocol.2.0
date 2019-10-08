@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_pool_type: uint256, _pool_hash: bytes32, _operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _f_currency_address: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_pool_hash: bytes32, _operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _f_currency_address: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -62,11 +62,6 @@ def purchase_i_currency(_expiry: uint256(sec, positional), _i_currency_value: ui
 
 @public
 def redeem_f_currency(_expiry: uint256(sec, positional), _pool_currency_value: uint256) -> bool:
-    pass
-
-@constant
-@public
-def pool_type() -> uint256:
     pass
 
 @constant

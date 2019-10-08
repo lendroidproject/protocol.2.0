@@ -77,8 +77,9 @@ def supportsInterface(_interfaceId: bytes[10]) -> bool:
            _interfaceId == self.INTERFACE_SIGNATURE_ERC1155
 
 @public
-def set_minter(_minter: address) -> bool:
-    self.minters[_minter] = True
+def set_minter_status(_minter: address, _status: bool) -> bool:
+    self.minters[_minter] = _status
+    return True
 
 @public
 def setURI(_uri: string[64], _id: uint256):

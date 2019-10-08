@@ -17,6 +17,10 @@ def supportsInterface(_interfaceId: bytes[10]) -> bool:
     pass
 
 @public
+def set_minter_status(_minter: address, _status: bool) -> bool:
+    pass
+
+@public
 def setURI(_uri: string[64], _id: uint256):
     pass
 
@@ -67,6 +71,11 @@ def isApprovedForAll(_owner: address, _operator: address) -> bool:
 @constant
 @public
 def creators(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
+def minters(arg0: address) -> bool:
     pass
 
 @constant

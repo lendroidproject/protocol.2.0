@@ -5,7 +5,7 @@
 from contracts.interfaces import ERC20
 from contracts.interfaces import ERC1155
 from contracts.interfaces import ERC1155TokenReceiver
-from contracts.interfaces import Dao
+from contracts.interfaces import InterestPoolDao
 
 
 implements: ERC1155TokenReceiver
@@ -20,7 +20,6 @@ struct Expiry:
     is_active: bool
 
 
-pool_type: public(uint256)
 pool_hash: public(bytes32)
 owner: public(address)
 operator: public(address)
@@ -48,13 +47,12 @@ ERC1155_BATCH_ACCEPTED: bytes[10]
 
 
 @public
-def initialize(_pool_type: uint256, _pool_hash: bytes32, _operator: address,
+def initialize(_pool_hash: bytes32, _operator: address,
     _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256,
     _currency_address: address,
     _l_currency_address: address, _i_currency_address: address, _f_currency_address: address,
     _erc20_currency_template_address: address) -> bool:
     self.owner = msg.sender
-    self.pool_type = _pool_type
     self.pool_hash = _pool_hash
     self.operator = _operator
     self.name = _name
@@ -189,7 +187,7 @@ def register_expiry(_expiry: timestamp) -> bool:
     _i_hash: bytes32 = EMPTY_BYTES32
     _f_id: uint256 = 0
     _i_id: uint256 = 0
-    _external_call_successful, _f_hash, _i_hash, _f_id, _i_id = Dao(self.owner).register_expiry_from_interest_pool(self.pool_hash, _expiry)
+    _external_call_successful, _f_hash, _i_hash, _f_id, _i_id = InterestPoolDao(self.owner).register_expiry(self.pool_hash, _expiry)
     assert _external_call_successful
     self.expiries[_expiry] = Expiry({
         expiry_timestamp: _expiry,
@@ -213,8 +211,8 @@ def remove_expiry(_expiry: timestamp) -> bool:
 
 @public
 def purchase_pool_currency(_l_currency_value: uint256) -> bool:
-    # ask Dao to deposit l_tokens to self
-    _external_call_successful: bool = Dao(self.owner).deposit_l_currency(self.pool_hash, msg.sender, _l_currency_value)
+    # ask InterestPoolDao to deposit l_tokens to self
+    _external_call_successful: bool = InterestPoolDao(self.owner).deposit_l_currency(self.pool_hash, msg.sender, _l_currency_value)
     assert _external_call_successful
     # mint pool tokens to msg.sender
     _external_call_successful = ERC20(self.pool_currency_address).mintAndAuthorizeMinter(
@@ -232,7 +230,7 @@ def increment_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
     assert msg.sender == self.operator
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_to_i_and_f_currency(
+    _external_call_successful: bool = InterestPoolDao(self.owner).l_currency_to_i_and_f_currency(
         self.pool_hash, self.expiries[_expiry].i_currency_hash,
         self.expiries[_expiry].f_currency_hash, _l_currency_value)
     assert _external_call_successful
@@ -246,7 +244,7 @@ def decrement_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
     assert msg.sender == self.operator
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = Dao(self.owner).l_currency_from_i_and_f_currency(
+    _external_call_successful: bool = InterestPoolDao(self.owner).l_currency_from_i_and_f_currency(
         self.pool_hash, self.expiries[_expiry].i_currency_hash,
         self.expiries[_expiry].f_currency_hash, _l_currency_value)
     assert _external_call_successful
