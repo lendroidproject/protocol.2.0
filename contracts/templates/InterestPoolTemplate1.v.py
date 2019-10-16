@@ -281,11 +281,11 @@ def decrement_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
 def purchase_i_currency(_expiry: timestamp, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    # validate _i_currency_value
-    assert self._i_currency_balance(_expiry) >= _i_currency_value
     assert not self.expiries[_expiry].i_currency_id == 0, "expiry does not have a valid i_currency id"
     # transfer l_tokens as fee from msg.sender to self
     if as_unitless_number(_l_currency_fee) > 0:
+        # validate _i_currency_value
+        assert self._i_currency_balance(_expiry) >= _i_currency_value
         assert_modifiable(ERC20(self.l_currency_address).transferFrom(
             msg.sender, self, _l_currency_fee))
     # transfer i_tokens from self to msg.sender
@@ -306,11 +306,11 @@ def redeem_f_currency(_expiry: timestamp, _pool_currency_value: uint256) -> bool
     _f_currency_transfer_value: uint256 = as_unitless_number(_pool_currency_value) / as_unitless_number(self._exchange_rate())
     _l_currency_transfer_value: uint256 = 0
     _current_f_currency_balance: uint256 = self._f_currency_balance(_expiry)
-    # THIS IS AN IMPORANT ASSUMPTION FOR THIS VERSION!
-    assert as_unitless_number(self._l_currency_balance()) >= as_unitless_number(_current_f_currency_balance), "l_token balance cannot be less than f_token balance"
-    if as_unitless_number(_current_f_currency_balance) < _f_currency_transfer_value:
+    if _f_currency_transfer_value > as_unitless_number(_current_f_currency_balance):
+        _l_currency_transfer_value = _f_currency_transfer_value - as_unitless_number(_current_f_currency_balance)
+        # THIS IS AN IMPORANT ASSUMPTION FOR THIS VERSION!
+        assert as_unitless_number(self._l_currency_balance()) >= as_unitless_number(_l_currency_transfer_value), "l_token balance cannot be less than f_token balance"
         _f_currency_transfer_value = as_unitless_number(_current_f_currency_balance)
-        _l_currency_transfer_value = as_unitless_number(self._l_currency_balance()) - as_unitless_number(_current_f_currency_balance)
     # burn pool_tokens from msg.sender by self
     assert_modifiable(ERC20(self.pool_currency_address).burnFrom(
         msg.sender, _pool_currency_value))
@@ -320,7 +320,7 @@ def redeem_f_currency(_expiry: timestamp, _pool_currency_value: uint256) -> bool
         self.expiries[_expiry].f_currency_id,
         _f_currency_transfer_value, EMPTY_BYTES32))
     if as_unitless_number(_l_currency_transfer_value) > 0:
-        assert_modifiable(ERC20(self.l_currency_address).transferFrom(
-            self, msg.sender, _l_currency_transfer_value))
+        assert_modifiable(ERC20(self.l_currency_address).transfer(
+            msg.sender, _l_currency_transfer_value))
 
     return True
