@@ -123,7 +123,18 @@ def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
     return True
 
 @public
-def burn(_id: uint256, _to: address, _quantity: uint256) -> bool:
+def burn(_id: uint256, _from: address, _quantity: uint256) -> bool:
+    assert self.creators[_id] == msg.sender
+
+    # Remove the items to the caller
+    self.balances[_id][_from] -= _quantity
+    self.totalBalances[_from] -= _quantity
+
+    # Emit the Transfer/Mint event.
+    # the 0x0 source address implies a mint
+    # It will also provide the circulating supply info.
+    log.TransferSingle(msg.sender, _from, ZERO_ADDRESS, _id, _quantity)
+
     return True
 
 @public

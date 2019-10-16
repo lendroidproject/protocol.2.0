@@ -6,6 +6,26 @@ def initialize(_pool_hash: bytes32, _operator: address, _name: string[64], _symb
 
 @constant
 @public
+def l_currency_balance() -> uint256:
+    pass
+
+@constant
+@public
+def i_currency_balance(_expiry: uint256(sec, positional)) -> uint256:
+    pass
+
+@constant
+@public
+def f_currency_balance(_expiry: uint256(sec, positional)) -> uint256:
+    pass
+
+@constant
+@public
+def total_f_currency_balance() -> uint256:
+    pass
+
+@constant
+@public
 def total_l_currency_balance() -> uint256:
     pass
 

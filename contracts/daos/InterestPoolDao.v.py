@@ -24,11 +24,15 @@ struct MultiFungibleCurrency:
 
 struct OfferRegistrationFeeLookup:
     minimum_fee: uint256
-    minimum_interval: timestamp
+    minimum_interval: timedelta
     fee_multiplier: uint256
     fee_multiplier_decimals: uint256
     last_registered_at: timestamp
     last_paid_fee: uint256
+
+# Events
+PoolRegistered: event({_operator: indexed(address), _currency_address: indexed(address), _pool_address: indexed(address)})
+
 
 protocol_currency_address: public(address)
 protocol_dao_address: public(address)
@@ -49,6 +53,14 @@ DAO_TYPE_CURRENCY: public(uint256)
 TEMPLATE_TYPE_INTEREST_POOL: public(uint256)
 TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
 
+initialized: public(bool)
+
+
+@private
+@constant
+def _is_initialized() -> bool:
+    return self.initialized == True
+
 
 @public
 def initialize(
@@ -58,6 +70,8 @@ def initialize(
         _template_address_interest_pool: address,
         _template_address_currency_erc20: address,
         ) -> bool:
+    assert not self._is_initialized()
+    self.initialized = True
     self.owner = _owner
     self.protocol_dao_address = msg.sender
     self.protocol_currency_address = _protocol_currency_address
@@ -119,16 +133,14 @@ def _validate_pool(_pool_hash: bytes32, _pool_address: address):
 
 @private
 def _deposit_multi_fungible_l_currency(_currency_address: address, _from: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_multi_fungible_l_currency(
-        _currency_address, _from, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_multi_fungible_l_currency(
+        _currency_address, _from, _to, _value))
 
 
 @private
 def _deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
-        _currency_address, _from, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
+        _currency_address, _from, _to, _value))
 
 
 @private
@@ -138,26 +150,22 @@ def _create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -
 
 @private
 def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value))
 
 
 @private
 def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_currency_address, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_currency_address, _to, _value))
 
 
 @private
 def _mint_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_erc1155(_currency_address, _id, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_erc1155(_currency_address, _id, _to, _value))
 
 
 @private
 def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value))
 
 
 @private
@@ -178,62 +186,77 @@ def _offer_registration_fee() -> uint256:
 @private
 def _process_fee_for_offer_creation(_from: address):
     _fee_amount: uint256 = self._offer_registration_fee()
+    self.offer_registration_fee_lookup[self].last_paid_fee = _fee_amount
+    self.offer_registration_fee_lookup[self].last_registered_at = block.timestamp
     if as_unitless_number(_fee_amount) > 0:
         self._deposit_erc20(self.protocol_currency_address, _from, self, _fee_amount)
 
 
+@public
+@constant
+def currency_dao_address() -> address:
+    return self.daos[self.DAO_TYPE_CURRENCY]
+
+
+@public
+@constant
+def offer_registration_fee() -> uint256:
+    return self._offer_registration_fee()
+
+
+@public
+@constant
+def pool_hash(_currency_address: address, _pool_address: address) -> bytes32:
+    return self._pool_hash(_currency_address, _pool_address)
+
+
 # admin functions
 @public
-def set_offer_registration_fee_lookup(_fee_multiplier: uint256,
-    _minimum_fee: uint256, _fee_multiplier_decimals: uint256,
-    _minimum_interval: timestamp, _last_registered_at: timestamp, _last_paid_fee: uint256
-    ) -> bool:
-    assert msg.sender == self.owner or msg.sender == self.protocol_dao_address
-    self.offer_registration_fee_lookup[self] = OfferRegistrationFeeLookup({
-        minimum_fee: _minimum_fee,
-        minimum_interval: _minimum_interval,
-        fee_multiplier: _fee_multiplier,
-        fee_multiplier_decimals: _fee_multiplier_decimals,
-        last_registered_at: _last_registered_at,
-        last_paid_fee: _last_paid_fee
-    })
+def set_offer_registration_fee_lookup(_minimum_fee: uint256,
+    _minimum_interval: timedelta, _fee_multiplier: uint256,
+    _fee_multiplier_decimals: uint256) -> bool:
+    assert self._is_initialized()
+    assert msg.sender == self.owner
+    self.offer_registration_fee_lookup[self].minimum_fee = _minimum_fee
+    self.offer_registration_fee_lookup[self].minimum_interval = _minimum_interval
+    self.offer_registration_fee_lookup[self].fee_multiplier = _fee_multiplier
+    self.offer_registration_fee_lookup[self].fee_multiplier_decimals = _fee_multiplier_decimals
+
     return True
 
 
 @public
 def set_template(_template_type: uint256, _address: address) -> bool:
-    assert msg.sender == self.owner or msg.sender == self.protocol_dao_address
+    assert self._is_initialized()
+    assert msg.sender == self.owner
     assert _template_type == self.TEMPLATE_TYPE_INTEREST_POOL
     self.templates[_template_type] = _address
     return True
 
 
 @public
-def register_pool( _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bytes32:
+def register_pool(_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bool:
+    assert self._is_initialized()
     # validate currency
     assert self._is_currency_valid(_currency_address)
-    # initialize pool
-    _pool_address: address = ZERO_ADDRESS
+    # # initialize pool
     _l_currency_address: address = ZERO_ADDRESS
     _i_currency_address: address = ZERO_ADDRESS
     _f_currency_address: address = ZERO_ADDRESS
     _s_currency_address: address = ZERO_ADDRESS
     _u_currency_address: address = ZERO_ADDRESS
-    _external_call_successful: bool = False
-    _pool_hash: bytes32 = EMPTY_BYTES32
-    _pool_address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_INTEREST_POOL])
+    _pool_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_INTEREST_POOL])
     assert _pool_address.is_contract
     _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    _pool_hash = self._pool_hash(_currency_address, _pool_address)
-    _external_call_successful = InterestPool(_pool_address).initialize(
+    _pool_hash: bytes32 = self._pool_hash(_currency_address, _pool_address)
+    assert_modifiable(InterestPool(_pool_address).initialize(
         _pool_hash, msg.sender,
         _name, _symbol, _initial_exchange_rate,
         _currency_address,
         _l_currency_address,
         _i_currency_address,
         _f_currency_address,
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20])
-    assert _external_call_successful
+        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]))
 
     # save pool metadata
     self.pools[_pool_hash] = Pool({
@@ -243,22 +266,15 @@ def register_pool( _currency_address: address, _name: string[62], _symbol: strin
         pool_operator: msg.sender,
         hash: _pool_hash
     })
-
-    return _pool_hash
-
-
-@public
-def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
-    self._validate_pool(_pool_hash, msg.sender)
-    # validate currency
-    assert self._is_currency_valid(self.pools[_pool_hash].currency_address)
-    self._deposit_multi_fungible_l_currency(self.pools[_pool_hash].currency_address, _from, msg.sender, _value)
+    #
+    log.PoolRegistered(msg.sender, _currency_address, _pool_address)
 
     return True
 
 
 @public
 def register_expiry(_pool_hash: bytes32, _expiry: timestamp) -> (bool, bytes32, bytes32, uint256, uint256):
+    assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)
     _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
@@ -302,7 +318,19 @@ def register_expiry(_pool_hash: bytes32, _expiry: timestamp) -> (bool, bytes32, 
 
 
 @public
+def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
+    assert self._is_initialized()
+    self._validate_pool(_pool_hash, msg.sender)
+    # validate currency
+    assert self._is_currency_valid(self.pools[_pool_hash].currency_address)
+    self._deposit_multi_fungible_l_currency(self.pools[_pool_hash].currency_address, _from, msg.sender, _value)
+
+    return True
+
+
+@public
 def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
+    assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)
     _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
@@ -334,6 +362,7 @@ def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_has
 
 @public
 def l_currency_from_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
+    assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)
     _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)

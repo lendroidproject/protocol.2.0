@@ -61,15 +61,17 @@ def initialize(_pool_hash: bytes32, _operator: address,
     # erc20 token
     _pool_currency_address: address = create_forwarder_to(_erc20_currency_template_address)
     self.pool_currency_address = _pool_currency_address
-    _external_call_successful: bool = ERC20(_pool_currency_address).initialize(_name, _symbol, 18, 0)
-    assert _external_call_successful
+    assert_modifiable(ERC20(_pool_currency_address).initialize(_name, _symbol, 18, 0))
 
     self.l_currency_address = _l_currency_address
     self.f_currency_address = _f_currency_address
     self.i_currency_address = _i_currency_address
 
-    self.ERC1155_ACCEPTED = "0xf23a6e61"# bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
-    self.ERC1155_BATCH_ACCEPTED = "0xbc197c81"# bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    # bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
+    self.ERC1155_ACCEPTED = "0xf23a6e61"
+    # bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    self.ERC1155_BATCH_ACCEPTED = "0xbc197c81"
+    self.shouldReject = False
 
     return True
 
@@ -82,14 +84,14 @@ def _l_currency_balance() -> uint256:
 
 @private
 @constant
-def _i_currency_balance(_erc1155_id: uint256) -> uint256:
-    return ERC1155(self.i_currency_address).balanceOf(self, _erc1155_id)
+def _i_currency_balance(_expiry: timestamp) -> uint256:
+    return ERC1155(self.i_currency_address).balanceOf(self, self.expiries[_expiry].i_currency_id)
 
 
 @private
 @constant
-def _f_currency_balance(_erc1155_id: uint256) -> uint256:
-    return ERC1155(self.f_currency_address).balanceOf(self, _erc1155_id)
+def _f_currency_balance(_expiry: timestamp) -> uint256:
+    return ERC1155(self.f_currency_address).balanceOf(self, self.expiries[_expiry].f_currency_id)
 
 
 @private
@@ -107,15 +109,39 @@ def _total_l_currency_balance() -> uint256:
 @private
 @constant
 def _exchange_rate() -> uint256:
-    if (as_unitless_number(self._total_l_currency_balance()) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
+    if (ERC20(self.pool_currency_address).totalSupply() == 0) or (as_unitless_number(self._total_l_currency_balance()) == 0):
         return self.initial_exchange_rate
-    return as_unitless_number(self._total_l_currency_balance()) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
+    return as_unitless_number(ERC20(self.pool_currency_address).totalSupply()) / as_unitless_number(self._total_l_currency_balance())
 
 
 @private
 @constant
 def _estimated_pool_tokens(_l_currency_value: uint256) -> uint256:
     return as_unitless_number(self._exchange_rate()) * as_unitless_number(_l_currency_value)
+
+
+@public
+@constant
+def l_currency_balance() -> uint256:
+    return self._l_currency_balance()
+
+
+@public
+@constant
+def i_currency_balance(_expiry: timestamp) -> uint256:
+    return self._i_currency_balance(_expiry)
+
+
+@public
+@constant
+def f_currency_balance(_expiry: timestamp) -> uint256:
+    return self._f_currency_balance(_expiry)
+
+
+@public
+@constant
+def total_f_currency_balance() -> uint256:
+    return self._total_f_currency_balance()
 
 
 @public
@@ -212,12 +238,11 @@ def remove_expiry(_expiry: timestamp) -> bool:
 @public
 def purchase_pool_currency(_l_currency_value: uint256) -> bool:
     # ask InterestPoolDao to deposit l_tokens to self
-    _external_call_successful: bool = InterestPoolDao(self.owner).deposit_l_currency(self.pool_hash, msg.sender, _l_currency_value)
-    assert _external_call_successful
+    assert_modifiable(InterestPoolDao(self.owner).deposit_l_currency(self.pool_hash, msg.sender, _l_currency_value))
+    assert_modifiable(ERC20(self.l_currency_address).approve(InterestPoolDao(self.owner).currency_dao_address(), _l_currency_value))
     # mint pool tokens to msg.sender
-    _external_call_successful = ERC20(self.pool_currency_address).mintAndAuthorizeMinter(
-        msg.sender, self._estimated_pool_tokens(_l_currency_value))
-    assert _external_call_successful
+    assert_modifiable(ERC20(self.pool_currency_address).mintAndAuthorizeMinter(
+        msg.sender, self._estimated_pool_tokens(_l_currency_value)))
 
     return True
 
@@ -230,24 +255,24 @@ def increment_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
     assert msg.sender == self.operator
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = InterestPoolDao(self.owner).l_currency_to_i_and_f_currency(
+    assert_modifiable(InterestPoolDao(self.owner).l_currency_to_i_and_f_currency(
         self.pool_hash, self.expiries[_expiry].i_currency_hash,
-        self.expiries[_expiry].f_currency_hash, _l_currency_value)
-    assert _external_call_successful
+        self.expiries[_expiry].f_currency_hash, _l_currency_value))
 
     return True
 
 
 @public
 def decrement_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) -> bool:
+    # validate _l_currency_value
+    assert self._i_currency_balance(_expiry) >= _l_currency_value
     # validate sender
     assert msg.sender == self.operator
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
-    _external_call_successful: bool = InterestPoolDao(self.owner).l_currency_from_i_and_f_currency(
+    assert_modifiable(InterestPoolDao(self.owner).l_currency_from_i_and_f_currency(
         self.pool_hash, self.expiries[_expiry].i_currency_hash,
-        self.expiries[_expiry].f_currency_hash, _l_currency_value)
-    assert _external_call_successful
+        self.expiries[_expiry].f_currency_hash, _l_currency_value))
 
     return True
 
@@ -256,19 +281,18 @@ def decrement_i_currency_supply(_expiry: timestamp, _l_currency_value: uint256) 
 def purchase_i_currency(_expiry: timestamp, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
     # validate expiry
     assert self.expiries[_expiry].is_active == True, "expiry is not offered"
+    # validate _i_currency_value
+    assert self._i_currency_balance(_expiry) >= _i_currency_value
     assert not self.expiries[_expiry].i_currency_id == 0, "expiry does not have a valid i_currency id"
-    _external_call_successful: bool = False
     # transfer l_tokens as fee from msg.sender to self
     if as_unitless_number(_l_currency_fee) > 0:
-        _external_call_successful = ERC20(self.l_currency_address).transferFrom(
-            msg.sender, self, _l_currency_fee)
-        assert _external_call_successful
+        assert_modifiable(ERC20(self.l_currency_address).transferFrom(
+            msg.sender, self, _l_currency_fee))
     # transfer i_tokens from self to msg.sender
-    _external_call_successful = ERC1155(self.i_currency_address).safeTransferFrom(
+    assert_modifiable(ERC1155(self.i_currency_address).safeTransferFrom(
         self, msg.sender,
         self.expiries[_expiry].i_currency_id,
-        _i_currency_value, EMPTY_BYTES32)
-    assert _external_call_successful
+        _i_currency_value, EMPTY_BYTES32))
 
     return True
 
@@ -281,25 +305,22 @@ def redeem_f_currency(_expiry: timestamp, _pool_currency_value: uint256) -> bool
     # calculate f_tokens + l_tokens (if any) to be transferred
     _f_currency_transfer_value: uint256 = as_unitless_number(_pool_currency_value) / as_unitless_number(self._exchange_rate())
     _l_currency_transfer_value: uint256 = 0
-    _current_f_currency_balance: uint256 = self._f_currency_balance(self.expiries[_expiry].f_currency_id)
+    _current_f_currency_balance: uint256 = self._f_currency_balance(_expiry)
     # THIS IS AN IMPORANT ASSUMPTION FOR THIS VERSION!
     assert as_unitless_number(self._l_currency_balance()) >= as_unitless_number(_current_f_currency_balance), "l_token balance cannot be less than f_token balance"
     if as_unitless_number(_current_f_currency_balance) < _f_currency_transfer_value:
         _f_currency_transfer_value = as_unitless_number(_current_f_currency_balance)
         _l_currency_transfer_value = as_unitless_number(self._l_currency_balance()) - as_unitless_number(_current_f_currency_balance)
     # burn pool_tokens from msg.sender by self
-    _external_call_successful: bool = ERC20(self.pool_currency_address).burnFrom(
-        msg.sender, _pool_currency_value)
-    assert _external_call_successful
+    assert_modifiable(ERC20(self.pool_currency_address).burnFrom(
+        msg.sender, _pool_currency_value))
     # transfer f_tokens + l_tokens (if any) from self to msg.sender
-    _external_call_successful = ERC1155(self.f_currency_address).safeTransferFrom(
+    assert_modifiable(ERC1155(self.f_currency_address).safeTransferFrom(
         self, msg.sender,
         self.expiries[_expiry].f_currency_id,
-        _f_currency_transfer_value, EMPTY_BYTES32)
-    assert _external_call_successful
+        _f_currency_transfer_value, EMPTY_BYTES32))
     if as_unitless_number(_l_currency_transfer_value) > 0:
-        _external_call_successful = ERC20(self.l_currency_address).transferFrom(
-            self, msg.sender, _l_currency_transfer_value)
-        assert _external_call_successful
+        assert_modifiable(ERC20(self.l_currency_address).transferFrom(
+            self, msg.sender, _l_currency_transfer_value))
 
     return True

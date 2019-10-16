@@ -4,6 +4,11 @@
 def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
     pass
 
+@constant
+@public
+def offer_registration_fee() -> uint256:
+    pass
+
 @public
 def set_offer_registration_fee_lookup(_fee_multiplier: uint256, _minimum_fee: uint256, _fee_multiplier_decimals: uint256, _minimum_interval: uint256(sec, positional), _last_registered_at: uint256(sec, positional), _last_paid_fee: uint256) -> bool:
     pass

@@ -45,18 +45,18 @@ def initialize(
         _protocol_currency_address: address,
         _dao_address_currency: address,
         _dao_address_underwriter_pool: address) -> bool:
-    self.owner = _owner
-    self.protocol_dao_address = msg.sender
-    self.protocol_currency_address = _protocol_currency_address
-
-    self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
-    self.DAO_TYPE_UNDERWRITER_POOL = 2
-    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_address_underwriter_pool
-
-    self.LOAN_STATUS_ACTIVE = 1
-    self.LOAN_STATUS_LIQUIDATED = 2
-    self.LOAN_STATUS_CLOSED = 3
+    # self.owner = _owner
+    # self.protocol_dao_address = msg.sender
+    # self.protocol_currency_address = _protocol_currency_address
+    #
+    # self.DAO_TYPE_CURRENCY = 1
+    # self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
+    # self.DAO_TYPE_UNDERWRITER_POOL = 2
+    # self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_address_underwriter_pool
+    #
+    # self.LOAN_STATUS_ACTIVE = 1
+    # self.LOAN_STATUS_LIQUIDATED = 2
+    # self.LOAN_STATUS_CLOSED = 3
 
     return True
 

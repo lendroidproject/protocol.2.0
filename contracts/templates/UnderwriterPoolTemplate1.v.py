@@ -134,6 +134,30 @@ def _estimated_pool_tokens(_l_currency_value: uint256) -> uint256:
 
 @public
 @constant
+def l_currency_balance() -> uint256:
+    return self._l_currency_balance()
+
+
+@public
+@constant
+def i_currency_balance(_erc1155_id: uint256) -> uint256:
+    return self._i_currency_balance(_erc1155_id)
+
+
+@public
+@constant
+def s_currency_balance(_erc1155_id: uint256) -> uint256:
+    return self._s_currency_balance(_erc1155_id)
+
+
+@public
+@constant
+def u_currency_balance(_erc1155_id: uint256) -> uint256:
+    return self._u_currency_balance(_erc1155_id)
+
+
+@public
+@constant
 def exchange_rate() -> uint256:
     return self._exchange_rate()
 

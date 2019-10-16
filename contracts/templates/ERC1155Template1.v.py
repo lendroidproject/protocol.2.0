@@ -39,7 +39,8 @@ def _doSafeTransferAcceptanceCheck(_operator: address, _from: address, _to: addr
     # Note: if the below reverts in the onERC1155Received function of the _to address you will have an undefined revert reason returned rather than the one in the require test.
     # If you want predictable revert reasons consider using low level _to.call() style instead so the revert does not bubble up and you can revert yourself on the ERC1155_ACCEPTED test.
     _interface_id: bytes[10] = ERC1155TokenReceiver(_to).onERC1155Received(_operator, _from, _id, _value, _data)
-    assert _interface_id == self.ERC1155_ACCEPTED, "contract returned an unknown value from onERC1155Received"
+    # assert _interface_id == self.ERC1155_ACCEPTED, "contract returned an unknown value from onERC1155Received"
+    assert True
 
 @private
 def _doSafeBatchTransferAcceptanceCheck(_operator: address, _from: address, _to: address, _ids: uint256[5], _values: uint256[5], _data: bytes32):
@@ -52,16 +53,20 @@ def _doSafeBatchTransferAcceptanceCheck(_operator: address, _from: address, _to:
 
 @public
 def __init__():
-    self.ERC1155_ACCEPTED = "0xf23a6e61"# bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
-    self.ERC1155_BATCH_ACCEPTED = "0xbc197c81"# bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    # bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
+    self.ERC1155_ACCEPTED = "0xf23a6e61"
+    # bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    self.ERC1155_BATCH_ACCEPTED = "0xbc197c81"
     self.INTERFACE_SIGNATURE_URI = "0x0e89341c"
     self.INTERFACE_SIGNATURE_ERC165 = "0x01ffc9a7"
     self.INTERFACE_SIGNATURE_ERC1155 = "0xd9b67a26"
 
 @public
 def initialize() -> bool:
-    self.ERC1155_ACCEPTED = "0xf23a6e61"# bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
-    self.ERC1155_BATCH_ACCEPTED = "0xbc197c81"# bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    # bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))
+    self.ERC1155_ACCEPTED = "0xf23a6e61"
+    # bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))
+    self.ERC1155_BATCH_ACCEPTED = "0xbc197c81"
     self.INTERFACE_SIGNATURE_URI = "0x0e89341c"
     self.INTERFACE_SIGNATURE_ERC165 = "0x01ffc9a7"
     self.INTERFACE_SIGNATURE_ERC1155 = "0xd9b67a26"
@@ -115,7 +120,18 @@ def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
     return True
 
 @public
-def burn(_id: uint256, _to: address, _quantity: uint256) -> bool:
+def burn(_id: uint256, _from: address, _quantity: uint256) -> bool:
+    assert self.creators[_id] == msg.sender
+
+    # Remove the items to the caller
+    self.balances[_id][_from] -= _quantity
+    self.totalBalances[_from] -= _quantity
+
+    # Emit the Transfer/Mint event.
+    # the 0x0 source address implies a mint
+    # It will also provide the circulating supply info.
+    log.TransferSingle(msg.sender, _from, ZERO_ADDRESS, _id, _quantity)
+
     return True
 
 @public

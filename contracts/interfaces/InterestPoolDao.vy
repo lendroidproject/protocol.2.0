@@ -1,11 +1,30 @@
+# Events
+
+PoolRegistered: event({_operator: address, _currency_address: address, _pool_address: address})
+
 # Functions
 
 @public
 def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _template_address_interest_pool: address, _template_address_currency_erc20: address) -> bool:
     pass
 
+@constant
 @public
-def set_offer_registration_fee_lookup(_fee_multiplier: uint256, _minimum_fee: uint256, _fee_multiplier_decimals: uint256, _minimum_interval: uint256(sec, positional), _last_registered_at: uint256(sec, positional), _last_paid_fee: uint256) -> bool:
+def currency_dao_address() -> address:
+    pass
+
+@constant
+@public
+def offer_registration_fee() -> uint256:
+    pass
+
+@constant
+@public
+def pool_hash(_currency_address: address, _pool_address: address) -> bytes32:
+    pass
+
+@public
+def set_offer_registration_fee_lookup(_minimum_fee: uint256, _minimum_interval: uint256(sec), _fee_multiplier: uint256, _fee_multiplier_decimals: uint256) -> bool:
     pass
 
 @public
@@ -13,15 +32,15 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def register_pool(_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bytes32:
-    pass
-
-@public
-def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
+def register_pool(_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bool:
     pass
 
 @public
 def register_expiry(_pool_hash: bytes32, _expiry: uint256(sec, positional)) -> (bool, bytes32, bytes32, uint256, uint256):
+    pass
+
+@public
+def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
     pass
 
 @public
@@ -119,7 +138,7 @@ def offer_registration_fee_lookup__minimum_fee(arg0: address) -> uint256:
 
 @constant
 @public
-def offer_registration_fee_lookup__minimum_interval(arg0: address) -> uint256(sec, positional):
+def offer_registration_fee_lookup__minimum_interval(arg0: address) -> uint256(sec):
     pass
 
 @constant
@@ -155,4 +174,9 @@ def TEMPLATE_TYPE_INTEREST_POOL() -> uint256:
 @constant
 @public
 def TEMPLATE_TYPE_CURRENCY_ERC20() -> uint256:
+    pass
+
+@constant
+@public
+def initialized() -> bool:
     pass

@@ -182,8 +182,16 @@ def _offer_registration_fee() -> uint256:
 @private
 def _process_fee_for_offer_creation(_from: address):
     _fee_amount: uint256 = self._offer_registration_fee()
+    self.offer_registration_fee_lookup[self].last_paid_fee = _fee_amount
+    self.offer_registration_fee_lookup[self].last_registered_at = block.timestamp
     if as_unitless_number(_fee_amount) > 0:
         self._deposit_erc20(self.protocol_currency_address, _from, self, _fee_amount)
+
+
+@public
+@constant
+def offer_registration_fee() -> uint256:
+    return self._offer_registration_fee()
 
 
 # admin functions

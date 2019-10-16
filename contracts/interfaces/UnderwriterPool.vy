@@ -6,6 +6,26 @@ def initialize(_pool_hash: bytes32, _operator: address, _name: string[64], _symb
 
 @constant
 @public
+def l_currency_balance() -> uint256:
+    pass
+
+@constant
+@public
+def i_currency_balance(_erc1155_id: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def s_currency_balance(_erc1155_id: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def u_currency_balance(_erc1155_id: uint256) -> uint256:
+    pass
+
+@constant
+@public
 def exchange_rate() -> uint256:
     pass
 

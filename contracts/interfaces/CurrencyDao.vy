@@ -60,7 +60,7 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def set_currency_support(_currency_address: address, _is_active: bool, _currency_name: string[64], _currency_symbol: string[32], _currency_decimals: uint256, _supply: uint256) -> bool:
+def set_currency_support(_currency_address: address, _is_active: bool) -> bool:
     pass
 
 @public
@@ -155,4 +155,9 @@ def TEMPLATE_TYPE_CURRENCY_ERC20() -> uint256:
 @constant
 @public
 def TEMPLATE_TYPE_CURRENCY_ERC1155() -> uint256:
+    pass
+
+@constant
+@public
+def initialized() -> bool:
     pass
