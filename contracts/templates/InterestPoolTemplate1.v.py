@@ -109,9 +109,9 @@ def _total_l_currency_balance() -> uint256:
 @private
 @constant
 def _exchange_rate() -> uint256:
-    if (ERC20(self.pool_currency_address).totalSupply() == 0) or (as_unitless_number(self._total_l_currency_balance()) == 0):
+    if (as_unitless_number(self._total_l_currency_balance()) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
         return self.initial_exchange_rate
-    return as_unitless_number(ERC20(self.pool_currency_address).totalSupply()) / as_unitless_number(self._total_l_currency_balance())
+    return as_unitless_number(self._total_l_currency_balance()) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
 
 
 @private
@@ -239,6 +239,7 @@ def remove_expiry(_expiry: timestamp) -> bool:
 def purchase_pool_currency(_l_currency_value: uint256) -> bool:
     # ask InterestPoolDao to deposit l_tokens to self
     assert_modifiable(InterestPoolDao(self.owner).deposit_l_currency(self.pool_hash, msg.sender, _l_currency_value))
+    # authorize CurrencyDao to handle _l_currency_value quantity of l_currency
     assert_modifiable(ERC20(self.l_currency_address).approve(InterestPoolDao(self.owner).currency_dao_address(), _l_currency_value))
     # mint pool tokens to msg.sender
     assert_modifiable(ERC20(self.pool_currency_address).mintAndAuthorizeMinter(

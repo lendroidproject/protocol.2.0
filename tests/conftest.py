@@ -100,13 +100,13 @@ CONCISE_NORMALIZERS = (_none_addr,)
 
 @pytest.fixture
 def tester():
-    # genesis_overrides = {"gas_limit": 7000000}
-    # custom_genesis_params = PyEVMBackend._generate_genesis_params(
-    #     overrides=genesis_overrides
-    # )
-    # pyevm_backend = PyEVMBackend(genesis_parameters=custom_genesis_params)
-    # t = EthereumTester(backend=pyevm_backend)
-    t = EthereumTester()
+    genesis_overrides = {"gas_limit": 3500000}
+    custom_genesis_params = PyEVMBackend._generate_genesis_params(
+        overrides=genesis_overrides
+    )
+    pyevm_backend = PyEVMBackend(genesis_parameters=custom_genesis_params)
+    t = EthereumTester(backend=pyevm_backend)
+    # t = EthereumTester()
     return t
 
 

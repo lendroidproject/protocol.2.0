@@ -26,11 +26,15 @@ struct MultiFungibleCurrency:
 
 struct OfferRegistrationFeeLookup:
     minimum_fee: uint256
-    minimum_interval: timestamp
+    minimum_interval: timedelta
     fee_multiplier: uint256
     fee_multiplier_decimals: uint256
     last_registered_at: timestamp
     last_paid_fee: uint256
+
+# Events
+PoolRegistered: event({_operator: indexed(address), _currency_address: indexed(address), _pool_address: indexed(address)})
+
 
 protocol_currency_address: public(address)
 protocol_dao_address: public(address)
@@ -45,13 +49,22 @@ pools: public(map(bytes32, Pool))
 multi_fungible_currencies: public(map(bytes32, MultiFungibleCurrency))
 # lookup_key => lookup_value
 offer_registration_fee_lookup: public(map(address, OfferRegistrationFeeLookup))
+# Minmum collateral value, aka, minimum currency value per underlying
 # currency_hash => quantity per currency_address
-shield_currency_prices: public(map(bytes32, uint256))
+shield_currency_minimum_collateral_values: public(map(bytes32, uint256))
 
 DAO_TYPE_CURRENCY: public(uint256)
 
 TEMPLATE_TYPE_UNDERWRITER_POOL: public(uint256)
 TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
+
+initialized: public(bool)
+
+
+@private
+@constant
+def _is_initialized() -> bool:
+    return self.initialized == True
 
 
 @public
@@ -62,6 +75,8 @@ def initialize(
         _template_address_underwriter_pool: address,
         _template_address_currency_erc20: address,
         ) -> bool:
+    assert not self._is_initialized()
+    self.initialized = True
     self.owner = _owner
     self.protocol_dao_address = msg.sender
     self.protocol_currency_address = _protocol_currency_address
@@ -190,31 +205,46 @@ def _process_fee_for_offer_creation(_from: address):
 
 @public
 @constant
+def currency_dao_address() -> address:
+    return self.daos[self.DAO_TYPE_CURRENCY]
+
+
+@public
+@constant
+def pool_hash(_currency_address: address, _pool_address: address) -> bytes32:
+    return self._pool_hash(_currency_address, _pool_address)
+
+
+@public
+@constant
+def multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
+    return self._multi_fungible_currency_hash(parent_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+
+
+@public
+@constant
 def offer_registration_fee() -> uint256:
     return self._offer_registration_fee()
 
 
 # admin functions
 @public
-def set_offer_registration_fee_lookup(_fee_multiplier: uint256,
-    _minimum_fee: uint256, _fee_multiplier_decimals: uint256,
-    _minimum_interval: timestamp, _last_registered_at: timestamp, _last_paid_fee: uint256
-    ) -> bool:
-    assert msg.sender == self.owner or msg.sender == self.protocol_dao_address
-    self.offer_registration_fee_lookup[self] = OfferRegistrationFeeLookup({
-        minimum_fee: _minimum_fee,
-        minimum_interval: _minimum_interval,
-        fee_multiplier: _fee_multiplier,
-        fee_multiplier_decimals: _fee_multiplier_decimals,
-        last_registered_at: _last_registered_at,
-        last_paid_fee: _last_paid_fee
-    })
+def set_offer_registration_fee_lookup(_minimum_fee: uint256,
+    _minimum_interval: timedelta, _fee_multiplier: uint256,
+    _fee_multiplier_decimals: uint256) -> bool:
+    assert self._is_initialized()
+    assert msg.sender == self.owner
+    self.offer_registration_fee_lookup[self].minimum_fee = _minimum_fee
+    self.offer_registration_fee_lookup[self].minimum_interval = _minimum_interval
+    self.offer_registration_fee_lookup[self].fee_multiplier = _fee_multiplier
+    self.offer_registration_fee_lookup[self].fee_multiplier_decimals = _fee_multiplier_decimals
     return True
 
 
 @public
-def set_shield_currency_price(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
-    assert msg.sender == self.owner or msg.sender == self.protocol_dao_address
+def set_shield_currency_minimum_collateral_value(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
+    assert self._is_initialized()
+    assert msg.sender == self.owner
     _l_currency_address: address = ZERO_ADDRESS
     _i_currency_address: address = ZERO_ADDRESS
     _f_currency_address: address = ZERO_ADDRESS
@@ -222,14 +252,15 @@ def set_shield_currency_price(_currency_address: address, _expiry: timestamp, _u
     _u_currency_address: address = ZERO_ADDRESS
     _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
     _s_hash: bytes32 = self._multi_fungible_currency_hash(_s_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
-    self.shield_currency_prices[_s_hash] = _price
+    self.shield_currency_minimum_collateral_values[_s_hash] = _price
 
     return True
 
 
 @public
 def set_template(_template_type: uint256, _address: address) -> bool:
-    assert msg.sender == self.owner or msg.sender == self.protocol_dao_address
+    assert self._is_initialized()
+    assert msg.sender == self.owner
     assert _template_type == self.TEMPLATE_TYPE_UNDERWRITER_POOL
     self.templates[_template_type] = _address
     return True
@@ -237,6 +268,7 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 
 @public
 def register_pool( _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bytes32:
+    assert self._is_initialized()
     # validate currency
     assert self._is_currency_valid(_currency_address)
     # initialize pool
@@ -272,24 +304,19 @@ def register_pool( _currency_address: address, _name: string[62], _symbol: strin
         hash: _pool_hash
     })
 
+    # log PoolRegistered event
+    log.PoolRegistered(msg.sender, _currency_address, _pool_address)
+
     return _pool_hash
 
 
 @public
-def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
-    self._validate_pool(_pool_hash, msg.sender)
-    # validate currency
-    assert self._is_currency_valid(self.pools[_pool_hash].currency_address)
-    self._deposit_multi_fungible_l_currency(self.pools[_pool_hash].currency_address, _from, msg.sender, _value)
-
-    return True
-
-
-@public
 def register_expiry(_pool_hash: bytes32, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> (bool, bytes32, bytes32, bytes32, uint256, uint256, uint256):
+    assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)
     _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
+    assert self._is_currency_valid(_underlying_address)
     _l_currency_address: address = ZERO_ADDRESS
     _i_currency_address: address = ZERO_ADDRESS
     _f_currency_address: address = ZERO_ADDRESS
@@ -349,10 +376,25 @@ def register_expiry(_pool_hash: bytes32, _expiry: timestamp, _underlying_address
 
 
 @public
+def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
+    assert self._is_initialized()
+    self._validate_pool(_pool_hash, msg.sender)
+    # validate currency
+    assert self._is_currency_valid(self.pools[_pool_hash].currency_address)
+    self._deposit_multi_fungible_l_currency(self.pools[_pool_hash].currency_address, _from, msg.sender, _value)
+
+    return True
+
+
+@public
 def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+    assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)
     _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
+    # verify _value is not less than minimum collateral value
+    assert not as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash]) == 0, "shield price has not been set"
+    assert as_unitless_number(_value) >= as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash])
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert self.multi_fungible_currencies[_s_hash].has_id and \
            self.multi_fungible_currencies[_u_hash].has_id and \
@@ -372,8 +414,8 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, 
     # burn l_token from interest_pool account
     self._burn_as_self_authorized_erc20(_l_currency_address, msg.sender, _value)
     # calculate su currency quantitites to be minted
-    assert not as_unitless_number(self.shield_currency_prices[_s_hash]) == 0, "shield price has not been set"
-    _su_currencies_to_mint: uint256 = as_unitless_number(_value) / as_unitless_number(self.shield_currency_prices[_s_hash])
+    _su_currencies_to_mint: uint256 = (as_unitless_number(_value) * (10 ** 18)) / as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash])
+    assert _su_currencies_to_mint >= 10 ** 18
     # mint i_token into interest_pool account
     self._mint_erc1155(
         _i_currency_address,
@@ -399,9 +441,13 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, 
 
 @public
 def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+    assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)
     _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
+    # verify _value is not less than minimum collateral value
+    assert not as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash]) == 0, "shield price has not been set"
+    assert as_unitless_number(_value) >= as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash])
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert self.multi_fungible_currencies[_s_hash].has_id and \
            self.multi_fungible_currencies[_u_hash].has_id and \
@@ -421,8 +467,8 @@ def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32
     # burn l_token from interest_pool account
     self._mint_and_self_authorize_erc20(_l_currency_address, msg.sender, _value)
     # calculate su currency quantitites to be minted
-    assert not as_unitless_number(self.shield_currency_prices[_s_hash]) == 0, "shield price has not been set"
-    _su_currencies_to_burn: uint256 = as_unitless_number(_value) / as_unitless_number(self.shield_currency_prices[_s_hash])
+    _su_currencies_to_burn: uint256 = (as_unitless_number(_value) * (10 ** 18)) / as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash])
+    assert _su_currencies_to_burn >= 10 ** 18
     # mint i_token into interest_pool account
     self._burn_erc1155(
         _s_currency_address,

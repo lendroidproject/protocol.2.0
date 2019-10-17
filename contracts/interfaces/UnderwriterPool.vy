@@ -6,22 +6,27 @@ def initialize(_pool_hash: bytes32, _operator: address, _name: string[64], _symb
 
 @constant
 @public
+def expiry_hash(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
+    pass
+
+@constant
+@public
 def l_currency_balance() -> uint256:
     pass
 
 @constant
 @public
-def i_currency_balance(_erc1155_id: uint256) -> uint256:
+def i_currency_balance(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def s_currency_balance(_erc1155_id: uint256) -> uint256:
+def s_currency_balance(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def u_currency_balance(_erc1155_id: uint256) -> uint256:
+def u_currency_balance(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant

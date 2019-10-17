@@ -266,7 +266,8 @@ def register_pool(_currency_address: address, _name: string[62], _symbol: string
         pool_operator: msg.sender,
         hash: _pool_hash
     })
-    #
+
+    # log PoolRegistered event
     log.PoolRegistered(msg.sender, _currency_address, _pool_address)
 
     return True

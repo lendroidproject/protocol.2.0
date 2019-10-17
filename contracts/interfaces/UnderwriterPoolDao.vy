@@ -1,3 +1,7 @@
+# Events
+
+PoolRegistered: event({_operator: address, _currency_address: address, _pool_address: address})
+
 # Functions
 
 @public
@@ -6,15 +10,30 @@ def initialize(_owner: address, _protocol_currency_address: address, _dao_addres
 
 @constant
 @public
+def currency_dao_address() -> address:
+    pass
+
+@constant
+@public
+def pool_hash(_currency_address: address, _pool_address: address) -> bytes32:
+    pass
+
+@constant
+@public
+def multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
+    pass
+
+@constant
+@public
 def offer_registration_fee() -> uint256:
     pass
 
 @public
-def set_offer_registration_fee_lookup(_fee_multiplier: uint256, _minimum_fee: uint256, _fee_multiplier_decimals: uint256, _minimum_interval: uint256(sec, positional), _last_registered_at: uint256(sec, positional), _last_paid_fee: uint256) -> bool:
+def set_offer_registration_fee_lookup(_minimum_fee: uint256, _minimum_interval: uint256(sec), _fee_multiplier: uint256, _fee_multiplier_decimals: uint256) -> bool:
     pass
 
 @public
-def set_shield_currency_price(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
+def set_shield_currency_minimum_collateral_value(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
     pass
 
 @public
@@ -26,11 +45,11 @@ def register_pool(_currency_address: address, _name: string[62], _symbol: string
     pass
 
 @public
-def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
+def register_expiry(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (bool, bytes32, bytes32, bytes32, uint256, uint256, uint256):
     pass
 
 @public
-def register_expiry(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (bool, bytes32, bytes32, bytes32, uint256, uint256, uint256):
+def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
     pass
 
 @public
@@ -138,7 +157,7 @@ def offer_registration_fee_lookup__minimum_fee(arg0: address) -> uint256:
 
 @constant
 @public
-def offer_registration_fee_lookup__minimum_interval(arg0: address) -> uint256(sec, positional):
+def offer_registration_fee_lookup__minimum_interval(arg0: address) -> uint256(sec):
     pass
 
 @constant
@@ -163,7 +182,7 @@ def offer_registration_fee_lookup__last_paid_fee(arg0: address) -> uint256:
 
 @constant
 @public
-def shield_currency_prices(arg0: bytes32) -> uint256:
+def shield_currency_minimum_collateral_values(arg0: bytes32) -> uint256:
     pass
 
 @constant
@@ -179,4 +198,9 @@ def TEMPLATE_TYPE_UNDERWRITER_POOL() -> uint256:
 @constant
 @public
 def TEMPLATE_TYPE_CURRENCY_ERC20() -> uint256:
+    pass
+
+@constant
+@public
+def initialized() -> bool:
     pass
