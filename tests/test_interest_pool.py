@@ -458,7 +458,13 @@ def test_redeem_f_currency(w3, get_logs,
     tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 450000})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
+    assert InterestPool.i_currency_balance(Z19) == 20 * 10 ** 18
+    assert InterestPool.f_currency_balance(Z19) == 20 * 10 ** 18
+    assert InterestPool.total_f_currency_balance() == 20 * 10 ** 18
+    assert InterestPool.l_currency_balance() == (100 - 20) * 10 ** 18
+    assert InterestPool.total_l_currency_balance() == 100 * 10 ** 18
     # High_Risk_Insurer redeems f_tokens worth 5000 InterestPoolCurrency tokens from InterestPool
+    assert InterestPool.estimated_pool_tokens(100 * 10 ** 18) == 5000 * 10 ** 18
     tx_13_hash = InterestPool.redeem_f_currency(Z19, 5000 * 10 ** 18, transact={'from': High_Risk_Insurer, 'gas': 500000})
     tx_13_receipt = w3.eth.waitForTransactionReceipt(tx_13_hash)
     assert tx_13_receipt['status'] == 1
@@ -479,5 +485,9 @@ def test_redeem_f_currency(w3, get_logs,
     assert L_token.balanceOf(High_Risk_Insurer) == 80 * 10 ** 18
     # verify InterestPool balance of InterestPoolCurrency tokens
     assert InterestPoolCurrency.balanceOf(InterestPool.address) == 0
-    # verify L_token balance of InterestPool
+    # verify multi_fungible_currency balances of InterestPool
+    assert InterestPool.i_currency_balance(Z19) == 20 * 10 ** 18
+    assert InterestPool.f_currency_balance(Z19) == 0
+    assert InterestPool.total_f_currency_balance() == 0
     assert InterestPool.l_currency_balance() == 0
+    assert InterestPool.total_l_currency_balance() == 0

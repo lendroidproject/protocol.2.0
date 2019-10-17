@@ -123,9 +123,9 @@ def _u_currency_balance(_expiry: timestamp, _underlying_address: address, _strik
 @private
 @constant
 def _exchange_rate() -> uint256:
-    if (as_unitless_number(self._l_currency_balance()) == 0) or (ERC20(self.pool_currency_address).totalSupply() == 0):
+    if (ERC20(self.pool_currency_address).totalSupply() == 0) or (as_unitless_number(self._l_currency_balance()) == 0):
         return self.initial_exchange_rate
-    return as_unitless_number(self._l_currency_balance()) / as_unitless_number(ERC20(self.pool_currency_address).totalSupply())
+    return as_unitless_number(ERC20(self.pool_currency_address).totalSupply()) / as_unitless_number(self._l_currency_balance())
 
 
 @private
