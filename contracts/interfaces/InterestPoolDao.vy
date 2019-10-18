@@ -44,6 +44,10 @@ def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> 
     pass
 
 @public
+def l_currency_to_f_currency(_pool_hash: bytes32, _f_hash: bytes32, _recipient: address, _value: uint256) -> bool:
+    pass
+
+@public
 def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
     pass
 

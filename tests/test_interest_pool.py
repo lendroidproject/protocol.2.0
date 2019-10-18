@@ -481,8 +481,8 @@ def test_redeem_f_currency(w3, get_logs,
         'contracts/templates/ERC1155Template1.v.py',
         interface_codes=interface_codes)
     # verify High_Risk_Insurer balance of l and f tokens
-    assert F_token.balanceOf(High_Risk_Insurer, InterestPool.expiries__f_currency_id(Z19)) == 20 * 10 ** 18
-    assert L_token.balanceOf(High_Risk_Insurer) == 80 * 10 ** 18
+    assert F_token.balanceOf(High_Risk_Insurer, InterestPool.expiries__f_currency_id(Z19)) == 100 * 10 ** 18
+    assert L_token.balanceOf(High_Risk_Insurer) == 0 * 10 ** 18
     # verify InterestPool balance of InterestPoolCurrency tokens
     assert InterestPoolCurrency.balanceOf(InterestPool.address) == 0
     # verify multi_fungible_currency balances of InterestPool

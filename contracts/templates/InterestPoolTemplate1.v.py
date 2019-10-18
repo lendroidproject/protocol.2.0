@@ -315,13 +315,15 @@ def redeem_f_currency(_expiry: timestamp, _pool_currency_value: uint256) -> bool
     # burn pool_tokens from msg.sender by self
     assert_modifiable(ERC20(self.pool_currency_address).burnFrom(
         msg.sender, _pool_currency_value))
-    # transfer f_tokens + l_tokens (if any) from self to msg.sender
+    # transfer f_tokens from self to msg.sender
     assert_modifiable(ERC1155(self.f_currency_address).safeTransferFrom(
         self, msg.sender,
         self.expiries[_expiry].f_currency_id,
         _f_currency_transfer_value, EMPTY_BYTES32))
+    # convert l_tokens (if any) to f_tokens from self to msg.sender
     if as_unitless_number(_l_currency_transfer_value) > 0:
-        assert_modifiable(ERC20(self.l_currency_address).transfer(
+        assert_modifiable(InterestPoolDao(self.owner).l_currency_to_f_currency(
+            self.pool_hash, self.expiries[_expiry].f_currency_hash,
             msg.sender, _l_currency_transfer_value))
 
     return True

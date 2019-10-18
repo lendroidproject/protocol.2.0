@@ -330,6 +330,32 @@ def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> 
 
 
 @public
+def l_currency_to_f_currency(_pool_hash: bytes32, _f_hash: bytes32, _recipient: address, _value: uint256) -> bool:
+    assert self._is_initialized()
+    self._validate_pool(_pool_hash, msg.sender)
+    _currency_address: address = self.pools[_pool_hash].currency_address
+    assert self._is_currency_valid(_currency_address)
+    # validate i and f token types exist
+    assert self.multi_fungible_currencies[_f_hash].has_id
+    _l_currency_address: address = ZERO_ADDRESS
+    _i_currency_address: address = ZERO_ADDRESS
+    _f_currency_address: address = ZERO_ADDRESS
+    _s_currency_address: address = ZERO_ADDRESS
+    _u_currency_address: address = ZERO_ADDRESS
+    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
+    # burn l_token from interest_pool account
+    self._burn_as_self_authorized_erc20(_l_currency_address, msg.sender, _value)
+    # mint i_token into interest_pool account
+    self._mint_erc1155(
+        _f_currency_address,
+        self.multi_fungible_currencies[_f_hash].token_id,
+        _recipient,
+        _value
+    )
+    return True
+
+
+@public
 def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
     assert self._is_initialized()
     self._validate_pool(_pool_hash, msg.sender)

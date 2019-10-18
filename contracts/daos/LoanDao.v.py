@@ -132,7 +132,7 @@ def avail_loan(_s_hash: bytes32) -> bool:
     # create position
     self._create_position(msg.sender, _s_hash)
     # calculate _collateral_amount
-    _shield_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_prices(_s_hash)
+    _shield_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_minimum_collateral_values(_s_hash)
     _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
     _collateral_amount: uint256 = as_unitless_number(_shield_price) / as_unitless_number(_strike_price)
     # transfer l_borrow_currency from borrower to self
@@ -157,7 +157,7 @@ def repay_loan(_position_id: uint256) -> bool:
     # close position
     self._close_position(_position_id)
     # calculate _collateral_amount
-    _shield_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_prices(_s_hash)
+    _shield_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_minimum_collateral_values(_s_hash)
     _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
     _collateral_amount: uint256 = as_unitless_number(_shield_price) / as_unitless_number(_strike_price)
     # transfer l_borrow_currency to msg.sender
