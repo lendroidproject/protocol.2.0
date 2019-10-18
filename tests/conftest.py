@@ -14,6 +14,7 @@ from web3.contract import (
     Contract,
     mk_collision_prop,
 )
+from web3.logs import DISCARD
 from web3.providers.eth_tester import (
     EthereumTesterProvider,
 )
@@ -161,7 +162,7 @@ def get_contract(w3):
 def get_logs(w3):
     def get_logs(tx_hash, c, event_name):
         tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
-        logs = c._classic_contract.events[event_name]().processReceipt(tx_receipt)
+        logs = c._classic_contract.events[event_name]().processReceipt(tx_receipt, errors=DISCARD)
         return logs
 
     return get_logs
