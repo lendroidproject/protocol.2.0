@@ -508,7 +508,7 @@ def test_avail_loan(w3, get_logs,
     assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 300 * 10 ** 18
     assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
     assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
-    # High_Risk_Insurer purchases 3 s_tokens from UnderwriterPool
+    # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
     tx_18_hash = UnderwriterPool.purchase_s_currency(Z19, Borrow_token.address,
         _strike_price, 2 * 10 ** 18, 0, transact={'from': High_Risk_Insurer})
     tx_18_receipt = w3.eth.waitForTransactionReceipt(tx_18_hash)
@@ -541,7 +541,7 @@ def test_avail_loan(w3, get_logs,
         transact={'from': High_Risk_Insurer})
     tx_22_receipt = w3.eth.waitForTransactionReceipt(tx_22_hash)
     assert tx_22_receipt['status'] == 1
-    # High_Risk_Insurer authorizes CurrencyDao to spend his S_token
+    # High_Risk_Insurer authorizes CurrencyDao to spend his I_token
     tx_23_hash = I_token.setApprovalForAll(CurrencyDao.address, True,
         transact={'from': High_Risk_Insurer})
     tx_23_receipt = w3.eth.waitForTransactionReceipt(tx_23_hash)
@@ -560,32 +560,56 @@ def test_avail_loan(w3, get_logs,
     assert LoanDao.offers__multi_fungible_currency_i_quantity(1) == 20
     assert LoanDao.offers__multi_fungible_currency_i_unit_price_in_wei(1) == 5 * 10 ** 15
     # verify i_token, s_token and l_token balances of LoanDao
-    I_token.balanceOf(
+    assert I_token.balanceOf(
         LoanDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_i_hash)
     ) == 0
-    S_token.balanceOf(
+    assert S_token.balanceOf(
         LoanDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 0
-    L_Borrow_token.balanceOf(LoanDao.address) == 0
+    # verify i_token, s_token and l_token balances of High_Risk_Insurer
+    assert I_token.balanceOf(
+        High_Risk_Insurer,
+        UnderwriterPoolDao.multi_fungible_currencies__token_id(_i_hash)
+    ) == 100 * 10 ** 18
+    assert S_token.balanceOf(
+        High_Risk_Insurer,
+        UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
+    ) == 2 * 10 ** 18
+    # verify L_Borrow_token balance of LoanDao
+    assert L_Borrow_token.balanceOf(LoanDao.address) == 0
+    # verify L_Borrow_token balance of Borrower
+    assert L_Borrow_token.balanceOf(Borrower) == 2 * 10 ** 18
     # verify Lend_token balance of Borrower
-    Lend_token.balanceOf(Borrower) == 0
+    assert Lend_token.balanceOf(Borrower) == 0
     # Borrower purchases this offer for the amount of 0.1 ETH
     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to LoanDao
     tx_25_hash = LoanDao.avail_loan(1,
-        transact={'from': High_Risk_Insurer, 'gas': 900000, 'value': 10 ** 17})
+        transact={'from': Borrower, 'gas': 925000, 'value': 10 ** 17})
     tx_25_receipt = w3.eth.waitForTransactionReceipt(tx_25_hash)
     assert tx_25_receipt['status'] == 1
     # verify i_token, s_token and l_token balances of LoanDao
-    I_token.balanceOf(
+    assert I_token.balanceOf(
         LoanDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_i_hash)
     ) == 20 * 10 ** 18
-    S_token.balanceOf(
+    assert S_token.balanceOf(
         LoanDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 2 * 10 ** 18
-    L_Borrow_token.balanceOf(LoanDao.address) == 5 * 10 ** 17
+    # verify i_token, s_token and l_token balances of High_Risk_Insurer
+    assert I_token.balanceOf(
+        High_Risk_Insurer,
+        UnderwriterPoolDao.multi_fungible_currencies__token_id(_i_hash)
+    ) == 80 * 10 ** 18
+    assert S_token.balanceOf(
+        High_Risk_Insurer,
+        UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
+    ) == 0
+    # verify L_Borrow_token balance of LoanDao
+    assert L_Borrow_token.balanceOf(LoanDao.address) == 5 * 10 ** 17
+    # verify L_Borrow_token balance of Borrower
+    assert L_Borrow_token.balanceOf(Borrower) == 15 * 10 ** 17
     # verify Lend_token balance of Borrower
-    Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
+    assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18

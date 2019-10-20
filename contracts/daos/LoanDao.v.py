@@ -207,7 +207,7 @@ def _loan_and_collateral_amount(_offer_id: uint256) -> (uint256, uint256):
     _total_minimum_collateral_value: uint256 = as_unitless_number(_minimum_collateral_value) * as_unitless_number(_s_quantity)
     _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
     _loan_amount: uint256 = as_unitless_number(_strike_price) * as_unitless_number(_s_quantity)
-    _collateral_amount: uint256 = as_unitless_number(_total_minimum_collateral_value) / as_unitless_number(_loan_amount)
+    _collateral_amount: uint256 = as_unitless_number(_total_minimum_collateral_value) * (10 ** 18) / as_unitless_number(_loan_amount)
     return _loan_amount, _collateral_amount
 
 
@@ -335,12 +335,14 @@ def avail_loan(_offer_id: uint256) -> bool:
     #     self.offers[_offer_id].multi_fungible_currency_i_quantity
     # )
     # transfer i_lend_currency from offer_creator to self
+    multi_fungible_currency_i_transfer_value: uint256 = as_unitless_number(self.offers[_offer_id].multi_fungible_currency_i_quantity) * (10 ** 18)
+    multi_fungible_currency_s_transfer_value: uint256 = as_unitless_number(self.offers[_offer_id].multi_fungible_currency_s_quantity) * (10 ** 18)
     self._transfer_as_self_authorized_erc1155_and_authorize(
         self.offers[_offer_id].creator,
         self,
         _multi_fungible_currency_i_parent_address,
         _multi_fungible_currency_i_token_id,
-        self.offers[_offer_id].multi_fungible_currency_i_quantity
+        multi_fungible_currency_i_transfer_value
     )
     # transfer s_lend_currency from offer_creator to self
     self._transfer_as_self_authorized_erc1155_and_authorize(
@@ -348,7 +350,7 @@ def avail_loan(_offer_id: uint256) -> bool:
         self,
         _multi_fungible_currency_s_parent_address,
         _multi_fungible_currency_s_token_id,
-        self.offers[_offer_id].multi_fungible_currency_s_quantity
+        multi_fungible_currency_s_transfer_value
     )
     # transfer l_borrow_currency from borrower to self
     self._deposit_multi_fungible_l_currency(_borrow_currency_address, msg.sender, self, _collateral_amount)
