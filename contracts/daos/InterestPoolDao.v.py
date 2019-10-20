@@ -159,8 +159,8 @@ def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _va
 
 
 @private
-def _mint_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_erc1155(_currency_address, _id, _to, _value))
+def _mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value))
 
 
 @private
@@ -346,7 +346,7 @@ def l_currency_to_f_currency(_pool_hash: bytes32, _f_hash: bytes32, _recipient: 
     # burn l_token from interest_pool account
     self._burn_as_self_authorized_erc20(_l_currency_address, msg.sender, _value)
     # mint i_token into interest_pool account
-    self._mint_erc1155(
+    self._mint_and_self_authorize_erc1155(
         _f_currency_address,
         self.multi_fungible_currencies[_f_hash].token_id,
         _recipient,
@@ -372,13 +372,13 @@ def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_has
     # burn l_token from interest_pool account
     self._burn_as_self_authorized_erc20(_l_currency_address, msg.sender, _value)
     # mint i_token into interest_pool account
-    self._mint_erc1155(
+    self._mint_and_self_authorize_erc1155(
         _i_currency_address,
         self.multi_fungible_currencies[_i_hash].token_id,
         msg.sender,
         _value
     )
-    self._mint_erc1155(
+    self._mint_and_self_authorize_erc1155(
         _f_currency_address,
         self.multi_fungible_currencies[_f_hash].token_id,
         msg.sender,

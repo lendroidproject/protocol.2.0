@@ -310,7 +310,7 @@ def test_purchase_i_currency(w3, get_logs,
     # pool_owner initiates offer of 20 I_tokens from the InterestPool
     # 20 L_tokens burned from InterestPool account
     # 20 I_tokens and 20 F_tokens deposited to InterestPool account
-    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 450000})
+    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 500000})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
     # High_Risk_Insurer purchases 10 i_tokens from InterestPool
@@ -455,7 +455,7 @@ def test_redeem_f_currency(w3, get_logs,
     # pool_owner initiates offer of 20 I_tokens from the InterestPool
     # 20 L_tokens burned from InterestPool account
     # 20 I_tokens and 20 F_tokens deposited to InterestPool account
-    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 450000})
+    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 500000})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
     assert InterestPool.i_currency_balance(Z19) == 20 * 10 ** 18

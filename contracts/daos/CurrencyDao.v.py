@@ -112,13 +112,13 @@ def _release_currency_from_pool(_currency_address: address, _to: address, _value
     _pool_hash: bytes32 = self._pool_hash(_currency_address)
     assert self.pools[_pool_hash].pool_address.is_contract, "currency is not supported"
     # release_currency from currency pool
-    _external_call_successful: bool = ContinuousCurrencyPoolERC20(self.pools[_pool_hash].pool_address).release_currency(_to, _value)
-    assert _external_call_successful
+    assert_modifiable(ContinuousCurrencyPoolERC20(self.pools[_pool_hash].pool_address).release_currency(_to, _value))
 
 
 @private
 def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256):
     assert_modifiable(ERC20(_currency_address).mintAndAuthorizeMinter(_to, _value))
+
 
 @private
 def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256):
@@ -133,13 +133,18 @@ def _create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -
 
 
 @private
-def _mint_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(ERC1155(_currency_address).mint(_id, _to, _value))
+def _mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
+    assert_modifiable(ERC1155(_currency_address).mintAndAuthorizeCreator(_id, _to, _value))
 
 
 @private
-def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(ERC1155(_currency_address).burn(_id, _to, _value))
+def _burn_erc1155(_currency_address: address, _id: uint256, _from: address, _value: uint256):
+    assert_modifiable(ERC1155(_currency_address).burn(_id, _from, _value))
+
+
+@private
+def _transfer_as_self_authorized_erc1155_and_authorize(_from: address, _to: address, _currency_address: address, _id: uint256, _value: uint256):
+    assert_modifiable(ERC1155(_currency_address).authorizedTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
 
 
 @private
@@ -209,16 +214,23 @@ def burn_as_self_authorized_erc20(_currency_address: address, _to: address, _val
 
 
 @public
-def mint_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
+def mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
     assert self._is_initialized()
-    self._mint_erc1155(_currency_address, _id, _to, _value)
+    self._mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value)
     return True
 
 
 @public
-def burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
+def burn_erc1155(_currency_address: address, _id: uint256, _from: address, _value: uint256) -> bool:
     assert self._is_initialized()
-    self._burn_erc1155(_currency_address, _id, _to, _value)
+    self._burn_erc1155(_currency_address, _id, _from, _value)
+    return True
+
+
+@public
+def transfer_as_self_authorized_erc1155_and_authorize(_from: address, _to: address, _currency_address: address, _id: uint256, _value: uint256) -> bool:
+    assert self._is_initialized()
+    self._transfer_as_self_authorized_erc1155_and_authorize(_from, _to, _currency_address, _id, _value)
     return True
 
 

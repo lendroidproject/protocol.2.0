@@ -179,7 +179,9 @@ def initialize_loan_dao() -> bool:
     # initialize loan dao
     assert_modifiable(LoanDao(self.daos[self.DAO_TYPE_LOAN]).initialize(
         self.owner, self.protocol_currency_address,
-        self.daos[self.DAO_TYPE_CURRENCY], self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
+        self.daos[self.DAO_TYPE_CURRENCY],
+        self.daos[self.DAO_TYPE_INTEREST_POOL],
+        self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     ))
 
     log.DAOInitialized(msg.sender, self.DAO_TYPE_LOAN, self.daos[self.DAO_TYPE_LOAN])

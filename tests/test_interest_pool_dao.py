@@ -750,7 +750,7 @@ def test_l_currency_to_i_and_f_currency(w3, get_logs,
     # pool_owner initiates offer of 20 I_tokens from the InterestPool
     # 20 L_tokens burned from InterestPool account
     # 20 I_tokens and 20 F_tokens deposited to InterestPool account
-    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 450000})
+    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 500000})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     print('\n\n tx_12_receipt : {0}'.format(tx_12_receipt))
     assert tx_12_receipt['status'] == 1
@@ -878,7 +878,7 @@ def test_l_currency_from_i_and_f_currency(w3, get_logs,
     # pool_owner initiates offer of 20 I_tokens from the InterestPool
     # 20 L_tokens burned from InterestPool account
     # 20 I_tokens and 20 F_tokens deposited to InterestPool account
-    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 450000})
+    tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 500000})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
     # pool_owner reduces offer of 10 I_tokens from the InterestPool

@@ -109,7 +109,7 @@ def _pool_hash(_currency_address: address, _pool_address: address) -> bytes32:
 def _multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
     return keccak256(
         concat(
-            convert(self, bytes32),
+            convert(self.protocol_dao_address, bytes32),
             convert(parent_currency_address, bytes32),
             convert(_currency_address, bytes32),
             convert(_expiry, bytes32),
@@ -168,14 +168,19 @@ def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _va
 
 
 @private
-def _mint_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_erc1155(_currency_address, _id, _to, _value)
+def _mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
+    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value)
     assert _external_call_successful
 
 
 @private
 def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value)
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value))
+
+
+@private
+def _transfer_as_self_authorized_erc1155_and_authorize(_currency_address: address, _to: address, _value: uint256):
+    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value)
     assert _external_call_successful
 
 
@@ -394,7 +399,7 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, 
     assert self._is_currency_valid(_currency_address)
     # verify _value is not less than minimum collateral value
     assert not as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash]) == 0, "shield price has not been set"
-    assert as_unitless_number(_value) >= as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash])
+    assert as_unitless_number(_value) % as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash]) == 0
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert self.multi_fungible_currencies[_s_hash].has_id and \
            self.multi_fungible_currencies[_u_hash].has_id and \
@@ -417,19 +422,19 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, 
     _su_currencies_to_mint: uint256 = (as_unitless_number(_value) * (10 ** 18)) / as_unitless_number(self.shield_currency_minimum_collateral_values[_s_hash])
     assert _su_currencies_to_mint >= 10 ** 18
     # mint i_token into interest_pool account
-    self._mint_erc1155(
+    self._mint_and_self_authorize_erc1155(
         _i_currency_address,
         self.multi_fungible_currencies[_i_hash].token_id,
         msg.sender,
         _value
     )
-    self._mint_erc1155(
+    self._mint_and_self_authorize_erc1155(
         _s_currency_address,
         self.multi_fungible_currencies[_s_hash].token_id,
         msg.sender,
         _su_currencies_to_mint
     )
-    self._mint_erc1155(
+    self._mint_and_self_authorize_erc1155(
         _u_currency_address,
         self.multi_fungible_currencies[_u_hash].token_id,
         msg.sender,

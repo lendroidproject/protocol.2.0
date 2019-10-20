@@ -43,11 +43,15 @@ def burn_as_self_authorized_erc20(_currency_address: address, _to: address, _val
     pass
 
 @public
-def mint_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
+def mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
+def burn_erc1155(_currency_address: address, _id: uint256, _from: address, _value: uint256) -> bool:
+    pass
+
+@public
+def transfer_as_self_authorized_erc1155_and_authorize(_from: address, _to: address, _currency_address: address, _id: uint256, _value: uint256) -> bool:
     pass
 
 @constant

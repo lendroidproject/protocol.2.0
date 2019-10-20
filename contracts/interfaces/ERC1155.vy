@@ -17,10 +17,6 @@ def supportsInterface(_interfaceId: bytes[10]) -> bool:
     pass
 
 @public
-def set_minter_status(_minter: address, _status: bool) -> bool:
-    pass
-
-@public
 def setURI(_uri: string[64], _id: uint256):
     pass
 
@@ -33,11 +29,19 @@ def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
     pass
 
 @public
-def burn(_id: uint256, _to: address, _quantity: uint256) -> bool:
+def mintAndAuthorizeCreator(_id: uint256, _to: address, _quantity: uint256) -> bool:
+    pass
+
+@public
+def burn(_id: uint256, _from: address, _quantity: uint256) -> bool:
     pass
 
 @public
 def safeTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256, _data: bytes32) -> bool:
+    pass
+
+@public
+def authorizedTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256, _data: bytes32) -> bool:
     pass
 
 @public
@@ -71,11 +75,6 @@ def isApprovedForAll(_owner: address, _operator: address) -> bool:
 @constant
 @public
 def creators(arg0: uint256) -> address:
-    pass
-
-@constant
-@public
-def minters(arg0: address) -> bool:
     pass
 
 @constant

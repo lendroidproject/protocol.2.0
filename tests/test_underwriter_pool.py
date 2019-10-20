@@ -342,7 +342,7 @@ def test_purchase_i_currency(w3, get_logs,
     # 80 I_tokens, 4 S_tokens, and 4 U_tokens minted to UnderwriterPool account
     tx_14_hash = UnderwriterPool.increment_i_currency_supply(
         Z19, Borrow_token.address, _strike_price, 80 * 10 ** 18,
-        transact={'from': pool_owner, 'gas': 550000})
+        transact={'from': pool_owner, 'gas': 600000})
     tx_14_receipt = w3.eth.waitForTransactionReceipt(tx_14_hash)
     assert tx_14_receipt['status'] == 1
     # get I_token
@@ -520,10 +520,10 @@ def test_purchase_s_currency(w3, get_logs,
     # 80 I_tokens, 4 S_tokens, and 4 U_tokens minted to UnderwriterPool account
     tx_14_hash = UnderwriterPool.increment_i_currency_supply(
         Z19, Borrow_token.address, _strike_price, 80 * 10 ** 18,
-        transact={'from': pool_owner, 'gas': 550000})
+        transact={'from': pool_owner, 'gas': 600000})
     tx_14_receipt = w3.eth.waitForTransactionReceipt(tx_14_hash)
     assert tx_14_receipt['status'] == 1
-    # get I_token
+    # get S_token and U_token
     interface_codes = {}
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
         os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:

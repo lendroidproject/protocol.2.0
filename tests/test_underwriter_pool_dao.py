@@ -830,8 +830,9 @@ def test_l_currency_to_i_and_s_and_u_currency(w3, get_logs,
     # 1 U_token minted to UnderwriterPool account
     tx_14_hash = UnderwriterPool.increment_i_currency_supply(
         Z19, Borrow_token.address, _strike_price, 20 * 10 ** 18,
-        transact={'from': pool_owner, 'gas': 550000})
+        transact={'from': pool_owner, 'gas': 600000})
     tx_14_receipt = w3.eth.waitForTransactionReceipt(tx_14_hash)
+    print(tx_14_receipt)
     assert tx_14_receipt['status'] == 1
     # verify multi_fungible_currencies balances of UnderwriterPool
     assert UnderwriterPool.l_currency_balance() == (100 - 20) * 10 ** 18
@@ -977,7 +978,7 @@ def test_l_currency_from_i_and_s_and_u_currency(w3, get_logs,
     # 80 I_tokens, 4 S_tokens, and 4 U_tokens minted to UnderwriterPool account
     tx_14_hash = UnderwriterPool.increment_i_currency_supply(
         Z19, Borrow_token.address, _strike_price, 80 * 10 ** 18,
-        transact={'from': pool_owner, 'gas': 550000})
+        transact={'from': pool_owner, 'gas': 600000})
     tx_14_receipt = w3.eth.waitForTransactionReceipt(tx_14_hash)
     assert tx_14_receipt['status'] == 1
     # verify multi_fungible_currencies balances of UnderwriterPool
