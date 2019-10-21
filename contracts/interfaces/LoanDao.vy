@@ -22,19 +22,15 @@ def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5],
     pass
 
 @public
-def create_offer(_multi_fungible_currency_s_hash: bytes32, _multi_fungible_currency_i_hash: bytes32, _multi_fungible_currency_s_quantity: uint256, _multi_fungible_currency_i_quantity: uint256, _multi_fungible_currency_i_unit_price_in_wei: uint256(wei)) -> bool:
+def create_offer(_s_hash: bytes32, _i_hash: bytes32, _s_quantity: uint256, _i_quantity: uint256, _i_unit_price_in_wei: uint256(wei)) -> bool:
     pass
 
 @public
-def update_offer(_id: uint256, _multi_fungible_currency_s_quantity: uint256, _multi_fungible_currency_i_quantity: uint256) -> bool:
+def update_offer(_id: uint256, _s_quantity: uint256, _i_quantity: uint256) -> bool:
     pass
 
 @public
 def remove_offer(_id: uint256) -> bool:
-    pass
-
-@public
-def loan_and_collateral_amount(_offer_id: uint256) -> (uint256, uint256):
     pass
 
 @public
@@ -77,7 +73,22 @@ def positions__borrower(arg0: uint256) -> address:
 
 @constant
 @public
-def positions__multi_fungible_currency_hash(arg0: uint256) -> bytes32:
+def positions__lend_currency_address(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
+def positions__borrow_currency_address(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
+def positions__lend_currency_value(arg0: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def positions__borrow_currency_value(arg0: uint256) -> uint256:
     pass
 
 @constant
@@ -117,27 +128,62 @@ def offers__creator(arg0: uint256) -> address:
 
 @constant
 @public
-def offers__multi_fungible_currency_s_hash(arg0: uint256) -> bytes32:
+def offers__lend_currency_address(arg0: uint256) -> address:
     pass
 
 @constant
 @public
-def offers__multi_fungible_currency_i_hash(arg0: uint256) -> bytes32:
+def offers__borrow_currency_address(arg0: uint256) -> address:
     pass
 
 @constant
 @public
-def offers__multi_fungible_currency_s_quantity(arg0: uint256) -> uint256:
+def offers__lend_currency_value(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def offers__multi_fungible_currency_i_quantity(arg0: uint256) -> uint256:
+def offers__borrow_currency_value(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def offers__multi_fungible_currency_i_unit_price_in_wei(arg0: uint256) -> uint256(wei):
+def offers__s_hash(arg0: uint256) -> bytes32:
+    pass
+
+@constant
+@public
+def offers__s_parent_address(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
+def offers__s_token_id(arg0: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def offers__i_parent_address(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
+def offers__i_token_id(arg0: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def offers__s_quantity(arg0: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def offers__i_quantity(arg0: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def offers__i_unit_price_in_wei(arg0: uint256) -> uint256(wei):
     pass
 
 @constant

@@ -15,17 +15,33 @@ implements: ERC1155TokenReceiver
 # Structs
 struct Offer:
     creator: address
-    multi_fungible_currency_s_hash: bytes32
-    multi_fungible_currency_i_hash: bytes32
-    multi_fungible_currency_s_quantity: uint256
-    multi_fungible_currency_i_quantity: uint256
-    multi_fungible_currency_i_unit_price_in_wei: wei_value
+    lend_currency_address: address
+    borrow_currency_address: address
+    lend_currency_value: uint256
+    borrow_currency_value: uint256
+    s_hash: bytes32
+    s_parent_address: address
+    s_token_id: uint256
+    i_parent_address: address
+    i_token_id: uint256
+    s_quantity: uint256
+    i_quantity: uint256
+    i_unit_price_in_wei: wei_value
     id: uint256
 
 
 struct Position:
     borrower: address
-    multi_fungible_currency_hash: bytes32
+    lend_currency_address: address
+    borrow_currency_address: address
+    lend_currency_value: uint256
+    borrow_currency_value: uint256
+    i_parent_address: address
+    i_token_id: uint256
+    i_quantity: uint256
+    s_parent_address: address
+    s_token_id: uint256
+    s_quantity: uint256
     status: uint256
     id: uint256
 
@@ -142,19 +158,37 @@ def _transfer_as_self_authorized_erc1155_and_authorize(_from: address, _to: addr
 
 
 @private
-def _create_position(_borrower: address, _s_hash: bytes32):
-    self.last_position_id += 1
-    _position_id: uint256 = self.last_position_id
+def _loan_and_collateral_amount(_s_hash: bytes32, _s_quantity: uint256) -> (uint256, uint256):
+    _minimum_collateral_value: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_minimum_collateral_values(_s_hash)
+    _total_minimum_collateral_value: uint256 = as_unitless_number(_minimum_collateral_value) * as_unitless_number(_s_quantity)
+    _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
+    _loan_amount: uint256 = as_unitless_number(_strike_price) * as_unitless_number(_s_quantity)
+    _collateral_amount: uint256 = as_unitless_number(_total_minimum_collateral_value) * (10 ** 18) / as_unitless_number(_loan_amount)
+    return _loan_amount, _collateral_amount
 
-    self.positions[_position_id] = Position({
+
+@private
+def _create_position(_borrower: address, _offer_id: uint256):
+    self.last_position_id += 1
+
+    self.positions[self.last_position_id] = Position({
         borrower: _borrower,
-        multi_fungible_currency_hash: _s_hash,
+        lend_currency_address: self.offers[_offer_id].lend_currency_address,
+        borrow_currency_address: self.offers[_offer_id].borrow_currency_address,
+        lend_currency_value: self.offers[_offer_id].lend_currency_value,
+        borrow_currency_value: self.offers[_offer_id].borrow_currency_value,
+        i_parent_address: self.offers[_offer_id].i_parent_address,
+        i_token_id: self.offers[_offer_id].i_token_id,
+        i_quantity: self.offers[_offer_id].i_quantity,
+        s_parent_address: self.offers[_offer_id].s_parent_address,
+        s_token_id: self.offers[_offer_id].s_token_id,
+        s_quantity: self.offers[_offer_id].s_quantity,
         status: self.LOAN_STATUS_ACTIVE,
-        id: _position_id
+        id: self.last_position_id
     })
     self.borrow_position_count[_borrower] += 1
-    self.borrow_position_index[_borrower][_position_id] = self.borrow_position_count[_borrower]
-    self.borrow_position[_borrower][self.borrow_position_count[_borrower]] = _position_id
+    self.borrow_position_index[_borrower][self.last_position_id] = self.borrow_position_count[_borrower]
+    self.borrow_position[_borrower][self.borrow_position_count[_borrower]] = self.last_position_id
 
 
 @private
@@ -188,27 +222,22 @@ def _remove_offer(_id: uint256):
     if _id < self.last_offer_index:
         self.offers[_id] = Offer({
             creator: self.offers[self.last_offer_index].creator,
-            multi_fungible_currency_s_hash: self.offers[self.last_offer_index].multi_fungible_currency_s_hash,
-            multi_fungible_currency_i_hash: self.offers[self.last_offer_index].multi_fungible_currency_i_hash,
-            multi_fungible_currency_s_quantity: self.offers[self.last_offer_index].multi_fungible_currency_s_quantity,
-            multi_fungible_currency_i_quantity: self.offers[self.last_offer_index].multi_fungible_currency_i_quantity,
-            multi_fungible_currency_i_unit_price_in_wei: self.offers[self.last_offer_index].multi_fungible_currency_i_unit_price_in_wei,
+            lend_currency_address: self.offers[self.last_offer_index].lend_currency_address,
+            borrow_currency_address: self.offers[self.last_offer_index].borrow_currency_address,
+            lend_currency_value: self.offers[self.last_offer_index].lend_currency_value,
+            borrow_currency_value: self.offers[self.last_offer_index].borrow_currency_value,
+            s_hash: self.offers[self.last_offer_index].s_hash,
+            s_parent_address: self.offers[self.last_offer_index].s_parent_address,
+            s_token_id: self.offers[self.last_offer_index].s_token_id,
+            i_parent_address: self.offers[self.last_offer_index].i_parent_address,
+            i_token_id: self.offers[self.last_offer_index].i_token_id,
+            s_quantity: self.offers[self.last_offer_index].s_quantity,
+            i_quantity: self.offers[self.last_offer_index].i_quantity,
+            i_unit_price_in_wei: self.offers[self.last_offer_index].i_unit_price_in_wei,
             id: _id
         })
     clear(self.offers[self.last_offer_index])
     self.last_offer_index -= 1
-
-
-@private
-def _loan_and_collateral_amount(_offer_id: uint256) -> (uint256, uint256):
-    _s_hash: bytes32 = self.offers[_offer_id].multi_fungible_currency_s_hash
-    _s_quantity: uint256 = self.offers[_offer_id].multi_fungible_currency_s_quantity
-    _minimum_collateral_value: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_minimum_collateral_values(_s_hash)
-    _total_minimum_collateral_value: uint256 = as_unitless_number(_minimum_collateral_value) * as_unitless_number(_s_quantity)
-    _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
-    _loan_amount: uint256 = as_unitless_number(_strike_price) * as_unitless_number(_s_quantity)
-    _collateral_amount: uint256 = as_unitless_number(_total_minimum_collateral_value) * (10 ** 18) / as_unitless_number(_loan_amount)
-    return _loan_amount, _collateral_amount
 
 
 # START of ERC1155TokenReceiver interface functions
@@ -255,20 +284,39 @@ def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5],
 
 
 @public
-def create_offer(_multi_fungible_currency_s_hash: bytes32, _multi_fungible_currency_i_hash: bytes32,
-    _multi_fungible_currency_s_quantity: uint256, _multi_fungible_currency_i_quantity: uint256,
-    _multi_fungible_currency_i_unit_price_in_wei: wei_value) -> bool:
-    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_multi_fungible_currency_s_hash)
-    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_multi_fungible_currency_i_hash) or \
-           InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).multi_fungible_currencies__has_id(_multi_fungible_currency_i_hash)
+def create_offer(_s_hash: bytes32, _i_hash: bytes32, _s_quantity: uint256,
+    _i_quantity: uint256, _i_unit_price_in_wei: wei_value) -> bool:
+    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_s_hash)
+    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_i_hash) or \
+           InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).multi_fungible_currencies__has_id(_i_hash)
+    _i_parent_address: address = ZERO_ADDRESS
+    _i_token_id: uint256 = 0
+    if UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_i_hash):
+        _i_parent_address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__parent_currency_address(_i_hash)
+        _i_token_id = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__token_id(_i_hash)
+    else:
+        _i_parent_address = InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).multi_fungible_currencies__parent_currency_address(_i_hash)
+        _i_token_id = InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).multi_fungible_currencies__token_id(_i_hash)
+    assert not _i_parent_address == ZERO_ADDRESS
+    assert as_unitless_number(_i_token_id) > 0
+    _loan_amount: uint256 = 0
+    _collateral_amount: uint256 = 0
+    _loan_amount, _collateral_amount = self._loan_and_collateral_amount(_s_hash, _s_quantity)
     self.last_offer_index += 1
     self.offers[self.last_offer_index] = Offer({
         creator: msg.sender,
-        multi_fungible_currency_s_hash: _multi_fungible_currency_s_hash,
-        multi_fungible_currency_i_hash: _multi_fungible_currency_i_hash,
-        multi_fungible_currency_s_quantity: _multi_fungible_currency_s_quantity,
-        multi_fungible_currency_i_quantity: _multi_fungible_currency_i_quantity,
-        multi_fungible_currency_i_unit_price_in_wei: _multi_fungible_currency_i_unit_price_in_wei,
+        lend_currency_address: UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__currency_address(_s_hash),
+        borrow_currency_address: UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__underlying_address(_s_hash),
+        lend_currency_value: _loan_amount,
+        borrow_currency_value: _collateral_amount,
+        s_hash: _s_hash,
+        s_parent_address: UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__parent_currency_address(_s_hash),
+        s_token_id: UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__token_id(_s_hash),
+        i_parent_address: _i_parent_address,
+        i_token_id: _i_token_id,
+        s_quantity: _s_quantity,
+        i_quantity: _i_quantity,
+        i_unit_price_in_wei: _i_unit_price_in_wei,
         id: self.last_offer_index
     })
 
@@ -276,11 +324,16 @@ def create_offer(_multi_fungible_currency_s_hash: bytes32, _multi_fungible_curre
 
 
 @public
-def update_offer(_id: uint256, _multi_fungible_currency_s_quantity: uint256,
-    _multi_fungible_currency_i_quantity: uint256) -> bool:
+def update_offer(_id: uint256, _s_quantity: uint256, _i_quantity: uint256) -> bool:
     assert _id <= self.last_offer_index
-    self.offers[_id].multi_fungible_currency_s_quantity = _multi_fungible_currency_s_quantity
-    self.offers[_id].multi_fungible_currency_i_quantity = _multi_fungible_currency_i_quantity
+    _loan_amount: uint256 = 0
+    _collateral_amount: uint256 = 0
+    _loan_amount, _collateral_amount = self._loan_and_collateral_amount(
+        self.offers[_id].s_hash, _s_quantity)
+    self.offers[_id].s_quantity = _s_quantity
+    self.offers[_id].i_quantity = _i_quantity
+    self.offers[_id].lend_currency_value = _loan_amount
+    self.offers[_id].borrow_currency_value = _collateral_amount
 
     return True
 
@@ -295,67 +348,43 @@ def remove_offer(_id: uint256) -> bool:
 
 
 @public
-def loan_and_collateral_amount(_offer_id: uint256) -> (uint256, uint256):
-    return self._loan_and_collateral_amount(_offer_id)
-
-
-@public
 @payable
 def avail_loan(_offer_id: uint256) -> bool:
     self._lock_offer(_offer_id)
-    assert msg.value == as_unitless_number(self.offers[_offer_id].multi_fungible_currency_i_unit_price_in_wei) * as_unitless_number(self.offers[_offer_id].multi_fungible_currency_i_quantity)
-    _s_hash: bytes32 = self.offers[_offer_id].multi_fungible_currency_s_hash
-    _i_hash: bytes32 = self.offers[_offer_id].multi_fungible_currency_i_hash
-    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_s_hash)
-    _lend_currency_address: address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__currency_address(_s_hash)
-    _borrow_currency_address: address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__underlying_address(_s_hash)
-    _multi_fungible_currency_s_parent_address: address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__parent_currency_address(_s_hash)
-    _multi_fungible_currency_s_token_id: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__token_id(_s_hash)
-    _multi_fungible_currency_i_parent_address: address = ZERO_ADDRESS
-    _multi_fungible_currency_i_token_id: uint256 = 0
-    if UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_i_hash):
-        _multi_fungible_currency_i_parent_address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__parent_currency_address(_i_hash)
-        _multi_fungible_currency_i_token_id = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__token_id(_i_hash)
-    else:
-        _multi_fungible_currency_i_parent_address = InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).multi_fungible_currencies__parent_currency_address(_i_hash)
-        _multi_fungible_currency_i_token_id = InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).multi_fungible_currencies__token_id(_i_hash)
-    assert not _multi_fungible_currency_i_parent_address == ZERO_ADDRESS
-    assert as_unitless_number(_multi_fungible_currency_i_token_id) > 0
-    assert self._is_currency_valid(_lend_currency_address)
-    assert self._is_currency_valid(_borrow_currency_address)
+    assert msg.value == as_unitless_number(self.offers[_offer_id].i_unit_price_in_wei) * as_unitless_number(self.offers[_offer_id].i_quantity)
+    assert self._is_currency_valid(self.offers[_offer_id].lend_currency_address)
+    assert self._is_currency_valid(self.offers[_offer_id].borrow_currency_address)
     # create position
-    self._create_position(msg.sender, _s_hash)
-    # get _loan_amount and _collateral_amount
-    _loan_amount: uint256 = 0
-    _collateral_amount: uint256 = 0
-    _loan_amount, _collateral_amount = self._loan_and_collateral_amount(_offer_id)
+    self._create_position(msg.sender, _offer_id)
     # self._burn_erc1155(_multi_fungible_currency_i_parent_address,
     #     _multi_fungible_currency_i_token_id,
     #     self.offers[_offer_id].creator,
     #     self.offers[_offer_id].multi_fungible_currency_i_quantity
     # )
     # transfer i_lend_currency from offer_creator to self
-    multi_fungible_currency_i_transfer_value: uint256 = as_unitless_number(self.offers[_offer_id].multi_fungible_currency_i_quantity) * (10 ** 18)
-    multi_fungible_currency_s_transfer_value: uint256 = as_unitless_number(self.offers[_offer_id].multi_fungible_currency_s_quantity) * (10 ** 18)
     self._transfer_as_self_authorized_erc1155_and_authorize(
         self.offers[_offer_id].creator,
         self,
-        _multi_fungible_currency_i_parent_address,
-        _multi_fungible_currency_i_token_id,
-        multi_fungible_currency_i_transfer_value
+        self.offers[_offer_id].i_parent_address,
+        self.offers[_offer_id].i_token_id,
+        as_unitless_number(self.offers[_offer_id].i_quantity) * (10 ** 18)
     )
     # transfer s_lend_currency from offer_creator to self
     self._transfer_as_self_authorized_erc1155_and_authorize(
         self.offers[_offer_id].creator,
         self,
-        _multi_fungible_currency_s_parent_address,
-        _multi_fungible_currency_s_token_id,
-        multi_fungible_currency_s_transfer_value
+        self.offers[_offer_id].s_parent_address,
+        self.offers[_offer_id].s_token_id,
+        as_unitless_number(self.offers[_offer_id].s_quantity) * (10 ** 18)
     )
     # transfer l_borrow_currency from borrower to self
-    self._deposit_multi_fungible_l_currency(_borrow_currency_address, msg.sender, self, _collateral_amount)
+    self._deposit_multi_fungible_l_currency(
+        self.offers[_offer_id].borrow_currency_address,
+        msg.sender, self, self.offers[_offer_id].borrow_currency_value)
     # transfer lend_currency to msg.sender
-    self._release_currency_from_pool(_lend_currency_address, msg.sender, as_unitless_number(_loan_amount))
+    self._release_currency_from_pool(
+        self.offers[_offer_id].lend_currency_address,
+        msg.sender, self.offers[_offer_id].lend_currency_value)
     send(self.offers[_offer_id].creator, msg.value)
     self._remove_offer(_offer_id)
     self._unlock_offer(_offer_id)
@@ -368,23 +397,36 @@ def repay_loan(_position_id: uint256) -> bool:
     # validate borrower
     assert self.positions[_position_id].borrower == msg.sender
     # validate position currencies
-    _s_hash: bytes32 = self.positions[_position_id].multi_fungible_currency_hash
-    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__has_id(_s_hash)
-    _lend_currency_address: address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__currency_address(_s_hash)
-    _borrow_currency_address: address = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__underlying_address(_s_hash)
-    assert self._is_currency_valid(_lend_currency_address)
-    assert self._is_currency_valid(_borrow_currency_address)
-    # close position
-    self._close_position(_position_id)
-    # calculate _collateral_amount
-    _shield_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_minimum_collateral_values(_s_hash)
-    _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
-    _collateral_amount: uint256 = as_unitless_number(_shield_price) / as_unitless_number(_strike_price)
+    assert self._is_currency_valid(self.positions[_position_id].lend_currency_address)
+    assert self._is_currency_valid(self.positions[_position_id].borrow_currency_address)
+    # transfer i_lend_currency from offer_creator to self
+    self._transfer_as_self_authorized_erc1155_and_authorize(
+        self,
+        self.positions[_position_id].borrower,
+        self.positions[_position_id].i_parent_address,
+        self.positions[_position_id].i_token_id,
+        as_unitless_number(self.positions[_position_id].i_quantity) * (10 ** 18)
+    )
+    # transfer s_lend_currency from offer_creator to self
+    self._transfer_as_self_authorized_erc1155_and_authorize(
+        self,
+        self.positions[_position_id].borrower,
+        self.positions[_position_id].s_parent_address,
+        self.positions[_position_id].s_token_id,
+        as_unitless_number(self.positions[_position_id].s_quantity) * (10 ** 18)
+    )
     # transfer l_borrow_currency to msg.sender
     self._transfer_erc20(
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).currencies__l_currency_address(_borrow_currency_address),
-        msg.sender, _collateral_amount)
+        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).currencies__l_currency_address(
+        self.positions[_position_id].borrow_currency_address),
+        msg.sender,
+        self.positions[_position_id].borrow_currency_value)
     # transfer lend_currency from msg.sender to currency_pool
-    self._deposit_currency_to_pool(_lend_currency_address, msg.sender, as_unitless_number(_strike_price))
+    self._deposit_currency_to_pool(
+        self.positions[_position_id].lend_currency_address,
+        msg.sender,
+        self.positions[_position_id].lend_currency_value)
+    # close position
+    self._close_position(_position_id)
 
     return True
