@@ -325,6 +325,7 @@ def create_offer(_s_hash: bytes32, _i_hash: bytes32, _s_quantity: uint256,
 
 @public
 def update_offer(_id: uint256, _s_quantity: uint256, _i_quantity: uint256) -> bool:
+    assert self.offers[_id].creator == msg.sender
     assert _id <= self.last_offer_index
     _loan_amount: uint256 = 0
     _collateral_amount: uint256 = 0
