@@ -160,10 +160,9 @@ def _transfer_as_self_authorized_erc1155_and_authorize(_from: address, _to: addr
 @private
 def _loan_and_collateral_amount(_s_hash: bytes32, _s_quantity: uint256) -> (uint256, uint256):
     _minimum_collateral_value: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).shield_currency_minimum_collateral_values(_s_hash)
-    _total_minimum_collateral_value: uint256 = as_unitless_number(_minimum_collateral_value) * as_unitless_number(_s_quantity)
     _strike_price: uint256 = UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).multi_fungible_currencies__strike_price(_s_hash)
     _loan_amount: uint256 = as_unitless_number(_strike_price) * as_unitless_number(_s_quantity)
-    _collateral_amount: uint256 = as_unitless_number(_total_minimum_collateral_value) * (10 ** 18) / as_unitless_number(_loan_amount)
+    _collateral_amount: uint256 = as_unitless_number(_minimum_collateral_value) * as_unitless_number(_s_quantity) * (10 ** 18) / as_unitless_number(_strike_price)
     return _loan_amount, _collateral_amount
 
 

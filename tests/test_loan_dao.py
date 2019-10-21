@@ -520,7 +520,7 @@ def test_avail_loan(w3, get_logs,
     assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 2 * 10 ** 18
     # assign one of the accounts as a Borrower
     Borrower = w3.eth.accounts[3]
-    # Borrower purchases 3 Borrow_tokens from a 3rd party exchange
+    # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
     tx_19_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, transact={'from': owner})
     tx_19_receipt = w3.eth.waitForTransactionReceipt(tx_19_hash)
     assert tx_19_receipt['status'] == 1
@@ -607,9 +607,9 @@ def test_avail_loan(w3, get_logs,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 0
     # verify L_Borrow_token balance of LoanDao
-    assert L_Borrow_token.balanceOf(LoanDao.address) == 5 * 10 ** 17
+    assert L_Borrow_token.balanceOf(LoanDao.address) == 1 * 10 ** 18
     # verify L_Borrow_token balance of Borrower
-    assert L_Borrow_token.balanceOf(Borrower) == 15 * 10 ** 17
+    assert L_Borrow_token.balanceOf(Borrower) == 1 * 10 ** 18
     # verify Lend_token balance of Borrower
     assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
 
