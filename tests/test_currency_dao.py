@@ -1,7 +1,7 @@
 import pytest
 
-from conftest import (ZERO_ADDRESS,
-    _get_contract_from_address
+from conftest import (
+    ZERO_ADDRESS,
 )
 
 
@@ -18,7 +18,7 @@ from conftest import (ZERO_ADDRESS,
 """
 
 
-def test_initialize(w3, get_logs,
+def test_initialize(w3, get_contract, get_logs,
         LST_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao
@@ -50,7 +50,7 @@ def test_initialize(w3, get_logs,
 
 
 def test_failed_transaction_for_set_currency_support_call_by_non_owner(
-        w3, get_logs,
+        w3, get_contract, get_logs,
         LST_token, Malicious_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao
@@ -67,7 +67,7 @@ def test_failed_transaction_for_set_currency_support_call_by_non_owner(
     assert tx_receipt['status'] == 0
 
 
-def test_set_currency_support(w3, get_logs,
+def test_set_currency_support(w3, get_contract, get_logs,
         LST_token, Lend_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao
@@ -84,7 +84,7 @@ def test_set_currency_support(w3, get_logs,
     assert tx_receipt['status'] == 1
 
 
-def test_currency_dao_currency_to_l_currency(w3, get_logs,
+def test_currency_dao_currency_to_l_currency(w3, get_contract, get_logs,
         LST_token, Lend_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao
@@ -120,6 +120,9 @@ def test_currency_dao_currency_to_l_currency(w3, get_logs,
     assert currency_balance == (1000000 - 100) * (10 ** 18)
     # verify l token balance of owner
     L_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_token = _get_contract_from_address(w3, L_token_address, 'contracts/templates/ERC20Template1.v.py')
+    L_token = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=L_token_address
+    )
     l_currency_balance = L_token.balanceOf(owner)
     assert l_currency_balance == 100 * (10 ** 18)

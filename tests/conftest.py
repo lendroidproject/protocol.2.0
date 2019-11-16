@@ -132,7 +132,20 @@ def w3(tester):
     return w3
 
 
-def _get_contract(w3, source_code, *args, **kwargs):
+def _get_contract(w3, source_code_path, *args, **kwargs):
+    interfaces = kwargs.pop('interfaces', None)
+    if interfaces:
+        interface_codes = {}
+        for interface in interfaces:
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                os.pardir, 'contracts/interfaces/{0}.vy'.format(interface))) as f:
+                    interface_codes[interface] = {
+                        'type': 'vyper',
+                        'code': f.read()
+                    }
+        kwargs.update({'interface_codes': interface_codes})
+    with open(source_code_path) as f:
+        source_code = f.read()
     out = compiler.compile_code(
         source_code,
         ['abi', 'bytecode'],
@@ -140,17 +153,19 @@ def _get_contract(w3, source_code, *args, **kwargs):
     )
     abi = out['abi']
     bytecode = out['bytecode']
-    value = kwargs.pop('value_in_eth', 0) * 10 ** 18  # Handle deploying with an eth value.
-    c = w3.eth.contract(abi=abi, bytecode=bytecode)
-    deploy_transaction = c.constructor(*args)
-    tx_info = {
-        'from': w3.eth.accounts[0],
-        'value': value,
-        'gasPrice': 0,
-    }
-    tx_info.update(kwargs)
-    tx_hash = deploy_transaction.transact(tx_info)
-    address = w3.eth.getTransactionReceipt(tx_hash)['contractAddress']
+    address = kwargs.pop('address', None)
+    if address is None:
+        value = kwargs.pop('value_in_eth', 0) * 10 ** 18  # Handle deploying with an eth value.
+        c = w3.eth.contract(abi=abi, bytecode=bytecode)
+        deploy_transaction = c.constructor(*args)
+        tx_info = {
+            'from': w3.eth.accounts[0],
+            'value': value,
+            'gasPrice': 0,
+        }
+        tx_info.update(kwargs)
+        tx_hash = deploy_transaction.transact(tx_info)
+        address = w3.eth.getTransactionReceipt(tx_hash)['contractAddress']
     contract = w3.eth.contract(
         address,
         abi=abi,
@@ -160,30 +175,10 @@ def _get_contract(w3, source_code, *args, **kwargs):
     return contract
 
 
-def _get_contract_from_address(_w3, _address, _source_code_path, **kwargs):
-    with open(_source_code_path) as f:
-        source_code = f.read()
-
-    out = compiler.compile_code(
-        source_code,
-        ['abi', 'bytecode'],
-        interface_codes=kwargs.pop('interface_codes', None),
-    )
-    abi = out['abi']
-    bytecode = out['bytecode']
-    contract = _w3.eth.contract(
-        _address,
-        abi=abi,
-        bytecode=bytecode,
-        ContractFactoryClass=VyperContract,
-    )
-    return contract
-
-
 @pytest.fixture
 def get_contract(w3):
-    def get_contract(source_code, *args, **kwargs):
-        return _get_contract(w3, source_code, *args, **kwargs)
+    def get_contract(source_code_path, *args, **kwargs):
+        return _get_contract(w3, source_code_path, *args, **kwargs)
 
     return get_contract
 
@@ -215,291 +210,161 @@ def assert_tx_failed(tester):
 
 @pytest.fixture
 def LST_token(w3, get_contract):
-    with open('contracts/templates/ERC20Template1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, 'Lendroid Support Token', 'LST',
-            18, 12000000000)
+    contract = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        'Lendroid Support Token', 'LST', 18, 12000000000
+    )
     return contract
 
 
 @pytest.fixture
 def Lend_token(w3, get_contract):
-    with open('contracts/templates/ERC20Template1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, 'Test Lend Token', 'DAI',
-            18, 1000000)
+    contract = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        'Test Lend Token', 'DAI', 18, 1000000
+    )
     return contract
 
 
 @pytest.fixture
 def Borrow_token(w3, get_contract):
-    with open('contracts/templates/ERC20Template1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, 'Test Borrow Token', 'WETH',
-            18, 1000000)
+    contract = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        'Test Borrow Token', 'WETH', 18, 1000000
+    )
     return contract
 
 
 @pytest.fixture
 def Malicious_token(w3, get_contract):
-    with open('contracts/templates/ERC20Template1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, 'Test Malicious Token', 'XXX',
-            18, 1000000)
+    contract = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        'Test Malicious Token', 'XXX', 18, 1000000
+    )
     return contract
 
 
 @pytest.fixture
 def ERC20_library(w3, get_contract):
-    with open('contracts/templates/ERC20Template2.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code)
+    contract = get_contract('contracts/templates/ERC20Template2.v.py')
     return contract
 
 
 @pytest.fixture
 def ERC1155_library(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/templates/ERC1155Template1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/templates/ERC1155Template1.v.py',
+        interfaces=['ERC1155TokenReceiver']
+    )
     return contract
 
 
 @pytest.fixture
 def CurrencyPool_library(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/templates/ContinuousCurrencyPoolERC20Template1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/templates/ContinuousCurrencyPoolERC20Template1.v.py',
+        interfaces=['ERC20']
+    )
     return contract
 
 
 @pytest.fixture
 def CurrencyDao(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155.vy')) as f:
-            interface_codes['ERC1155'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ContinuousCurrencyPoolERC20.vy')) as f:
-            interface_codes['ContinuousCurrencyPoolERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/daos/CurrencyDao.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/daos/CurrencyDao.v.py',
+        interfaces=['ERC20', 'ERC1155', 'ContinuousCurrencyPoolERC20']
+    )
     return contract
 
 
 @pytest.fixture
 def ShieldPayoutGraph_library(w3, get_contract):
-    with open('contracts/templates/SimpleShieldPayoutGraph.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code)
+    contract = get_contract('contracts/templates/SimpleShieldPayoutGraph.v.py')
     return contract
 
 
 @pytest.fixture
 def ShieldPayoutDao(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/CurrencyDao.vy')) as f:
-            interface_codes['CurrencyDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ShieldPayoutGraph.vy')) as f:
-            interface_codes['ShieldPayoutGraph'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/daos/ShieldPayoutDao.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/daos/ShieldPayoutDao.v.py',
+        interfaces=['CurrencyDao', 'ShieldPayoutGraph']
+    )
     return contract
 
 
 @pytest.fixture
 def InterestPool_library(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155.vy')) as f:
-            interface_codes['ERC1155'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/InterestPoolDao.vy')) as f:
-            interface_codes['InterestPoolDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/templates/InterestPoolTemplate1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/templates/InterestPoolTemplate1.v.py',
+        interfaces=[
+            'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'InterestPoolDao'
+        ]
+    )
     return contract
 
 
 @pytest.fixture
 def InterestPoolDao(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/CurrencyDao.vy')) as f:
-            interface_codes['CurrencyDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/InterestPool.vy')) as f:
-            interface_codes['InterestPool'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/daos/InterestPoolDao.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/daos/InterestPoolDao.v.py',
+        interfaces=['CurrencyDao', 'InterestPool']
+    )
     return contract
 
 
 @pytest.fixture
 def UnderwriterPool_library(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155.vy')) as f:
-            interface_codes['ERC1155'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/UnderwriterPoolDao.vy')) as f:
-            interface_codes['UnderwriterPoolDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/templates/UnderwriterPoolTemplate1.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/templates/UnderwriterPoolTemplate1.v.py',
+        interfaces=[
+            'ERC20', 'ERC1155', 'ERC1155TokenReceiver',
+            'UnderwriterPoolDao'
+        ]
+    )
     return contract
 
 
 @pytest.fixture
 def UnderwriterPoolDao(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/CurrencyDao.vy')) as f:
-            interface_codes['CurrencyDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/UnderwriterPool.vy')) as f:
-            interface_codes['UnderwriterPool'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/daos/UnderwriterPoolDao.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/daos/UnderwriterPoolDao.v.py',
+        interfaces=['CurrencyDao', 'UnderwriterPool']
+    )
     return contract
 
 
 @pytest.fixture
 def LoanDao(w3, get_contract):
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/CurrencyDao.vy')) as f:
-            interface_codes['CurrencyDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/InterestPoolDao.vy')) as f:
-            interface_codes['InterestPoolDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/UnderwriterPoolDao.vy')) as f:
-            interface_codes['UnderwriterPoolDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open('contracts/daos/LoanDao.v.py') as f:
-        contract_code = f.read()
-        # Pass constructor variables directly to the contract
-        contract = get_contract(contract_code, interface_codes=interface_codes)
+    contract = get_contract(
+        'contracts/daos/LoanDao.v.py',
+        interfaces=[
+            'ERC20', 'ERC1155TokenReceiver', 'CurrencyDao',
+            'InterestPoolDao', 'UnderwriterPoolDao'
+        ]
+    )
+    return contract
+
+
+@pytest.fixture
+def ProtocolDao(w3, get_contract,
+        LST_token,
+        ERC20_library, ERC1155_library,
+        CurrencyPool_library, CurrencyDao,
+        InterestPool_library, InterestPoolDao,
+        UnderwriterPool_library, UnderwriterPoolDao,
+        LoanDao
+    ):
+    contract = get_contract(
+        'contracts/daos/ProtocolDao.v.py',
+        LST_token.address,
+        CurrencyDao.address, CurrencyPool_library.address,
+        ERC20_library.address, ERC1155_library.address,
+        InterestPoolDao.address, InterestPool_library.address,
+        UnderwriterPoolDao.address, UnderwriterPool_library.address,
+        LoanDao.address,
+        interfaces=[
+            'CurrencyDao', 'InterestPoolDao', 'UnderwriterPoolDao',
+            'LoanDao'
+        ]
+    )
     return contract

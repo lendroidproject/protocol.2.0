@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-from conftest import (ZERO_ADDRESS, EMPTY_BYTES32, Z19,
-    _get_contract_from_address
+from conftest import (
+    ZERO_ADDRESS, EMPTY_BYTES32, Z19
 )
 
 
@@ -28,7 +28,7 @@ from conftest import (ZERO_ADDRESS, EMPTY_BYTES32, Z19,
 """
 
 
-def test_avail_loan(w3, get_logs,
+def test_avail_loan(w3, get_contract, get_logs,
         LST_token, Lend_token, Borrow_token, Malicious_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
@@ -103,39 +103,18 @@ def test_avail_loan(w3, get_logs,
     # get UnderwriterPool contract
     logs_8 = get_logs(tx_8_hash, UnderwriterPoolDao, "PoolRegistered")
     _pool_hash = UnderwriterPoolDao.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155.vy')) as f:
-            interface_codes['ERC1155'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/UnderwriterPoolDao.vy')) as f:
-            interface_codes['UnderwriterPoolDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    UnderwriterPool = _get_contract_from_address(w3,
-        UnderwriterPoolDao.pools__pool_address(_pool_hash),
+    UnderwriterPool = get_contract(
         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-        interface_codes=interface_codes)
+        interfaces=[
+            'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDao'
+        ],
+        address=UnderwriterPoolDao.pools__pool_address(_pool_hash)
+    )
     # get UnderwriterPoolCurrency
-    UnderwriterPoolCurrency = _get_contract_from_address(w3,
-        UnderwriterPool.pool_currency_address(),
-        'contracts/templates/ERC20Template1.v.py')
+    UnderwriterPoolCurrency = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=UnderwriterPool.pool_currency_address()
+    )
     # pool_owner buys LST from a 3rd party
     LST_token.transfer(pool_owner, 1000 * 10 ** 18, transact={'from': owner})
     # pool_owner authorizes CurrencyDao to spend LST required for offer_registration_fee
@@ -151,10 +130,16 @@ def test_avail_loan(w3, get_logs,
     assert tx_10_receipt['status'] == 1
     # get L_Lend_token
     L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = _get_contract_from_address(w3, L_Lend_token_address, 'contracts/templates/ERC20Template1.v.py')
+    L_Lend_token = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=L_Lend_token_address
+    )
     # get L_Borrow_token
     L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
-    L_Borrow_token = _get_contract_from_address(w3, L_Borrow_token_address, 'contracts/templates/ERC20Template1.v.py')
+    L_Borrow_token = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=L_Borrow_token_address
+    )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
     # Lender buys 1000 lend token from a 3rd party exchange
@@ -215,25 +200,21 @@ def test_avail_loan(w3, get_logs,
     assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
     assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
     # get I_token
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    I_token = _get_contract_from_address(w3,
-        CurrencyDao.currencies__i_currency_address(Lend_token.address),
+    I_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
-        interface_codes=interface_codes)
-    S_token = _get_contract_from_address(w3,
-        CurrencyDao.currencies__s_currency_address(Lend_token.address),
+        interfaces=['ERC1155TokenReceiver'],
+        address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
+    )
+    S_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
-        interface_codes=interface_codes)
-    U_token = _get_contract_from_address(w3,
-        CurrencyDao.currencies__u_currency_address(Lend_token.address),
+        interfaces=['ERC1155TokenReceiver'],
+        address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
+    )
+    U_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
-        interface_codes=interface_codes)
+        interfaces=['ERC1155TokenReceiver'],
+        address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
+    )
     # assign one of the accounts as a High_Risk_Insurer
     High_Risk_Insurer = w3.eth.accounts[2]
     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
@@ -352,7 +333,7 @@ def test_avail_loan(w3, get_logs,
     assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
 
 
-def test_repay_loan(w3, get_logs,
+def test_repay_loan(w3, get_contract, get_logs,
         LST_token, Lend_token, Borrow_token, Malicious_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
@@ -427,39 +408,18 @@ def test_repay_loan(w3, get_logs,
     # get UnderwriterPool contract
     logs_8 = get_logs(tx_8_hash, UnderwriterPoolDao, "PoolRegistered")
     _pool_hash = UnderwriterPoolDao.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC20.vy')) as f:
-            interface_codes['ERC20'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155.vy')) as f:
-            interface_codes['ERC1155'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/UnderwriterPoolDao.vy')) as f:
-            interface_codes['UnderwriterPoolDao'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    UnderwriterPool = _get_contract_from_address(w3,
-        UnderwriterPoolDao.pools__pool_address(_pool_hash),
+    UnderwriterPool = get_contract(
         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-        interface_codes=interface_codes)
+        interfaces=[
+            'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDao'
+        ],
+        address=UnderwriterPoolDao.pools__pool_address(_pool_hash)
+    )
     # get UnderwriterPoolCurrency
-    UnderwriterPoolCurrency = _get_contract_from_address(w3,
-        UnderwriterPool.pool_currency_address(),
-        'contracts/templates/ERC20Template1.v.py')
+    UnderwriterPoolCurrency = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=UnderwriterPool.pool_currency_address()
+    )
     # pool_owner buys LST from a 3rd party
     LST_token.transfer(pool_owner, 1000 * 10 ** 18, transact={'from': owner})
     # pool_owner authorizes CurrencyDao to spend LST required for offer_registration_fee
@@ -475,10 +435,16 @@ def test_repay_loan(w3, get_logs,
     assert tx_10_receipt['status'] == 1
     # get L_Lend_token
     L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = _get_contract_from_address(w3, L_Lend_token_address, 'contracts/templates/ERC20Template1.v.py')
+    L_Lend_token = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=L_Lend_token_address
+    )
     # get L_Borrow_token
     L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
-    L_Borrow_token = _get_contract_from_address(w3, L_Borrow_token_address, 'contracts/templates/ERC20Template1.v.py')
+    L_Borrow_token = get_contract(
+        'contracts/templates/ERC20Template1.v.py',
+        address=L_Borrow_token_address
+    )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
     # Lender buys 1000 lend token from a 3rd party exchange
@@ -524,25 +490,21 @@ def test_repay_loan(w3, get_logs,
     tx_16_receipt = w3.eth.waitForTransactionReceipt(tx_16_hash)
     assert tx_16_receipt['status'] == 1
     # get I_token
-    interface_codes = {}
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        os.pardir, 'contracts/interfaces/ERC1155TokenReceiver.vy')) as f:
-            interface_codes['ERC1155TokenReceiver'] = {
-                'type': 'vyper',
-                'code': f.read()
-            }
-    I_token = _get_contract_from_address(w3,
-        CurrencyDao.currencies__i_currency_address(Lend_token.address),
+    I_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
-        interface_codes=interface_codes)
-    S_token = _get_contract_from_address(w3,
-        CurrencyDao.currencies__s_currency_address(Lend_token.address),
+        interfaces=['ERC1155TokenReceiver'],
+        address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
+    )
+    S_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
-        interface_codes=interface_codes)
-    U_token = _get_contract_from_address(w3,
-        CurrencyDao.currencies__u_currency_address(Lend_token.address),
+        interfaces=['ERC1155TokenReceiver'],
+        address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
+    )
+    U_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
-        interface_codes=interface_codes)
+        interfaces=['ERC1155TokenReceiver'],
+        address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
+    )
     # assign one of the accounts as a High_Risk_Insurer
     High_Risk_Insurer = w3.eth.accounts[2]
     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
