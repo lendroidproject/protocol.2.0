@@ -149,6 +149,37 @@ def CurrencyDao(w3, get_contract):
 
 
 @pytest.fixture
+def ShieldPayoutGraph_library(w3, get_contract):
+    with open('contracts/templates/SimpleShieldPayoutGraph.v.py') as f:
+        contract_code = f.read()
+        # Pass constructor variables directly to the contract
+        contract = get_contract(contract_code)
+    return contract
+
+
+@pytest.fixture
+def ShieldPayoutDao(w3, get_contract):
+    interface_codes = {}
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        os.pardir, 'contracts/interfaces/CurrencyDao.vy')) as f:
+            interface_codes['CurrencyDao'] = {
+                'type': 'vyper',
+                'code': f.read()
+            }
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        os.pardir, 'contracts/interfaces/ShieldPayoutGraph.vy')) as f:
+            interface_codes['ShieldPayoutGraph'] = {
+                'type': 'vyper',
+                'code': f.read()
+            }
+    with open('contracts/daos/ShieldPayoutDao.v.py') as f:
+        contract_code = f.read()
+        # Pass constructor variables directly to the contract
+        contract = get_contract(contract_code, interface_codes=interface_codes)
+    return contract
+
+
+@pytest.fixture
 def UnderwriterPool_library(w3, get_contract):
     interface_codes = {}
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -206,8 +237,10 @@ def UnderwriterPoolDao(w3, get_contract):
 
 def test_purchase_i_currency(w3, get_logs,
         LST_token, Lend_token, Borrow_token, Malicious_token,
-        ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, UnderwriterPool_library, UnderwriterPoolDao):
+        ERC20_library, ERC1155_library,
+        CurrencyPool_library, CurrencyDao,
+        ShieldPayoutGraph_library, ShieldPayoutDao,
+        UnderwriterPool_library, UnderwriterPoolDao):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
@@ -216,9 +249,16 @@ def test_purchase_i_currency(w3, get_logs,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
+    # initialize ShieldPayoutDao
+    tx_1_hash = ShieldPayoutDao.initialize(
+        owner, LST_token.address, CurrencyDao.address,
+        UnderwriterPoolDao.address, ShieldPayoutGraph_library.address,
+        transact={'from': owner})
+    tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
+    assert tx_1_receipt['status'] == 1
     # initialize UnderwriterPoolDao
     tx_2_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
+        owner, LST_token.address, CurrencyDao.address, ShieldPayoutDao.address,
         UnderwriterPool_library.address, ERC20_library.address,
         transact={'from': owner})
     tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)
@@ -384,8 +424,10 @@ def test_purchase_i_currency(w3, get_logs,
 
 def test_purchase_s_currency(w3, get_logs,
         LST_token, Lend_token, Borrow_token, Malicious_token,
-        ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, UnderwriterPool_library, UnderwriterPoolDao):
+        ERC20_library, ERC1155_library,
+        CurrencyPool_library, CurrencyDao,
+        ShieldPayoutGraph_library, ShieldPayoutDao,
+        UnderwriterPool_library, UnderwriterPoolDao):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
@@ -394,9 +436,16 @@ def test_purchase_s_currency(w3, get_logs,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
+    # initialize ShieldPayoutDao
+    tx_1_hash = ShieldPayoutDao.initialize(
+        owner, LST_token.address, CurrencyDao.address,
+        UnderwriterPoolDao.address, ShieldPayoutGraph_library.address,
+        transact={'from': owner})
+    tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
+    assert tx_1_receipt['status'] == 1
     # initialize UnderwriterPoolDao
     tx_2_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
+        owner, LST_token.address, CurrencyDao.address, ShieldPayoutDao.address,
         UnderwriterPool_library.address, ERC20_library.address,
         transact={'from': owner})
     tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)

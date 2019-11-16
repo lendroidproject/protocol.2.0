@@ -101,7 +101,7 @@ CONCISE_NORMALIZERS = (_none_addr,)
 
 @pytest.fixture
 def tester():
-    genesis_overrides = {"gas_limit": 3500000}
+    genesis_overrides = {"gas_limit": 3750000}
     custom_genesis_params = PyEVMBackend._generate_genesis_params(
         overrides=genesis_overrides
     )

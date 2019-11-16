@@ -92,6 +92,15 @@ def CurrencyPool_library(w3, get_contract):
 
 
 @pytest.fixture
+def ShieldPayoutGraph_library(w3, get_contract):
+    with open('contracts/templates/ShieldPayoutGraph.v.py') as f:
+        contract_code = f.read()
+        # Pass constructor variables directly to the contract
+        contract = get_contract(contract_code)
+    return contract
+
+
+@pytest.fixture
 def InterestPool_library(w3, get_contract):
     interface_codes = {}
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -181,6 +190,28 @@ def CurrencyDao(w3, get_contract):
                 'code': f.read()
             }
     with open('contracts/daos/CurrencyDao.v.py') as f:
+        contract_code = f.read()
+        # Pass constructor variables directly to the contract
+        contract = get_contract(contract_code, interface_codes=interface_codes)
+    return contract
+
+
+@pytest.fixture
+def ShieldPayoutDao(w3, get_contract):
+    interface_codes = {}
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        os.pardir, 'contracts/interfaces/CurrencyDao.vy')) as f:
+            interface_codes['CurrencyDao'] = {
+                'type': 'vyper',
+                'code': f.read()
+            }
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        os.pardir, 'contracts/interfaces/ShieldPayoutGraph.vy')) as f:
+            interface_codes['ShieldPayoutGraph'] = {
+                'type': 'vyper',
+                'code': f.read()
+            }
+    with open('contracts/daos/ShieldPayoutDao.v.py') as f:
         contract_code = f.read()
         # Pass constructor variables directly to the contract
         contract = get_contract(contract_code, interface_codes=interface_codes)

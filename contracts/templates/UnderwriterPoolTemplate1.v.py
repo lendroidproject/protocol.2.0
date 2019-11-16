@@ -344,3 +344,25 @@ def purchase_s_currency(_expiry: timestamp, _underlying_address: address, _strik
         _s_currency_value, EMPTY_BYTES32))
 
     return True
+
+
+@public
+def exercise_shield_currency(_expiry: timestamp, _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256) -> bool:
+    _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
+    assert self.expiries[_expiry_hash].expiry_timestamp > block.timestamp
+    assert_modifiable(UnderwriterPoolDao(self.owner).l_currency_from_s_currency(
+        self.pool_hash, self.expiries[_expiry_hash].s_currency_hash,
+        _currency_quantity))
+
+    return True
+
+
+@public
+def exercise_underwriter_currency(_expiry: timestamp, _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256) -> bool:
+    _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
+    assert self.expiries[_expiry_hash].expiry_timestamp > block.timestamp
+    assert_modifiable(UnderwriterPoolDao(self.owner).l_currency_from_u_currency(
+        self.pool_hash, self.expiries[_expiry_hash].u_currency_hash,
+        _currency_quantity))
+
+    return True

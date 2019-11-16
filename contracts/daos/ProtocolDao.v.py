@@ -155,21 +155,21 @@ def initialize_interest_pool_dao() -> bool:
     return True
 
 
-@public
-def initialize_underwriter_pool_dao() -> bool:
-    assert self._is_initialized()
-    assert msg.sender == self.owner
-    # initialize underwriter pool dao
-    assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).initialize(
-        self.owner, self.protocol_currency_address,
-        self.daos[self.DAO_TYPE_CURRENCY],
-        self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL],
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]
-    ))
-
-    log.DAOInitialized(msg.sender, self.DAO_TYPE_UNDERWRITER_POOL, self.daos[self.DAO_TYPE_UNDERWRITER_POOL])
-
-    return True
+# @public
+# def initialize_underwriter_pool_dao() -> bool:
+#     assert self._is_initialized()
+#     assert msg.sender == self.owner
+#     # initialize underwriter pool dao
+#     assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).initialize(
+#         self.owner, self.protocol_currency_address,
+#         self.daos[self.DAO_TYPE_CURRENCY],
+#         self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL],
+#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]
+#     ))
+#
+#     log.DAOInitialized(msg.sender, self.DAO_TYPE_UNDERWRITER_POOL, self.daos[self.DAO_TYPE_UNDERWRITER_POOL])
+#
+#     return True
 
 
 @public

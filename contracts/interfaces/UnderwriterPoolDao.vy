@@ -5,7 +5,7 @@ PoolRegistered: event({_operator: address, _currency_address: address, _pool_add
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_shield_payout: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
     pass
 
 @constant
@@ -58,6 +58,14 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, 
 
 @public
 def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+    pass
+
+@public
+def l_currency_from_s_currency(_pool_hash: bytes32, _s_hash: bytes32, _currency_quantity: uint256) -> bool:
+    pass
+
+@public
+def l_currency_from_u_currency(_pool_hash: bytes32, _u_hash: bytes32, _currency_quantity: uint256) -> bool:
     pass
 
 @constant
@@ -187,7 +195,17 @@ def shield_currency_minimum_collateral_values(arg0: bytes32) -> uint256:
 
 @constant
 @public
+def payout_graph_addresses(arg0: bytes32) -> address:
+    pass
+
+@constant
+@public
 def DAO_TYPE_CURRENCY() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
     pass
 
 @constant

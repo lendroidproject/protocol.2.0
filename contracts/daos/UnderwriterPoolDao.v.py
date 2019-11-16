@@ -2,6 +2,7 @@
 # THIS CONTRACT HAS NOT BEEN AUDITED!
 
 
+# from contracts.interfaces import ShieldPayoutDao
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import UnderwriterPool
 
@@ -32,6 +33,25 @@ struct OfferRegistrationFeeLookup:
     last_registered_at: timestamp
     last_paid_fee: uint256
 
+
+# External Contracts manually imported to avoid Cyclical Import error
+contract ShieldPayoutDao:
+    def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_underwriter_pool: address, _template_address_shield_payout_erc20: address) -> bool: modifying
+    def initialize_payout_graph(_currency_address: address, _underlying_address: address, _expiry: uint256(sec, positional), _strike_price: uint256, _s_hash: bytes32, _u_hash: bytes32) -> bool: modifying
+    def l_currency_from_s_currency(_currency_address: address, _s_hash: bytes32, _s_token_id: uint256, _currency_quantity: uint256) -> bool: modifying
+    def l_currency_from_u_currency(_currency_address: address, _u_hash: bytes32, _u_token_id: uint256, _currency_quantity: uint256) -> bool: modifying
+    def protocol_currency_address() -> address: constant
+    def protocol_dao_address() -> address: constant
+    def owner() -> address: constant
+    def payout_graph_addresses(arg0: bytes32) -> address: constant
+    def DAO_TYPE_CURRENCY() -> uint256: constant
+    def DAO_TYPE_UNDERWRITER_POOL() -> uint256: constant
+    def daos(arg0: uint256) -> address: constant
+    def TEMPLATE_TYPE_SHIELD_PAYOUT_ERC20() -> uint256: constant
+    def templates(arg0: uint256) -> address: constant
+    def initialized() -> bool: constant
+
+
 # Events
 PoolRegistered: event({_operator: indexed(address), _currency_address: indexed(address), _pool_address: indexed(address)})
 
@@ -52,8 +72,11 @@ offer_registration_fee_lookup: public(map(address, OfferRegistrationFeeLookup))
 # Minmum collateral value, aka, minimum currency value per underlying
 # currency_hash => quantity per currency_address
 shield_currency_minimum_collateral_values: public(map(bytes32, uint256))
+# currency_hash => contract_address
+payout_graph_addresses: public(map(bytes32, address))
 
 DAO_TYPE_CURRENCY: public(uint256)
+DAO_TYPE_SHIELD_PAYOUT: public(uint256)
 
 TEMPLATE_TYPE_UNDERWRITER_POOL: public(uint256)
 TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
@@ -72,8 +95,9 @@ def initialize(
         _owner: address,
         _protocol_currency_address: address,
         _dao_address_currency: address,
+        _dao_address_shield_payout: address,
         _template_address_underwriter_pool: address,
-        _template_address_currency_erc20: address,
+        _template_address_currency_erc20: address
         ) -> bool:
     assert not self._is_initialized()
     self.initialized = True
@@ -83,6 +107,8 @@ def initialize(
 
     self.DAO_TYPE_CURRENCY = 1
     self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
+    self.DAO_TYPE_SHIELD_PAYOUT = 2
+    self.daos[self.DAO_TYPE_SHIELD_PAYOUT] = _dao_address_shield_payout
 
     self.TEMPLATE_TYPE_UNDERWRITER_POOL = 1
     self.TEMPLATE_TYPE_CURRENCY_ERC20 = 2
@@ -138,16 +164,14 @@ def _validate_pool(_pool_hash: bytes32, _pool_address: address):
 
 @private
 def _deposit_multi_fungible_l_currency(_currency_address: address, _from: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_multi_fungible_l_currency(
-        _currency_address, _from, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_multi_fungible_l_currency(
+        _currency_address, _from, _to, _value))
 
 
 @private
 def _deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
-        _currency_address, _from, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
+        _currency_address, _from, _to, _value))
 
 
 @private
@@ -157,31 +181,22 @@ def _create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -
 
 @private
 def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value))
 
 
 @private
 def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_currency_address, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_currency_address, _to, _value))
 
 
 @private
 def _mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value)
-    assert _external_call_successful
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value))
 
 
 @private
 def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value))
-
-
-@private
-def _transfer_as_self_authorized_erc1155_and_authorize(_currency_address: address, _to: address, _value: uint256):
-    _external_call_successful: bool = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value)
-    assert _external_call_successful
 
 
 @private
@@ -334,11 +349,14 @@ def register_expiry(_pool_hash: bytes32, _expiry: timestamp, _underlying_address
     _i_id: uint256 = self.multi_fungible_currencies[_i_hash].token_id
     _s_id: uint256 = self.multi_fungible_currencies[_s_hash].token_id
     _u_id: uint256 = self.multi_fungible_currencies[_u_hash].token_id
-    # pay lst as fee to create fi currency if it has not been created
+    _payout_address: address = ZERO_ADDRESS
+    # pay lst as fee to create isu currency if it has not been created
     if not self.multi_fungible_currencies[_i_hash].has_id or \
-       not self.multi_fungible_currencies[_s_hash].has_id or \
-       not self.multi_fungible_currencies[_u_hash].has_id:
-       self._process_fee_for_offer_creation(self.pools[_pool_hash].pool_operator)
+        not self.multi_fungible_currencies[_s_hash].has_id or \
+        not self.multi_fungible_currencies[_u_hash].has_id:
+        self._process_fee_for_offer_creation(self.pools[_pool_hash].pool_operator)
+        # deploy and initialize shield payout graph via shield payout dao
+        # TODO
 
     if not self.multi_fungible_currencies[_i_hash].has_id:
         _i_id = self._create_erc1155_type(_i_currency_address, "")
@@ -493,5 +511,39 @@ def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32
         msg.sender,
         _value
     )
+
+    return True
+
+
+@public
+def l_currency_from_s_currency(_pool_hash: bytes32, _s_hash: bytes32, _currency_quantity: uint256) -> bool:
+    assert self._is_initialized()
+    self._validate_pool(_pool_hash, msg.sender)
+    _currency_address: address = self.pools[_pool_hash].currency_address
+    assert self._is_currency_valid(_currency_address)
+    # validate s token types exists for combination of expiry, underlying, and strike
+    assert self.multi_fungible_currencies[_s_hash].has_id and self.multi_fungible_currencies[_s_hash].currency_address == _currency_address
+    # validate underlying
+    assert self._is_currency_valid(self.multi_fungible_currencies[_s_hash].underlying_address)
+    assert_modifiable(ShieldPayoutDao(self.daos[self.DAO_TYPE_SHIELD_PAYOUT]).l_currency_from_s_currency(
+        _currency_address, _s_hash,
+        self.multi_fungible_currencies[_s_hash].token_id, _currency_quantity))
+
+    return True
+
+
+@public
+def l_currency_from_u_currency(_pool_hash: bytes32, _u_hash: bytes32, _currency_quantity: uint256) -> bool:
+    assert self._is_initialized()
+    self._validate_pool(_pool_hash, msg.sender)
+    _currency_address: address = self.pools[_pool_hash].currency_address
+    assert self._is_currency_valid(_currency_address)
+    # validate s token types exists for combination of expiry, underlying, and strike
+    assert self.multi_fungible_currencies[_u_hash].has_id and self.multi_fungible_currencies[_u_hash].currency_address == _currency_address
+    # validate underlying
+    assert self._is_currency_valid(self.multi_fungible_currencies[_u_hash].underlying_address)
+    assert_modifiable(ShieldPayoutDao(self.daos[self.DAO_TYPE_SHIELD_PAYOUT]).l_currency_from_s_currency(
+        _currency_address, _u_hash,
+        self.multi_fungible_currencies[_u_hash].token_id, _currency_quantity))
 
     return True
