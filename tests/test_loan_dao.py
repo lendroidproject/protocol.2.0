@@ -125,7 +125,7 @@ def test_avail_loan(w3, get_contract, get_logs,
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     _strike_price = 200 * 10 ** 18
     tx_10_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1100000})
+        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
     # get L_Lend_token
@@ -430,7 +430,7 @@ def test_repay_loan(w3, get_contract, get_logs,
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     _strike_price = 200 * 10 ** 18
     tx_10_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1100000})
+        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
     # get L_Lend_token

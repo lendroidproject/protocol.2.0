@@ -127,9 +127,8 @@ def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _va
 
 @private
 def _create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -> uint256:
-    _expiry_id: uint256 = ERC1155(_currency_address).create_token_type(0, _expiry_label)
-    assert as_unitless_number(_expiry_id) == as_unitless_number(ERC1155(_currency_address).nonce()) + 1
-    return _expiry_id
+    assert_modifiable(ERC1155(_currency_address).create_token_type(0, _expiry_label))
+    return as_unitless_number(ERC1155(_currency_address).nonce())
 
 
 @private

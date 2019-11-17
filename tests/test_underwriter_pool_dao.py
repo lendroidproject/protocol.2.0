@@ -407,7 +407,7 @@ def test_register_expiry(w3, get_contract, get_logs,
     assert UnderwriterPool.expiries__u_currency_id(_expiry_hash) == 0
     assert UnderwriterPool.expiries__is_active(_expiry_hash) in (None, False)
     tx_8_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1100000})
+        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
     tx_8_receipt = w3.eth.waitForTransactionReceipt(tx_8_hash)
     print('\n\n tx_8_receipt : {0}'.format(tx_8_receipt))
     assert tx_8_receipt['status'] == 1
@@ -603,7 +603,7 @@ def test_l_currency_to_i_and_s_and_u_currency(w3, get_contract, get_logs,
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     _strike_price = 200 * 10 ** 18
     tx_8_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1100000})
+        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
     tx_8_receipt = w3.eth.waitForTransactionReceipt(tx_8_hash)
     assert tx_8_receipt['status'] == 1
     # get L_token
@@ -743,7 +743,7 @@ def test_l_currency_from_i_and_s_and_u_currency(w3, get_contract, get_logs,
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     _strike_price = 200 * 10 ** 18
     tx_8_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1100000})
+        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
     tx_8_receipt = w3.eth.waitForTransactionReceipt(tx_8_hash)
     assert tx_8_receipt['status'] == 1
     # get L_token

@@ -21,7 +21,7 @@ def setURI(_uri: string[64], _id: uint256):
     pass
 
 @public
-def create_token_type(_initialSupply: uint256, _uri: string[64]) -> uint256:
+def create_token_type(_initialSupply: uint256, _uri: string[64]) -> bool:
     pass
 
 @public

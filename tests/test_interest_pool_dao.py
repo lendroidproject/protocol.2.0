@@ -303,9 +303,8 @@ def test_register_expiry(w3, get_contract, get_logs,
     assert InterestPool.expiries__f_currency_id(Z19) == 0
     assert InterestPool.expiries__is_active(Z19) in (None, False)
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 710000})
+        transact={'from': pool_owner, 'gas': 770000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
-    print('\n\n tx_7_receipt : {0}'.format(tx_7_receipt))
     assert tx_7_receipt['status'] == 1
     assert InterestPool.expiries__expiry_timestamp(Z19) == 1577404799
     assert InterestPoolDao.multi_fungible_currencies__token_id(Web3.toHex(InterestPool.expiries__i_currency_hash(Z19))) == InterestPool.expiries__i_currency_id(Z19)
@@ -482,8 +481,9 @@ def test_l_currency_to_i_and_f_currency(w3, get_contract, get_logs,
     assert tx_6_receipt['status'] == 1
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 710000})
+        transact={'from': pool_owner, 'gas': 770000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
+    assert tx_7_receipt['status'] == 1
     # get L_token
     L_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
     L_token = get_contract(
@@ -593,8 +593,9 @@ def test_l_currency_from_i_and_f_currency(w3, get_contract, get_logs,
     assert tx_6_receipt['status'] == 1
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 710000})
+        transact={'from': pool_owner, 'gas': 770000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
+    assert tx_7_receipt['status'] == 1
     # get L_token
     L_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
     L_token = get_contract(

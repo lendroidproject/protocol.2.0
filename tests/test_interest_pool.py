@@ -89,8 +89,9 @@ def test_purchase_i_currency(w3, get_contract, get_logs,
     assert tx_6_receipt['status'] == 1
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 710000})
+        transact={'from': pool_owner, 'gas': 770000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
+    assert tx_7_receipt['status'] == 1
     # get L_token
     L_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
     L_token = get_contract(
@@ -119,12 +120,24 @@ def test_purchase_i_currency(w3, get_contract, get_logs,
     tx_11_hash = InterestPool.purchase_pool_currency(100 * 10 ** 18, transact={'from': High_Risk_Insurer})
     tx_11_receipt = w3.eth.waitForTransactionReceipt(tx_11_hash)
     assert tx_11_receipt['status'] == 1
+    # verify InterestPool balances of l, i, f tokens
+    assert InterestPool.i_currency_balance(Z19) == 0
+    assert InterestPool.f_currency_balance(Z19) == 0
+    assert InterestPool.total_f_currency_balance() == 0
+    assert InterestPool.l_currency_balance() == 100 * 10 ** 18
+    assert InterestPool.total_l_currency_balance() == 100 * 10 ** 18
     # pool_owner initiates offer of 20 I_tokens from the InterestPool
     # 20 L_tokens burned from InterestPool account
     # 20 I_tokens and 20 F_tokens deposited to InterestPool account
     tx_12_hash = InterestPool.increment_i_currency_supply(Z19, 20 * 10 ** 18, transact={'from': pool_owner, 'gas': 500000})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
+    # verify InterestPool balances of l, i, f tokens
+    assert InterestPool.i_currency_balance(Z19) == 20 * 10 ** 18
+    assert InterestPool.f_currency_balance(Z19) == 20 * 10 ** 18
+    assert InterestPool.total_f_currency_balance() == 20 * 10 ** 18
+    assert InterestPool.l_currency_balance() == 80 * 10 ** 18
+    assert InterestPool.total_l_currency_balance() == 100 * 10 ** 18
     # High_Risk_Insurer purchases 10 i_tokens from InterestPool
     tx_13_hash = InterestPool.purchase_i_currency(Z19, 10 * 10 ** 18, 0, transact={'from': High_Risk_Insurer})
     tx_13_receipt = w3.eth.waitForTransactionReceipt(tx_13_hash)
@@ -237,8 +250,9 @@ def test_redeem_f_currency(w3, get_contract, get_logs,
     assert tx_6_receipt['status'] == 1
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 710000})
+        transact={'from': pool_owner, 'gas': 770000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
+    assert tx_7_receipt['status'] == 1
     # get L_token
     L_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
     L_token = get_contract(

@@ -83,23 +83,29 @@ def supportsInterface(_interfaceId: bytes[10]) -> bool:
 def setURI(_uri: string[64], _id: uint256):
     log.URI(_uri, _id)
 
-@public
-def create_token_type(_initialSupply: uint256, _uri: string[64]) -> uint256:
-    """
-        Creates a new token type and assings _initialSupply to minter
-    """
-    _id: uint256 = self.nonce + 1
-    self.creators[_id] = msg.sender
-    self.balances[_id][msg.sender] = _initialSupply
-    self.totalBalances[msg.sender] = _initialSupply
+
+@private
+def _create(_creator: address, _initialSupply: uint256, _uri: string[64]):
+    self.nonce += 1
+    self.creators[self.nonce] = _creator
+    self.balances[self.nonce][_creator] = _initialSupply
+    self.totalBalances[_creator] = _initialSupply
 
     # Transfer event with mint semantic
-    log.TransferSingle(msg.sender, ZERO_ADDRESS, msg.sender, _id, _initialSupply)
+    log.TransferSingle(_creator, ZERO_ADDRESS, _creator, self.nonce, _initialSupply)
 
     if len(_uri) > 0:
-        log.URI(_uri, _id)
+        log.URI(_uri, self.nonce)
 
-    return _id
+
+@public
+def create_token_type(_initialSupply: uint256, _uri: string[64]) -> bool:
+    """
+        Creates a new token type and assigns _initialSupply to minter
+    """
+    self._create(msg.sender, _initialSupply, _uri)
+
+    return True
 
 
 @private
