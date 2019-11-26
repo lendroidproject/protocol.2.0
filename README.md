@@ -19,11 +19,8 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
 
   `npm install`
 
-* Install dependencies from requirements.txt via pip
 
-  `pip install -r requirements.txt`
-
-* Install Vyper v0.1.0-beta.13
+* Install Python and Vyper v0.1.0-beta.14
 
   * Python 3.6+ is a pre-requisite, and can be installed from [here](https://www.python.org/downloads "Python version downloads")
 
@@ -39,10 +36,13 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
 
     `source ~/vyper-venv/bin/activate`
 
-  * Install Vyper v0.1.0-beta.13
+  * Install Vyper v0.1.0-beta.14
 
-    `pip install vyper==0.1.0b13`
+    `pip install vyper==0.1.0b14`
 
+  * Install dependencies from requirements.txt via pip
+
+    `pip install -r requirements.txt`
 
 ## Test and development
 
