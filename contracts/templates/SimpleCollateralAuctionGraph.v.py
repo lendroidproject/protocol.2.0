@@ -3,42 +3,52 @@
 
 
 from contracts.interfaces import ERC20
+from contracts.interfaces import MarketDao
 
 
 owner: public(address)
 currency_address: public(address)
 underlying_address: public(address)
-market_expiry: public(timestamp)
-strike_price: public(uint256)
-price_at_expiry: public(uint256)
+expiry: public(timestamp)
 max_supply: public(uint256)
-starting_price: public(uint256)
+currency_value_remaining: public(uint256)
+start_price: public(uint256)
+end_price: public(uint256)
 is_active: public(bool)
 
-SLIPPAGE: public(uint256)
+# dao_type => dao_address
+daos: public(map(uint256, address))
+
+DAO_TYPE_MARKET: public(uint256)
+
+SLIPPAGE_PERCENTAGE: public(uint256)
+MAXIMUM_DISCOUNT_PERCENTAGE: public(uint256)
 AUCTION_DURATION: public(timedelta)
 
 
 @public
 def initialize(
             _currency_address: address, _underlying_address: address,
-            _market_expiry: timestamp, _strike_price: uint256
+            _expiry: timestamp,
+            _dao_address_market: address
         ) -> bool:
     # verify inputs
     assert msg.sender.is_contract
     assert _currency_address.is_contract
     assert _underlying_address.is_contract
-    assert as_unitless_number(_market_expiry) > 0
-    assert as_unitless_number(_strike_price) > 0
+    assert as_unitless_number(_expiry) > 0
     # set parameters
     self.owner = msg.sender
     self.currency_address = _currency_address
     self.underlying_address = _underlying_address
-    self.market_expiry = _market_expiry
-    self.strike_price = _strike_price
+    self.expiry = _expiry
     self.is_active = False
-    self.SLIPPAGE = 104
+    self.SLIPPAGE_PERCENTAGE = 104
+    self.MAXIMUM_DISCOUNT_PERCENTAGE = 40
     self.AUCTION_DURATION = 30 * 60
+
+    self.DAO_TYPE_MARKET = 1
+    self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
 
     return True
 
@@ -46,7 +56,7 @@ def initialize(
 @private
 @constant
 def _auction_expiry() -> timestamp:
-    return self.market_expiry + self.AUCTION_DURATION
+    return self.expiry + self.AUCTION_DURATION
 
 
 @private
@@ -59,8 +69,17 @@ def _lot() -> uint256:
 @constant
 def _slope() -> uint256:
     if self.is_active:
-        _price_difference: uint256 = as_unitless_number(self.price_at_expiry) - as_unitless_number(self.strike_price)
-        return (as_unitless_number(self.starting_price) * as_unitless_number(_price_difference)) / (as_unitless_number(self._auction_expiry()) * self.strike_price)
+        return (as_unitless_number(self.end_price) - as_unitless_number(self.start_price)) / as_unitless_number(self.AUCTION_DURATION)
+    else:
+        return 0
+
+
+@private
+@constant
+def _current_price() -> uint256:
+    # verify auction has not expired
+    if self.is_active:
+        return as_unitless_number(block.timestamp) * as_unitless_number(self._slope()) + as_unitless_number(self.start_price)
     else:
         return 0
 
@@ -86,37 +105,47 @@ def slope() -> uint256:
 @public
 @constant
 def current_price() -> uint256:
-    # verify auction has not expired
-    if self.is_active:
-        return as_unitless_number(block.timestamp) * as_unitless_number(self._slope()) + as_unitless_number(self.starting_price)
-    else:
-        return 0
+    return self._current_price()
 
 
 @public
-def activate(_price_at_expiry: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
-    assert msg.sender == self.owner
-    assert self.market_expiry > block.timestamp
-    assert self.price_at_expiry == 0
-    assert not self.is_active
-    self.price_at_expiry = _price_at_expiry
-    self.max_supply = _underlying_value
-    # set starting_price
+def start(_underlying_price_per_currency_at_expiry: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
+    assert as_unitless_number(_underlying_price_per_currency_at_expiry) > 0
+    assert as_unitless_number(_currency_value) > 0
     assert as_unitless_number(_underlying_value) > 0
-    self.starting_price = (as_unitless_number(_currency_value) * as_unitless_number(self.SLIPPAGE)) / (as_unitless_number(_underlying_value) * 100)
+    assert msg.sender == self.owner
+    assert self.expiry > block.timestamp
+    assert not self.is_active
+    self.max_supply = _underlying_value
+    self.currency_value_remaining = _currency_value
+    # set start_price
+    self.start_price = (as_unitless_number(_underlying_price_per_currency_at_expiry) * as_unitless_number(self.SLIPPAGE_PERCENTAGE)) / 100
+    self.end_price = as_unitless_number(self.start_price) * (1 - (self.MAXIMUM_DISCOUNT_PERCENTAGE / 100))
     self.is_active = True
 
     return True
 
 
 @public
-def transfer_underlying(_to: address, _value: uint256) -> bool:
+def purchase(_underlying_value: uint256) -> bool:
     assert self.is_active
-    assert msg.sender == self.owner
-    assert as_unitless_number(_value) <= as_unitless_number(self._lot())
+    assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
+    _underlying_value_remaining: uint256 = as_unitless_number(self._lot()) - as_unitless_number(_underlying_value)
+    _currency_value: uint256 = as_unitless_number(_underlying_value) * self._current_price()
+    assert as_unitless_number(self.currency_value_remaining) >= as_unitless_number(_currency_value)
     # deactivate if auction has expired or all underlying currency has been auctioned
-    if (as_unitless_number(self._lot()) - as_unitless_number(_value) == 0) or (block.timestamp >= self._auction_expiry()):
+    if (_underlying_value_remaining == 0) or \
+        (as_unitless_number(self.currency_value_remaining) - as_unitless_number(_currency_value) == 0):
         self.is_active = False
-    assert_modifiable(ERC20(self.underlying_address).transfer(_to, _value))
-
+    self.currency_value_remaining -= _currency_value
+    assert_modifiable(ERC20(self.underlying_address).transfer(msg.sender, _underlying_value))
+    assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).secure_currency_deposit_and_market_update_from_auction_purchase(
+        self.currency_address, self.expiry, self.underlying_address,
+        msg.sender, _currency_value, _underlying_value, self.is_active
+    ))
+    if (not self.is_active) and (_underlying_value_remaining > 0):
+        assert_modifiable(ERC20(self.underlying_address).transfer(
+            self.daos[self.DAO_TYPE_MARKET],
+            _underlying_value_remaining
+        ))
     return True

@@ -5,7 +5,7 @@
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import InterestPoolDao
 from contracts.interfaces import UnderwriterPoolDao
-from contracts.interfaces import LoanDao
+from contracts.interfaces import MarketDao
 
 
 # Structs
@@ -33,7 +33,7 @@ templates: public(map(uint256, address))
 DAO_TYPE_CURRENCY: public(uint256)
 DAO_TYPE_INTEREST_POOL: public(uint256)
 DAO_TYPE_UNDERWRITER_POOL: public(uint256)
-DAO_TYPE_LOAN: public(uint256)
+DAO_TYPE_MARKET: public(uint256)
 
 TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
 TEMPLATE_TYPE_CURRENCY_ERC1155: public(uint256)
@@ -55,7 +55,7 @@ def __init__(
         _template_address_interest_pool: address,
         _address_underwriter_pool_dao: address,
         _template_address_underwriter_pool: address,
-        _address_loan_dao: address,
+        _address_market_dao: address,
     ):
     # Before init, need to deploy the following template contracts:
     #. CurrencyDao
@@ -66,7 +66,7 @@ def __init__(
     #. UnderwriterPoolTemplate1
     #. ERC20Template1
     #. ERC1155Template2
-    #. LoanDao
+    #. MarketDao
 
     self.initialized = True
     self.owner = msg.sender
@@ -75,7 +75,7 @@ def __init__(
     self.DAO_TYPE_CURRENCY = 1
     self.DAO_TYPE_INTEREST_POOL = 2
     self.DAO_TYPE_UNDERWRITER_POOL = 3
-    self.DAO_TYPE_LOAN = 4
+    self.DAO_TYPE_MARKET = 4
 
     self.TEMPLATE_TYPE_CURRENCY_ERC20 = 1
     self.TEMPLATE_TYPE_CURRENCY_ERC1155 = 2
@@ -93,8 +93,8 @@ def __init__(
     assert _address_underwriter_pool_dao.is_contract
     self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _address_underwriter_pool_dao
 
-    assert _address_loan_dao.is_contract
-    self.daos[self.DAO_TYPE_LOAN] = _address_loan_dao
+    assert _address_market_dao.is_contract
+    self.daos[self.DAO_TYPE_MARKET] = _address_market_dao
 
     # set template addresses
     assert _template_address_currency_erc20.is_contract
@@ -121,21 +121,21 @@ def _is_initialized() -> bool:
 
 # Admin functions
 
-@public
-def initialize_currency_dao() -> bool:
-    assert self._is_initialized()
-    assert msg.sender == self.owner
-    # initialize currency dao
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).initialize(
-        self.owner, self.protocol_currency_address,
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_POOL],
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20],
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC1155]
-    ))
-
-    log.DAOInitialized(msg.sender, self.DAO_TYPE_CURRENCY, self.daos[self.DAO_TYPE_CURRENCY])
-
-    return True
+# @public
+# def initialize_currency_dao() -> bool:
+#     assert self._is_initialized()
+#     assert msg.sender == self.owner
+#     # initialize currency dao
+#     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).initialize(
+#         self.owner, self.protocol_currency_address,
+#         self.templates[self.TEMPLATE_TYPE_CURRENCY_POOL],
+#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20],
+#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC1155]
+#     ))
+#
+#     log.DAOInitialized(msg.sender, self.DAO_TYPE_CURRENCY, self.daos[self.DAO_TYPE_CURRENCY])
+#
+#     return True
 
 
 @public
@@ -172,21 +172,21 @@ def initialize_interest_pool_dao() -> bool:
 #     return True
 
 
-@public
-def initialize_loan_dao() -> bool:
-    assert self._is_initialized()
-    assert msg.sender == self.owner
-    # initialize loan dao
-    assert_modifiable(LoanDao(self.daos[self.DAO_TYPE_LOAN]).initialize(
-        self.owner, self.protocol_currency_address,
-        self.daos[self.DAO_TYPE_CURRENCY],
-        self.daos[self.DAO_TYPE_INTEREST_POOL],
-        self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
-    ))
-
-    log.DAOInitialized(msg.sender, self.DAO_TYPE_LOAN, self.daos[self.DAO_TYPE_LOAN])
-
-    return True
+# @public
+# def initialize_loan_dao() -> bool:
+#     assert self._is_initialized()
+#     assert msg.sender == self.owner
+#     # initialize loan dao
+#     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).initialize(
+#         self.owner, self.protocol_currency_address,
+#         self.daos[self.DAO_TYPE_CURRENCY],
+#         self.daos[self.DAO_TYPE_INTEREST_POOL],
+#         self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
+#     ))
+#
+#     log.DAOInitialized(msg.sender, self.DAO_TYPE_MARKET, self.daos[self.DAO_TYPE_MARKET])
+#
+#     return True
 
 
 @public

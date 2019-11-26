@@ -12,11 +12,13 @@ import pytest
     #. ERC1155_library
     #. CurrencyPool_library
     #. CurrencyDao
-    #. ShieldPayoutGraph_library
-    #. ShieldPayoutDao
     #. InterestPool_library
     #. InterestPoolDao
     #. UnderwriterPool_library
     #. UnderwriterPoolDao
-    #. LoanDao
+    #. CollateralAuctionGraph_Library
+    #. CollateralAuctionDao
+    #. ShieldPayoutDao
+    #. PositionRegistry
+    #. MarketDao
 """

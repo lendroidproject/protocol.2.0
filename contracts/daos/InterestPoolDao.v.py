@@ -48,6 +48,11 @@ multi_fungible_currencies: public(map(bytes32, MultiFungibleCurrency))
 # lookup_key => lookup_value
 offer_registration_fee_lookup: public(map(address, OfferRegistrationFeeLookup))
 
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_I: public(uint256)
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_F: public(uint256)
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_S: public(uint256)
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_U: public(uint256)
+
 DAO_TYPE_CURRENCY: public(uint256)
 
 TEMPLATE_TYPE_INTEREST_POOL: public(uint256)
@@ -75,6 +80,11 @@ def initialize(
     self.owner = _owner
     self.protocol_dao_address = msg.sender
     self.protocol_currency_address = _protocol_currency_address
+
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_I = 1
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_F = 2
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_S = 3
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_U = 4
 
     self.DAO_TYPE_CURRENCY = 1
     self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
@@ -144,8 +154,8 @@ def _deposit_erc20(_currency_address: address, _from: address, _to: address, _va
 
 
 @private
-def _create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -> uint256:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).create_erc1155_type(_currency_address, _expiry_label)
+def _create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
+    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).create_erc1155_type(_parent_currency_type, _currency_address, _expiry, _underlying_address, _strike_price)
 
 
 @private
@@ -295,7 +305,7 @@ def register_expiry(_pool_hash: bytes32, _expiry: timestamp) -> (bool, bytes32, 
        self._process_fee_for_offer_creation(self.pools[_pool_hash].pool_operator)
 
     if not self.multi_fungible_currencies[_f_hash].has_id:
-        _f_id = self._create_erc1155_type(_f_currency_address, "")
+        _f_id = self._create_erc1155_type(self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_F, _currency_address, _expiry, ZERO_ADDRESS, 0)
         self.multi_fungible_currencies[_f_hash] = MultiFungibleCurrency({
             parent_currency_address: _f_currency_address,
             currency_address: _currency_address,
@@ -305,7 +315,7 @@ def register_expiry(_pool_hash: bytes32, _expiry: timestamp) -> (bool, bytes32, 
             hash: _f_hash
         })
     if not self.multi_fungible_currencies[_i_hash].has_id:
-        _i_id = self._create_erc1155_type(_i_currency_address, "")
+        _i_id = self._create_erc1155_type(self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_I, _currency_address, _expiry, ZERO_ADDRESS, 0)
         self.multi_fungible_currencies[_i_hash] = MultiFungibleCurrency({
             parent_currency_address: _i_currency_address,
             currency_address: _currency_address,

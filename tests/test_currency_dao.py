@@ -15,25 +15,29 @@ from conftest import (
     #. ERC1155_library
     #. CurrencyPool_library
     #. CurrencyDao
+    #. MarketDao
 """
 
 
 def test_initialize(w3, get_contract, get_logs,
         LST_token,
         ERC20_library, ERC1155_library,
-        CurrencyPool_library, CurrencyDao
+        CurrencyPool_library, CurrencyDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     assert CurrencyDao.initialized() == False
     assert CurrencyDao.owner() in (None, ZERO_ADDRESS)
     assert CurrencyDao.protocol_dao_address() in (None, ZERO_ADDRESS)
     assert CurrencyDao.protocol_currency_address() in (None, ZERO_ADDRESS)
+    assert CurrencyDao.DAO_TYPE_MARKET() == 0
     assert CurrencyDao.TEMPLATE_TYPE_CURRENCY_POOL() == 0
     assert CurrencyDao.TEMPLATE_TYPE_CURRENCY_ERC20() == 0
     assert CurrencyDao.TEMPLATE_TYPE_CURRENCY_ERC1155() == 0
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1
@@ -41,9 +45,11 @@ def test_initialize(w3, get_contract, get_logs,
     assert CurrencyDao.owner() == owner
     assert CurrencyDao.protocol_dao_address() == owner
     assert CurrencyDao.protocol_currency_address() == LST_token.address
+    assert CurrencyDao.DAO_TYPE_MARKET() == 1
     assert CurrencyDao.TEMPLATE_TYPE_CURRENCY_POOL() == 1
     assert CurrencyDao.TEMPLATE_TYPE_CURRENCY_ERC20() == 2
     assert CurrencyDao.TEMPLATE_TYPE_CURRENCY_ERC1155() == 3
+    assert CurrencyDao.daos(1) == MarketDao.address
     assert CurrencyDao.templates(1) == CurrencyPool_library.address
     assert CurrencyDao.templates(2) == ERC20_library.address
     assert CurrencyDao.templates(3) == ERC1155_library.address
@@ -53,12 +59,14 @@ def test_failed_transaction_for_set_currency_support_call_by_non_owner(
         w3, get_contract, get_logs,
         LST_token, Malicious_token,
         ERC20_library, ERC1155_library,
-        CurrencyPool_library, CurrencyDao
+        CurrencyPool_library, CurrencyDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     tx_hash = CurrencyDao.set_currency_support(Malicious_token.address, True,
@@ -70,12 +78,14 @@ def test_failed_transaction_for_set_currency_support_call_by_non_owner(
 def test_set_currency_support(w3, get_contract, get_logs,
         LST_token, Lend_token,
         ERC20_library, ERC1155_library,
-        CurrencyPool_library, CurrencyDao
+        CurrencyPool_library, CurrencyDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     tx_hash = CurrencyDao.set_currency_support(Lend_token.address, True,
@@ -87,7 +97,8 @@ def test_set_currency_support(w3, get_contract, get_logs,
 def test_currency_dao_currency_to_l_currency(w3, get_contract, get_logs,
         LST_token, Lend_token,
         ERC20_library, ERC1155_library,
-        CurrencyPool_library, CurrencyDao
+        CurrencyPool_library, CurrencyDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # verify lend currency balance of owner
@@ -102,6 +113,7 @@ def test_currency_dao_currency_to_l_currency(w3, get_contract, get_logs,
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1

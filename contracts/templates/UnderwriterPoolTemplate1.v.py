@@ -281,7 +281,9 @@ def increment_i_currency_supply(_expiry: timestamp, _underlying_address: address
     _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
     assert self.expiries[_expiry_hash].is_active == True, "expiry is not offered"
     assert_modifiable(UnderwriterPoolDao(self.owner).l_currency_to_i_and_s_and_u_currency(
-        self.pool_hash, self.expiries[_expiry_hash].s_currency_hash,
+        self.pool_hash,
+        _expiry, _underlying_address, _strike_price,
+        self.expiries[_expiry_hash].s_currency_hash,
         self.expiries[_expiry_hash].u_currency_hash,
         self.expiries[_expiry_hash].i_currency_hash, _l_currency_value))
 
@@ -296,7 +298,9 @@ def decrement_i_currency_supply(_expiry: timestamp, _underlying_address: address
     _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
     assert self.expiries[_expiry_hash].is_active == True, "expiry is not offered"
     assert_modifiable(UnderwriterPoolDao(self.owner).l_currency_from_i_and_s_and_u_currency(
-        self.pool_hash, self.expiries[_expiry_hash].s_currency_hash,
+        self.pool_hash,
+        _expiry, _underlying_address, _strike_price,
+        self.expiries[_expiry_hash].s_currency_hash,
         self.expiries[_expiry_hash].u_currency_hash,
         self.expiries[_expiry_hash].i_currency_hash, _l_currency_value))
 
@@ -342,27 +346,5 @@ def purchase_s_currency(_expiry: timestamp, _underlying_address: address, _strik
         self, msg.sender,
         self.expiries[_expiry_hash].u_currency_id,
         _s_currency_value, EMPTY_BYTES32))
-
-    return True
-
-
-@public
-def exercise_shield_currency(_expiry: timestamp, _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256) -> bool:
-    _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
-    assert self.expiries[_expiry_hash].expiry_timestamp > block.timestamp
-    assert_modifiable(UnderwriterPoolDao(self.owner).l_currency_from_s_currency(
-        self.pool_hash, self.expiries[_expiry_hash].s_currency_hash,
-        _currency_quantity))
-
-    return True
-
-
-@public
-def exercise_underwriter_currency(_expiry: timestamp, _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256) -> bool:
-    _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
-    assert self.expiries[_expiry_hash].expiry_timestamp > block.timestamp
-    assert_modifiable(UnderwriterPoolDao(self.owner).l_currency_from_u_currency(
-        self.pool_hash, self.expiries[_expiry_hash].u_currency_hash,
-        _currency_quantity))
 
     return True

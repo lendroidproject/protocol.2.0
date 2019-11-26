@@ -18,13 +18,15 @@ from conftest import (
     #. ERC1155_library
     #. CurrencyPool_library
     #. CurrencyDao
-    #. ShieldPayoutGraph_library
-    #. ShieldPayoutDao
     #. InterestPool_library
     #. InterestPoolDao
     #. UnderwriterPool_library
     #. UnderwriterPoolDao
-    #. LoanDao
+    #. CollateralAuctionGraph_Library
+    #. CollateralAuctionDao
+    #. ShieldPayoutDao
+    #. PositionRegistry
+    #. MarketDao
 """
 
 
@@ -32,47 +34,58 @@ def test_avail_loan(w3, get_contract, get_logs,
         LST_token, Lend_token, Borrow_token, Malicious_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
-        ShieldPayoutGraph_library, ShieldPayoutDao,
         InterestPool_library, InterestPoolDao,
         UnderwriterPool_library, UnderwriterPoolDao,
-        LoanDao
+        CollateralAuctionGraph_Library, CollateralAuctionDao,
+        ShieldPayoutDao,
+        PositionRegistry,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
+    # initialize CollateralAuctionDao
+    tx_hash = CollateralAuctionDao.initialize(
+        owner, LST_token.address, CurrencyDao.address,
+        MarketDao.address, CollateralAuctionGraph_Library.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
     # initialize ShieldPayoutDao
-    tx_1_hash = ShieldPayoutDao.initialize(
+    tx_hash = ShieldPayoutDao.initialize(
         owner, LST_token.address, CurrencyDao.address,
-        UnderwriterPoolDao.address, ShieldPayoutGraph_library.address,
+        MarketDao.address,
         transact={'from': owner})
-    tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
-    assert tx_1_receipt['status'] == 1
-    # initialize InterestPoolDao
-    tx_2_hash = InterestPoolDao.initialize(
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # initialize PositionRegistry
+    tx_hash = PositionRegistry.initialize(
+        owner, LST_token.address, MarketDao.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # initialize MarketDao
+    tx_hash = MarketDao.initialize(
         owner, LST_token.address, CurrencyDao.address,
-        InterestPool_library.address, ERC20_library.address,
+        InterestPoolDao.address, UnderwriterPoolDao.address,
+        ShieldPayoutDao.address, CollateralAuctionDao.address,
+        PositionRegistry.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # initialize UnderwriterPoolDao
+    tx_2_hash = UnderwriterPoolDao.initialize(
+        owner, LST_token.address, CurrencyDao.address, MarketDao.address,
+        UnderwriterPool_library.address, ERC20_library.address,
         transact={'from': owner})
     tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)
     assert tx_2_receipt['status'] == 1
-    # initialize UnderwriterPoolDao
-    tx_3_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address, CurrencyDao.address, ShieldPayoutDao.address,
-        UnderwriterPool_library.address, ERC20_library.address,
-        transact={'from': owner})
-    tx_3_receipt = w3.eth.waitForTransactionReceipt(tx_3_hash)
-    assert tx_3_receipt['status'] == 1
-    # initialize LoanDao
-    tx_4_hash = LoanDao.initialize(
-        owner, LST_token.address,
-        CurrencyDao.address, InterestPoolDao.address, UnderwriterPoolDao.address,
-        transact={'from': owner})
-    tx_4_receipt = w3.eth.waitForTransactionReceipt(tx_4_hash)
-    assert tx_4_receipt['status'] == 1
     # set_offer_registration_fee_lookup()
     _minimum_fee = 100
     _minimum_interval = 10
@@ -125,7 +138,7 @@ def test_avail_loan(w3, get_contract, get_logs,
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     _strike_price = 200 * 10 ** 18
     tx_10_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
+        _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
     # get L_Lend_token
@@ -146,29 +159,29 @@ def test_avail_loan(w3, get_contract, get_logs,
     tx_11_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, transact={'from': owner})
     tx_11_receipt = w3.eth.waitForTransactionReceipt(tx_11_hash)
     assert tx_11_receipt['status'] == 1
-    # Lender authorizes CurrencyDao to spend 500 lend currency
-    tx_12_hash = Lend_token.approve(CurrencyDao.address, 500 * (10 ** 18),
+    # Lender authorizes CurrencyDao to spend 800 lend currency
+    tx_12_hash = Lend_token.approve(CurrencyDao.address, 800 * (10 ** 18),
         transact={'from': Lender})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
-    # Lender deposits 500 Lend_tokens to Currency Pool and gets l_tokens
-    tx_13_hash = CurrencyDao.currency_to_l_currency(Lend_token.address, 500 * 10 ** 18,
+    # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+    tx_13_hash = CurrencyDao.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
         transact={'from': Lender, 'gas': 200000})
     tx_13_receipt = w3.eth.waitForTransactionReceipt(tx_13_hash)
     assert tx_13_receipt['status'] == 1
-    # Lender purchases UnderwriterPoolCurrency for 400 L_tokens
-    # Lender gets 25000 UnderwriterPoolCurrency tokens
-    # 400 L_tokens are deposited into UnderwriterPool account
+    # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+    # Lender gets 40000 UnderwriterPoolCurrency tokens
+    # 800 L_tokens are deposited into UnderwriterPool account
     # verify UnderwriterPool balances of l, i, s, u tokens
     assert UnderwriterPool.l_currency_balance() == 0 * 10 ** 18
     assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 0 * 10 ** 18
     assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 0 * 10 ** 18
     assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 0 * 10 ** 18
-    tx_14_hash = UnderwriterPool.purchase_pool_currency(500 * 10 ** 18, transact={'from': Lender})
+    tx_14_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, transact={'from': Lender})
     tx_14_receipt = w3.eth.waitForTransactionReceipt(tx_14_hash)
     assert tx_14_receipt['status'] == 1
     # verify UnderwriterPool balances of l, i, s, u tokens
-    assert UnderwriterPool.l_currency_balance() == 500 * 10 ** 18
+    assert UnderwriterPool.l_currency_balance() == 800 * 10 ** 18
     assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 0 * 10 ** 18
     assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 0 * 10 ** 18
     assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 0 * 10 ** 18
@@ -179,26 +192,19 @@ def test_avail_loan(w3, get_contract, get_logs,
         Borrow_token.address, _strike_price)
     _i_hash = UnderwriterPoolDao.multi_fungible_currency_hash(
         multi_fungible_addresses[1], Lend_token.address, Z19, ZERO_ADDRESS, 0)
-    # set shield_currency_price
-    shield_currency_minimum_collateral_value = 100 * 10 ** 18
-    tx_15_hash = UnderwriterPoolDao.set_shield_currency_minimum_collateral_value(
-        Lend_token.address, Z19, Borrow_token.address, _strike_price,
-        shield_currency_minimum_collateral_value, transact={'from': owner})
-    tx_15_receipt = w3.eth.waitForTransactionReceipt(tx_15_hash)
-    assert tx_15_receipt['status'] == 1
-    # pool_owner initiates offer of 400 I_tokens from the UnderwriterPool
-    # 400 L_tokens burned from UnderwriterPool account
-    # 400 I_tokens, 4 S_tokens, and 4 U_tokens minted to UnderwriterPool account
+    # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+    # 600 L_tokens burned from UnderwriterPool account
+    # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
     tx_16_hash = UnderwriterPool.increment_i_currency_supply(
-        Z19, Borrow_token.address, _strike_price, 400 * 10 ** 18,
+        Z19, Borrow_token.address, _strike_price, 600 * 10 ** 18,
         transact={'from': pool_owner, 'gas': 600000})
     tx_16_receipt = w3.eth.waitForTransactionReceipt(tx_16_hash)
     assert tx_16_receipt['status'] == 1
     # verify UnderwriterPool balances of l, i, s, u tokens
-    assert UnderwriterPool.l_currency_balance() == 100 * 10 ** 18
-    assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 400 * 10 ** 18
-    assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
-    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
+    assert UnderwriterPool.l_currency_balance() == 200 * 10 ** 18
+    assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 600 * 10 ** 18
+    assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
+    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
     # get I_token
     I_token = get_contract(
         'contracts/templates/ERC1155Template1.v.py',
@@ -223,20 +229,20 @@ def test_avail_loan(w3, get_contract, get_logs,
     tx_17_receipt = w3.eth.waitForTransactionReceipt(tx_17_hash)
     assert tx_17_receipt['status'] == 1
     # verify UnderwriterPool balances of l, i, s, u tokens
-    assert UnderwriterPool.l_currency_balance() == 100 * 10 ** 18
-    assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 300 * 10 ** 18
-    assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
-    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 4 * 10 ** 18
+    assert UnderwriterPool.l_currency_balance() == 200 * 10 ** 18
+    assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 500 * 10 ** 18
+    assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
+    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
     tx_18_hash = UnderwriterPool.purchase_s_currency(Z19, Borrow_token.address,
         _strike_price, 2 * 10 ** 18, 0, transact={'from': High_Risk_Insurer})
     tx_18_receipt = w3.eth.waitForTransactionReceipt(tx_18_hash)
     assert tx_18_receipt['status'] == 1
     # verify UnderwriterPool balances of l, i, s, u tokens
-    assert UnderwriterPool.l_currency_balance() == 100 * 10 ** 18
-    assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 300 * 10 ** 18
-    assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 2 * 10 ** 18
-    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 2 * 10 ** 18
+    assert UnderwriterPool.l_currency_balance() == 200 * 10 ** 18
+    assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 500 * 10 ** 18
+    assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 1 * 10 ** 18
+    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 1 * 10 ** 18
     # assign one of the accounts as a Borrower
     Borrower = w3.eth.accounts[3]
     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
@@ -245,12 +251,12 @@ def test_avail_loan(w3, get_contract, get_logs,
     assert tx_19_receipt['status'] == 1
     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
     # Borrower authorizes CurrencyDao to spend 2 Borrow_tokens
-    tx_20_hash = Borrow_token.approve(CurrencyDao.address, 2 * (10 ** 18),
+    tx_20_hash = Borrow_token.approve(CurrencyDao.address, 3 * (10 ** 18),
         transact={'from': Borrower})
     tx_20_receipt = w3.eth.waitForTransactionReceipt(tx_20_hash)
     assert tx_20_receipt['status'] == 1
     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
-    tx_21_hash = CurrencyDao.currency_to_l_currency(Borrow_token.address, 2 * 10 ** 18,
+    tx_21_hash = CurrencyDao.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
         transact={'from': Borrower, 'gas': 200000})
     tx_21_receipt = w3.eth.waitForTransactionReceipt(tx_21_hash)
     assert tx_21_receipt['status'] == 1
@@ -266,24 +272,25 @@ def test_avail_loan(w3, get_contract, get_logs,
     tx_23_receipt = w3.eth.waitForTransactionReceipt(tx_23_hash)
     assert tx_23_receipt['status'] == 1
     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-    assert LoanDao.last_offer_index() == 0
-    tx_24_hash = LoanDao.create_offer(_s_hash, _i_hash, 2, 20, 5 * 10 ** 15,
+    assert PositionRegistry.last_offer_index() == 0
+    tx_24_hash = PositionRegistry.create_offer(
+        Lend_token.address, Z19, Borrow_token.address, _strike_price,
+        2, 20, 5 * 10 ** 15,
         transact={'from': High_Risk_Insurer, 'gas': 450000})
     tx_24_receipt = w3.eth.waitForTransactionReceipt(tx_24_hash)
     assert tx_24_receipt['status'] == 1
-    assert LoanDao.last_offer_index() == 1
-    assert LoanDao.offers__creator(1) == High_Risk_Insurer
-    assert LoanDao.offers__s_hash(1) == _s_hash
-    assert LoanDao.offers__s_quantity(1) == 2
-    assert LoanDao.offers__i_quantity(1) == 20
-    assert LoanDao.offers__i_unit_price_in_wei(1) == 5 * 10 ** 15
-    # verify i_token, s_token and l_token balances of LoanDao
+    assert PositionRegistry.last_offer_index() == 1
+    assert PositionRegistry.offers__creator(0) == High_Risk_Insurer
+    assert PositionRegistry.offers__s_quantity(0) == 2
+    assert PositionRegistry.offers__i_quantity(0) == 20
+    assert PositionRegistry.offers__i_unit_price_in_wei(0) == 5 * 10 ** 15
+    # verify i_token, s_token and l_token balances of MarketDao
     assert I_token.balanceOf(
-        LoanDao.address,
+        MarketDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_i_hash)
     ) == 0
     assert S_token.balanceOf(
-        LoanDao.address,
+        MarketDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 0
     # verify i_token, s_token and l_token balances of High_Risk_Insurer
@@ -295,25 +302,25 @@ def test_avail_loan(w3, get_contract, get_logs,
         High_Risk_Insurer,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 2 * 10 ** 18
-    # verify L_Borrow_token balance of LoanDao
-    assert L_Borrow_token.balanceOf(LoanDao.address) == 0
+    # verify L_Borrow_token balance of MarketDao
+    assert L_Borrow_token.balanceOf(MarketDao.address) == 0
     # verify L_Borrow_token balance of Borrower
-    assert L_Borrow_token.balanceOf(Borrower) == 2 * 10 ** 18
+    assert L_Borrow_token.balanceOf(Borrower) == 3 * 10 ** 18
     # verify Lend_token balance of Borrower
     assert Lend_token.balanceOf(Borrower) == 0
     # Borrower purchases this offer for the amount of 0.1 ETH
-    # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to LoanDao
-    tx_25_hash = LoanDao.avail_loan(1,
-        transact={'from': Borrower, 'value': 10 ** 17})
+    # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDao
+    tx_25_hash = PositionRegistry.avail_loan(0,
+        transact={'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
     tx_25_receipt = w3.eth.waitForTransactionReceipt(tx_25_hash)
     assert tx_25_receipt['status'] == 1
-    # verify i_token, s_token and l_token balances of LoanDao
+    # verify i_token, s_token and l_token balances of MarketDao
     assert I_token.balanceOf(
-        LoanDao.address,
+        Borrower,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_i_hash)
     ) == 20 * 10 ** 18
     assert S_token.balanceOf(
-        LoanDao.address,
+        MarketDao.address,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 2 * 10 ** 18
     # verify i_token, s_token and l_token balances of High_Risk_Insurer
@@ -325,8 +332,8 @@ def test_avail_loan(w3, get_contract, get_logs,
         High_Risk_Insurer,
         UnderwriterPoolDao.multi_fungible_currencies__token_id(_s_hash)
     ) == 0
-    # verify L_Borrow_token balance of LoanDao
-    assert L_Borrow_token.balanceOf(LoanDao.address) == 1 * 10 ** 18
+    # verify L_Borrow_token balance of MarketDao
+    assert L_Borrow_token.balanceOf(MarketDao.address) == 2 * 10 ** 18
     # verify L_Borrow_token balance of Borrower
     assert L_Borrow_token.balanceOf(Borrower) == 1 * 10 ** 18
     # verify Lend_token balance of Borrower
@@ -337,47 +344,58 @@ def test_repay_loan(w3, get_contract, get_logs,
         LST_token, Lend_token, Borrow_token, Malicious_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
-        ShieldPayoutGraph_library, ShieldPayoutDao,
         InterestPool_library, InterestPoolDao,
         UnderwriterPool_library, UnderwriterPoolDao,
-        LoanDao
+        CollateralAuctionGraph_Library, CollateralAuctionDao,
+        ShieldPayoutDao,
+        PositionRegistry,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
+    # initialize CollateralAuctionDao
+    tx_hash = CollateralAuctionDao.initialize(
+        owner, LST_token.address, CurrencyDao.address,
+        MarketDao.address, CollateralAuctionGraph_Library.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
     # initialize ShieldPayoutDao
-    tx_1_hash = ShieldPayoutDao.initialize(
+    tx_hash = ShieldPayoutDao.initialize(
         owner, LST_token.address, CurrencyDao.address,
-        UnderwriterPoolDao.address, ShieldPayoutGraph_library.address,
+        MarketDao.address,
         transact={'from': owner})
-    tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
-    assert tx_1_receipt['status'] == 1
-    # initialize InterestPoolDao
-    tx_2_hash = InterestPoolDao.initialize(
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # initialize PositionRegistry
+    tx_hash = PositionRegistry.initialize(
+        owner, LST_token.address, MarketDao.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # initialize MarketDao
+    tx_hash = MarketDao.initialize(
         owner, LST_token.address, CurrencyDao.address,
-        InterestPool_library.address, ERC20_library.address,
+        InterestPoolDao.address, UnderwriterPoolDao.address,
+        ShieldPayoutDao.address, CollateralAuctionDao.address,
+        PositionRegistry.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # initialize UnderwriterPoolDao
+    tx_2_hash = UnderwriterPoolDao.initialize(
+        owner, LST_token.address, CurrencyDao.address, MarketDao.address,
+        UnderwriterPool_library.address, ERC20_library.address,
         transact={'from': owner})
     tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)
     assert tx_2_receipt['status'] == 1
-    # initialize UnderwriterPoolDao
-    tx_3_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address, CurrencyDao.address, ShieldPayoutDao.address,
-        UnderwriterPool_library.address, ERC20_library.address,
-        transact={'from': owner})
-    tx_3_receipt = w3.eth.waitForTransactionReceipt(tx_3_hash)
-    assert tx_3_receipt['status'] == 1
-    # initialize LoanDao
-    tx_4_hash = LoanDao.initialize(
-        owner, LST_token.address,
-        CurrencyDao.address, InterestPoolDao.address, UnderwriterPoolDao.address,
-        transact={'from': owner})
-    tx_4_receipt = w3.eth.waitForTransactionReceipt(tx_4_hash)
-    assert tx_4_receipt['status'] == 1
     # set_offer_registration_fee_lookup()
     _minimum_fee = 100
     _minimum_interval = 10
@@ -430,7 +448,7 @@ def test_repay_loan(w3, get_contract, get_logs,
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     _strike_price = 200 * 10 ** 18
     tx_10_hash = UnderwriterPool.register_expiry(Z19, Borrow_token.address,
-        _strike_price, transact={'from': pool_owner, 'gas': 1700000})
+        _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
     # get L_Lend_token
@@ -451,20 +469,20 @@ def test_repay_loan(w3, get_contract, get_logs,
     tx_11_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, transact={'from': owner})
     tx_11_receipt = w3.eth.waitForTransactionReceipt(tx_11_hash)
     assert tx_11_receipt['status'] == 1
-    # Lender authorizes CurrencyDao to spend 500 lend currency
-    tx_12_hash = Lend_token.approve(CurrencyDao.address, 500 * (10 ** 18),
+    # Lender authorizes CurrencyDao to spend 800 lend currency
+    tx_12_hash = Lend_token.approve(CurrencyDao.address, 800 * (10 ** 18),
         transact={'from': Lender})
     tx_12_receipt = w3.eth.waitForTransactionReceipt(tx_12_hash)
     assert tx_12_receipt['status'] == 1
-    # Lender deposits 500 Lend_tokens to Currency Pool and gets l_tokens
-    tx_13_hash = CurrencyDao.currency_to_l_currency(Lend_token.address, 500 * 10 ** 18,
+    # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+    tx_13_hash = CurrencyDao.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
         transact={'from': Lender, 'gas': 200000})
     tx_13_receipt = w3.eth.waitForTransactionReceipt(tx_13_hash)
     assert tx_13_receipt['status'] == 1
-    # Lender purchases UnderwriterPoolCurrency for 400 L_tokens
-    # Lender gets 25000 UnderwriterPoolCurrency tokens
-    # 400 L_tokens are deposited into UnderwriterPool account
-    tx_14_hash = UnderwriterPool.purchase_pool_currency(500 * 10 ** 18, transact={'from': Lender})
+    # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+    # Lender gets 40000 UnderwriterPoolCurrency tokens
+    # 800 L_tokens are deposited into UnderwriterPool account
+    tx_14_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, transact={'from': Lender})
     tx_14_receipt = w3.eth.waitForTransactionReceipt(tx_14_hash)
     assert tx_14_receipt['status'] == 1
     # vefiry shield_currency_price is not set
@@ -474,18 +492,11 @@ def test_repay_loan(w3, get_contract, get_logs,
         Borrow_token.address, _strike_price)
     _i_hash = UnderwriterPoolDao.multi_fungible_currency_hash(
         multi_fungible_addresses[1], Lend_token.address, Z19, ZERO_ADDRESS, 0)
-    # set shield_currency_price
-    shield_currency_minimum_collateral_value = 100 * 10 ** 18
-    tx_15_hash = UnderwriterPoolDao.set_shield_currency_minimum_collateral_value(
-        Lend_token.address, Z19, Borrow_token.address, _strike_price,
-        shield_currency_minimum_collateral_value, transact={'from': owner})
-    tx_15_receipt = w3.eth.waitForTransactionReceipt(tx_15_hash)
-    assert tx_15_receipt['status'] == 1
-    # pool_owner initiates offer of 400 I_tokens from the UnderwriterPool
-    # 400 L_tokens burned from UnderwriterPool account
-    # 400 I_tokens, 4 S_tokens, and 4 U_tokens minted to UnderwriterPool account
+    # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+    # 600 L_tokens burned from UnderwriterPool account
+    # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
     tx_16_hash = UnderwriterPool.increment_i_currency_supply(
-        Z19, Borrow_token.address, _strike_price, 400 * 10 ** 18,
+        Z19, Borrow_token.address, _strike_price, 600 * 10 ** 18,
         transact={'from': pool_owner, 'gas': 600000})
     tx_16_receipt = w3.eth.waitForTransactionReceipt(tx_16_hash)
     assert tx_16_receipt['status'] == 1
@@ -519,17 +530,18 @@ def test_repay_loan(w3, get_contract, get_logs,
     assert tx_18_receipt['status'] == 1
     # assign one of the accounts as a Borrower
     Borrower = w3.eth.accounts[3]
-    # Borrower purchases 3 Borrow_tokens from a 3rd party exchange
+    # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
     tx_19_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, transact={'from': owner})
     tx_19_receipt = w3.eth.waitForTransactionReceipt(tx_19_hash)
     assert tx_19_receipt['status'] == 1
+    assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
     # Borrower authorizes CurrencyDao to spend 2 Borrow_tokens
-    tx_20_hash = Borrow_token.approve(CurrencyDao.address, 2 * (10 ** 18),
+    tx_20_hash = Borrow_token.approve(CurrencyDao.address, 3 * (10 ** 18),
         transact={'from': Borrower})
     tx_20_receipt = w3.eth.waitForTransactionReceipt(tx_20_hash)
     assert tx_20_receipt['status'] == 1
     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
-    tx_21_hash = CurrencyDao.currency_to_l_currency(Borrow_token.address, 2 * 10 ** 18,
+    tx_21_hash = CurrencyDao.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
         transact={'from': Borrower, 'gas': 200000})
     tx_21_receipt = w3.eth.waitForTransactionReceipt(tx_21_hash)
     assert tx_21_receipt['status'] == 1
@@ -545,28 +557,32 @@ def test_repay_loan(w3, get_contract, get_logs,
     tx_23_receipt = w3.eth.waitForTransactionReceipt(tx_23_hash)
     assert tx_23_receipt['status'] == 1
     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-    assert LoanDao.last_offer_index() == 0
-    tx_24_hash = LoanDao.create_offer(_s_hash, _i_hash, 2, 20, 5 * 10 ** 15,
+    assert PositionRegistry.last_offer_index() == 0
+    tx_24_hash = PositionRegistry.create_offer(
+        Lend_token.address, Z19, Borrow_token.address, _strike_price,
+        2, 20, 5 * 10 ** 15,
         transact={'from': High_Risk_Insurer, 'gas': 450000})
     tx_24_receipt = w3.eth.waitForTransactionReceipt(tx_24_hash)
     assert tx_24_receipt['status'] == 1
     # Borrower purchases this offer for the amount of 0.1 ETH
-    # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to LoanDao
-    tx_25_hash = LoanDao.avail_loan(1,
-        transact={'from': Borrower, 'value': 10 ** 17})
+    # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDao
+    tx_25_hash = PositionRegistry.avail_loan(0,
+        transact={'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
     tx_25_receipt = w3.eth.waitForTransactionReceipt(tx_25_hash)
     assert tx_25_receipt['status'] == 1
+    # verify Lend_token balance of Borrower
+    assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
     # Borrower authorizes CurrencyDao to spend 400 Lend_tokens
     tx_26_hash = Lend_token.approve(CurrencyDao.address, 400 * (10 ** 18),
         transact={'from': Borrower})
     tx_26_receipt = w3.eth.waitForTransactionReceipt(tx_26_hash)
     assert tx_26_receipt['status'] == 1
     # Borrower repays loan
-    position_id = LoanDao.borrow_position(Borrower, LoanDao.borrow_position_count(Borrower))
-    tx_27_hash = LoanDao.repay_loan(position_id, transact={'from': Borrower})
+    position_id = PositionRegistry.borrow_position(Borrower, PositionRegistry.borrow_position_count(Borrower))
+    tx_27_hash = PositionRegistry.repay_loan(position_id, transact={'from': Borrower})
     tx_27_receipt = w3.eth.waitForTransactionReceipt(tx_27_hash)
     assert tx_27_receipt['status'] == 1
     # verify L_Borrow_token balance of Borrower
-    assert L_Borrow_token.balanceOf(Borrower) == 2 * 10 ** 18
+    assert L_Borrow_token.balanceOf(Borrower) == 3 * 10 ** 18
     # verify Lend_token balance of Borrower
     assert Lend_token.balanceOf(Borrower) == 0

@@ -21,6 +21,7 @@ from conftest import (
     #. CurrencyDao
     #. InterestPool_library
     #. InterestPoolDao
+    #. MarketDao
 """
 
 
@@ -28,13 +29,15 @@ def test_initialize(w3, get_contract, get_logs,
         LST_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
-        InterestPool_library, InterestPoolDao
+        InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1
@@ -67,13 +70,15 @@ def test_set_offer_registration_fee_lookup(w3, get_contract, get_logs,
         LST_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
-        InterestPool_library, InterestPoolDao
+        InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1
@@ -113,13 +118,15 @@ def test_failed_transaction_for_register_pool_call_for_non_supported_token(
         w3, get_contract, get_logs,
         LST_token, Lend_token, Malicious_token,
         ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, InterestPool_library, InterestPoolDao
+        CurrencyDao, InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1
@@ -150,13 +157,15 @@ def test_failed_transaction_for_register_pool_call_for_non_supported_token(
 def test_register_pool(w3, get_contract, get_logs,
         LST_token, Lend_token, Malicious_token,
         ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, InterestPool_library, InterestPoolDao
+        CurrencyDao, InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
@@ -186,7 +195,7 @@ def test_register_pool(w3, get_contract, get_logs,
     pool_owner = w3.eth.accounts[1]
     tx_5_hash = InterestPoolDao.register_pool(Lend_token.address,
         'Interest Pool A', 'IPA', 50,
-        transact={'from': pool_owner, 'gas': 775000})
+        transact={'from': pool_owner, 'gas': 800000})
     tx_5_receipt = w3.eth.waitForTransactionReceipt(tx_5_hash)
     assert tx_5_receipt['status'] == 1
     # verify PoolRegistered log from InterestPoolDao
@@ -232,13 +241,15 @@ def test_register_pool(w3, get_contract, get_logs,
 def test_register_expiry(w3, get_contract, get_logs,
         LST_token, Lend_token, Malicious_token,
         ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, InterestPool_library, InterestPoolDao
+        CurrencyDao, InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
@@ -268,7 +279,7 @@ def test_register_expiry(w3, get_contract, get_logs,
     pool_owner = w3.eth.accounts[1]
     tx_5_hash = InterestPoolDao.register_pool(Lend_token.address,
         'Interest Pool A', 'IPA', 50,
-        transact={'from': pool_owner, 'gas': 775000})
+        transact={'from': pool_owner, 'gas': 800000})
     tx_5_receipt = w3.eth.waitForTransactionReceipt(tx_5_hash)
     assert tx_5_receipt['status'] == 1
     # get InterestPool contract
@@ -303,7 +314,7 @@ def test_register_expiry(w3, get_contract, get_logs,
     assert InterestPool.expiries__f_currency_id(Z19) == 0
     assert InterestPool.expiries__is_active(Z19) in (None, False)
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 770000})
+        transact={'from': pool_owner, 'gas': 1100000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
     assert tx_7_receipt['status'] == 1
     assert InterestPool.expiries__expiry_timestamp(Z19) == 1577404799
@@ -315,13 +326,15 @@ def test_register_expiry(w3, get_contract, get_logs,
 def test_deposit_l_currency(w3, get_contract, get_logs,
         LST_token, Lend_token, Malicious_token,
         ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, InterestPool_library, InterestPoolDao
+        CurrencyDao, InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
@@ -341,7 +354,7 @@ def test_deposit_l_currency(w3, get_contract, get_logs,
     pool_owner = w3.eth.accounts[1]
     tx_4_hash = InterestPoolDao.register_pool(Lend_token.address,
         'Interest Pool A', 'IPA', 50,
-        transact={'from': pool_owner, 'gas': 775000})
+        transact={'from': pool_owner, 'gas': 800000})
     tx_4_receipt = w3.eth.waitForTransactionReceipt(tx_4_hash)
     assert tx_4_receipt['status'] == 1
     # get InterestPool contract
@@ -418,13 +431,15 @@ def test_deposit_l_currency(w3, get_contract, get_logs,
 def test_l_currency_to_i_and_f_currency(w3, get_contract, get_logs,
         LST_token, Lend_token, Malicious_token,
         ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, InterestPool_library, InterestPoolDao
+        CurrencyDao, InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
@@ -454,7 +469,7 @@ def test_l_currency_to_i_and_f_currency(w3, get_contract, get_logs,
     pool_owner = w3.eth.accounts[1]
     tx_5_hash = InterestPoolDao.register_pool(Lend_token.address,
         'Interest Pool A', 'IPA', 50,
-        transact={'from': pool_owner, 'gas': 775000})
+        transact={'from': pool_owner, 'gas': 800000})
     tx_5_receipt = w3.eth.waitForTransactionReceipt(tx_5_hash)
     assert tx_5_receipt['status'] == 1
     # get InterestPool contract
@@ -481,7 +496,7 @@ def test_l_currency_to_i_and_f_currency(w3, get_contract, get_logs,
     assert tx_6_receipt['status'] == 1
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 770000})
+        transact={'from': pool_owner, 'gas': 1100000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
     assert tx_7_receipt['status'] == 1
     # get L_token
@@ -530,13 +545,15 @@ def test_l_currency_to_i_and_f_currency(w3, get_contract, get_logs,
 def test_l_currency_from_i_and_f_currency(w3, get_contract, get_logs,
         LST_token, Lend_token, Malicious_token,
         ERC20_library, ERC1155_library, CurrencyPool_library,
-        CurrencyDao, InterestPool_library, InterestPoolDao
+        CurrencyDao, InterestPool_library, InterestPoolDao,
+        MarketDao
     ):
     owner = w3.eth.accounts[0]
     # initialize CurrencyDao
     tx_1_hash = CurrencyDao.initialize(
         owner, LST_token.address, CurrencyPool_library.address,
         ERC20_library.address, ERC1155_library.address,
+        MarketDao.address,
         transact={'from': owner})
     tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
     assert tx_1_receipt['status'] == 1
@@ -566,7 +583,7 @@ def test_l_currency_from_i_and_f_currency(w3, get_contract, get_logs,
     pool_owner = w3.eth.accounts[1]
     tx_5_hash = InterestPoolDao.register_pool(Lend_token.address,
         'Interest Pool A', 'IPA', 50,
-        transact={'from': pool_owner, 'gas': 775000})
+        transact={'from': pool_owner, 'gas': 800000})
     tx_5_receipt = w3.eth.waitForTransactionReceipt(tx_5_hash)
     assert tx_5_receipt['status'] == 1
     # get InterestPool contract
@@ -593,7 +610,7 @@ def test_l_currency_from_i_and_f_currency(w3, get_contract, get_logs,
     assert tx_6_receipt['status'] == 1
     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
     tx_7_hash = InterestPool.register_expiry(Z19,
-        transact={'from': pool_owner, 'gas': 770000})
+        transact={'from': pool_owner, 'gas': 1100000})
     tx_7_receipt = w3.eth.waitForTransactionReceipt(tx_7_hash)
     assert tx_7_receipt['status'] == 1
     # get L_token

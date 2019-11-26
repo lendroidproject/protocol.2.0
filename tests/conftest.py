@@ -111,7 +111,7 @@ CONCISE_NORMALIZERS = (_none_addr,)
 
 @pytest.fixture
 def tester():
-    genesis_overrides = {"gas_limit": 3750000}
+    genesis_overrides = {"gas_limit": 4500000}
     custom_genesis_params = PyEVMBackend._generate_genesis_params(
         overrides=genesis_overrides
     )
@@ -278,21 +278,6 @@ def CurrencyDao(w3, get_contract):
 
 
 @pytest.fixture
-def ShieldPayoutGraph_library(w3, get_contract):
-    contract = get_contract('contracts/templates/SimpleShieldPayoutGraph.v.py')
-    return contract
-
-
-@pytest.fixture
-def ShieldPayoutDao(w3, get_contract):
-    contract = get_contract(
-        'contracts/daos/ShieldPayoutDao.v.py',
-        interfaces=['CurrencyDao', 'ShieldPayoutGraph']
-    )
-    return contract
-
-
-@pytest.fixture
 def InterestPool_library(w3, get_contract):
     contract = get_contract(
         'contracts/templates/InterestPoolTemplate1.v.py',
@@ -328,18 +313,56 @@ def UnderwriterPool_library(w3, get_contract):
 def UnderwriterPoolDao(w3, get_contract):
     contract = get_contract(
         'contracts/daos/UnderwriterPoolDao.v.py',
-        interfaces=['CurrencyDao', 'UnderwriterPool']
+        interfaces=['CurrencyDao', 'UnderwriterPool', 'MarketDao']
     )
     return contract
 
 
 @pytest.fixture
-def LoanDao(w3, get_contract):
+def CollateralAuctionGraph_Library(w3, get_contract):
     contract = get_contract(
-        'contracts/daos/LoanDao.v.py',
+        'contracts/templates/SimpleCollateralAuctionGraph.v.py',
+        interfaces=['ERC20', 'MarketDao']
+    )
+    return contract
+
+
+@pytest.fixture
+def CollateralAuctionDao(w3, get_contract):
+    contract = get_contract(
+        'contracts/daos/CollateralAuctionDao.v.py',
+        interfaces=['CurrencyDao', 'CollateralAuctionGraph']
+    )
+    return contract
+
+
+
+@pytest.fixture
+def ShieldPayoutDao(w3, get_contract):
+    contract = get_contract(
+        'contracts/daos/ShieldPayoutDao.v.py',
+        interfaces=['CurrencyDao', 'MarketDao']
+    )
+    return contract
+
+
+@pytest.fixture
+def PositionRegistry(w3, get_contract):
+    contract = get_contract(
+        'contracts/templates/PositionRegistryTemplate1.v.py',
+        interfaces=['MarketDao']
+    )
+    return contract
+
+
+@pytest.fixture
+def MarketDao(w3, get_contract):
+    contract = get_contract(
+        'contracts/daos/MarketDao.v.py',
         interfaces=[
-            'ERC20', 'ERC1155TokenReceiver', 'CurrencyDao',
-            'InterestPoolDao', 'UnderwriterPoolDao'
+            'ERC20', 'ERC1155', 'ERC1155TokenReceiver',
+            'CurrencyDao', 'ShieldPayoutDao', 'CollateralAuctionDao',
+            'CollateralAuctionGraph', 'SimplePriceOracle'
         ]
     )
     return contract

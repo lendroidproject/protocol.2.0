@@ -5,7 +5,7 @@ PoolRegistered: event({_operator: address, _currency_address: address, _pool_add
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_shield_payout: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_market: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
     pass
 
 @constant
@@ -33,10 +33,6 @@ def set_offer_registration_fee_lookup(_minimum_fee: uint256, _minimum_interval: 
     pass
 
 @public
-def set_shield_currency_minimum_collateral_value(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
-    pass
-
-@public
 def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
@@ -53,19 +49,11 @@ def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> 
     pass
 
 @public
-def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
-    pass
-
-@public
-def l_currency_from_s_currency(_pool_hash: bytes32, _s_hash: bytes32, _currency_quantity: uint256) -> bool:
-    pass
-
-@public
-def l_currency_from_u_currency(_pool_hash: bytes32, _u_hash: bytes32, _currency_quantity: uint256) -> bool:
+def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
     pass
 
 @constant
@@ -190,12 +178,22 @@ def offer_registration_fee_lookup__last_paid_fee(arg0: address) -> uint256:
 
 @constant
 @public
-def shield_currency_minimum_collateral_values(arg0: bytes32) -> uint256:
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_I() -> uint256:
     pass
 
 @constant
 @public
-def payout_graph_addresses(arg0: bytes32) -> address:
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_F() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_S() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_U() -> uint256:
     pass
 
 @constant
@@ -205,7 +203,7 @@ def DAO_TYPE_CURRENCY() -> uint256:
 
 @constant
 @public
-def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
+def DAO_TYPE_MARKET() -> uint256:
     pass
 
 @constant

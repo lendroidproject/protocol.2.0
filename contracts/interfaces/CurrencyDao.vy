@@ -1,7 +1,12 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _template_address_currency_pool: address, _template_address_currency_erc20: address, _template_address_currency_erc1155: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _template_address_currency_pool: address, _template_address_currency_erc20: address, _template_address_currency_erc1155: address, _dao_address_market: address) -> bool:
+    pass
+
+@constant
+@public
+def multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
     pass
 
 @constant
@@ -31,7 +36,7 @@ def release_currency_from_pool(_currency_address: address, _to: address, _value:
     pass
 
 @public
-def create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -> uint256:
+def create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
     pass
 
 @public
@@ -69,6 +74,18 @@ def set_currency_support(_currency_address: address, _is_active: bool) -> bool:
 
 @public
 def currency_to_l_currency(_currency_address: address, _value: uint256) -> bool:
+    pass
+
+@public
+def l_currency_to_currency(_currency_address: address, _value: uint256) -> bool:
+    pass
+
+@public
+def secure_l_currency_to_currency(_currency_address: address, _to: address, _value: uint256) -> bool:
+    pass
+
+@public
+def secure_deposit_currency_to_pool(_currency_address: address, _from: address, _value: uint256) -> bool:
     pass
 
 @constant
@@ -143,7 +160,77 @@ def pools__hash(arg0: bytes32) -> bytes32:
 
 @constant
 @public
+def daos(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
 def templates(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__parent_currency_address(arg0: bytes32) -> address:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__currency_address(arg0: bytes32) -> address:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__expiry_timestamp(arg0: bytes32) -> uint256(sec, positional):
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__underlying_address(arg0: bytes32) -> address:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__strike_price(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__has_id(arg0: bytes32) -> bool:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__token_id(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def multi_fungible_currencies__hash(arg0: bytes32) -> bytes32:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_I() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_F() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_S() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_U() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_TYPE_MARKET() -> uint256:
     pass
 
 @constant

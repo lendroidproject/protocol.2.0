@@ -16,11 +16,23 @@ struct Currency:
     s_currency_address: address
     u_currency_address: address
 
+
 struct Pool:
     currency_address: address
     pool_name: string[64]
     pool_address: address
     pool_operator: address
+    hash: bytes32
+
+
+struct MultiFungibleCurrency:
+    parent_currency_address: address
+    currency_address: address
+    expiry_timestamp: timestamp
+    underlying_address: address
+    strike_price: uint256
+    has_id: bool
+    token_id: uint256
     hash: bytes32
 
 
@@ -31,8 +43,19 @@ owner: public(address)
 currencies: public(map(address, Currency))
 # pool_hash => Pool
 pools: public(map(bytes32, Pool))
+# dao_type => dao_address
+daos: public(map(uint256, address))
 # template_name => template_contract_address
 templates: public(map(uint256, address))
+# currency_hash => MultiFungibleCurrency
+multi_fungible_currencies: public(map(bytes32, MultiFungibleCurrency))
+
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_I: public(uint256)
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_F: public(uint256)
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_S: public(uint256)
+MULTI_FUNGIBLE_CURRENCY_DIMENSION_U: public(uint256)
+
+DAO_TYPE_MARKET: public(uint256)
 
 TEMPLATE_TYPE_CURRENCY_POOL: public(uint256)
 TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
@@ -54,13 +77,22 @@ def initialize(
         _protocol_currency_address: address,
         _template_address_currency_pool: address,
         _template_address_currency_erc20: address,
-        _template_address_currency_erc1155: address
+        _template_address_currency_erc1155: address,
+        _dao_address_market: address
         ) -> bool:
     assert not self._is_initialized()
     self.initialized = True
     self.owner = _owner
     self.protocol_dao_address = msg.sender
     self.protocol_currency_address = _protocol_currency_address
+
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_I = 1
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_F = 2
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_S = 3
+    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_U = 4
+
+    self.DAO_TYPE_MARKET = 1
+    self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
 
     self.TEMPLATE_TYPE_CURRENCY_POOL = 1
     self.TEMPLATE_TYPE_CURRENCY_ERC20 = 2
@@ -80,6 +112,21 @@ def _pool_hash(_currency_address: address) -> bytes32:
         concat(
             convert(self.protocol_dao_address, bytes32),
             convert(_currency_address, bytes32)
+        )
+    )
+
+
+@private
+@constant
+def _multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
+    return keccak256(
+        concat(
+            convert(self.protocol_dao_address, bytes32),
+            convert(parent_currency_address, bytes32),
+            convert(_currency_address, bytes32),
+            convert(_expiry, bytes32),
+            convert(_underlying_address, bytes32),
+            convert(_strike_price, bytes32)
         )
     )
 
@@ -152,6 +199,28 @@ def _multi_fungible_addresses(_currency_address: address) -> (address, address, 
     return self.currencies[_currency_address].l_currency_address, self.currencies[_currency_address].i_currency_address, self.currencies[_currency_address].f_currency_address, self.currencies[_currency_address].s_currency_address, self.currencies[_currency_address].u_currency_address
 
 
+@private
+def _currency_to_l_currency(_currency_address: address, _from: address, _to: address, _value: uint256):
+    # deposit currency from _from address
+    self._deposit_currency_to_pool(_currency_address, _from, _value)
+    # mint currency l_token to _to address
+    self._mint_and_self_authorize_erc20(self.currencies[_currency_address].l_currency_address, _to, _value)
+
+
+@private
+def _l_currency_to_currency(_currency_address: address, _from: address, _to: address, _value: uint256):
+    # burrn currency l_token from _from address
+    self._burn_as_self_authorized_erc20(self.currencies[_currency_address].l_currency_address, _from, _value)
+    # release currency to _to address
+    self._release_currency_from_pool(_currency_address, _to, _value)
+
+
+@public
+@constant
+def multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
+    return self._multi_fungible_currency_hash(parent_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+
+
 @public
 @constant
 def is_currency_valid(_currency_address: address) -> bool:
@@ -193,9 +262,32 @@ def release_currency_from_pool(_currency_address: address, _to: address, _value:
 
 
 @public
-def create_erc1155_type(_currency_address: address, _expiry_label: string[3]) -> uint256:
+def create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
     assert self._is_initialized()
-    return self._create_erc1155_type(_currency_address, _expiry_label)
+    _parent_currency_address: address = ZERO_ADDRESS
+    if _parent_currency_type == self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_I:
+        _parent_currency_address = self.currencies[_currency_address].i_currency_address
+    if _parent_currency_type == self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_F:
+        _parent_currency_address = self.currencies[_currency_address].f_currency_address
+    if _parent_currency_type == self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_S:
+        _parent_currency_address = self.currencies[_currency_address].s_currency_address
+    if _parent_currency_type == self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_U:
+        _parent_currency_address = self.currencies[_currency_address].u_currency_address
+    assert not _parent_currency_address == ZERO_ADDRESS
+    _multi_fungible_currency_hash: bytes32 = self._multi_fungible_currency_hash(_parent_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+    if not self.multi_fungible_currencies[_multi_fungible_currency_hash].has_id:
+        _token_id: uint256 = self._create_erc1155_type(_parent_currency_address, "")
+        self.multi_fungible_currencies[_multi_fungible_currency_hash] = MultiFungibleCurrency({
+            parent_currency_address: _parent_currency_address,
+            currency_address: _currency_address,
+            expiry_timestamp: _expiry,
+            underlying_address: _underlying_address,
+            strike_price: _strike_price,
+            has_id: True,
+            token_id: _token_id,
+            hash: _multi_fungible_currency_hash
+        })
+    return self.multi_fungible_currencies[_multi_fungible_currency_hash].token_id
 
 
 @public
@@ -312,8 +404,32 @@ def set_currency_support(_currency_address: address, _is_active: bool) -> bool:
 @public
 def currency_to_l_currency(_currency_address: address, _value: uint256) -> bool:
     assert self._is_initialized()
-    self._deposit_currency_to_pool(_currency_address, msg.sender, _value)
-    # mint currency l_token to msg.sender
-    self._mint_and_self_authorize_erc20(self.currencies[_currency_address].l_currency_address, msg.sender, _value)
+    self._currency_to_l_currency(_currency_address, msg.sender, msg.sender, _value)
+
+    return True
+
+
+@public
+def l_currency_to_currency(_currency_address: address, _value: uint256) -> bool:
+    assert self._is_initialized()
+    self._l_currency_to_currency(_currency_address, msg.sender, msg.sender, _value)
+
+    return True
+
+
+@public
+def secure_l_currency_to_currency(_currency_address: address, _to: address, _value: uint256) -> bool:
+    assert self._is_initialized()
+    assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
+    self._l_currency_to_currency(_currency_address, msg.sender, _to, _value)
+
+    return True
+
+
+@public
+def secure_deposit_currency_to_pool(_currency_address: address, _from: address, _value: uint256) -> bool:
+    assert self._is_initialized()
+    assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
+    self._deposit_currency_to_pool(_currency_address, _from, _value)
 
     return True
