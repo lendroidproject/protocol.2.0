@@ -25,6 +25,7 @@ struct Expiry:
 
 pool_hash: public(bytes32)
 owner: public(address)
+protocol_dao_address: public(address)
 operator: public(address)
 name: public(string[64])
 symbol: public(string[32])
@@ -56,8 +57,10 @@ def initialize(_pool_hash: bytes32, _operator: address,
     _currency_address: address,
     _l_currency_address: address, _i_currency_address: address,
     _s_currency_address: address, _u_currency_address: address,
+    _dao_address_protocol: address,
     _erc20_currency_template_address: address) -> bool:
     self.owner = msg.sender
+    self.protocol_dao_address = _dao_address_protocol
     self.pool_hash = _pool_hash
     self.operator = _operator
     self.name = _name
@@ -81,16 +84,22 @@ def initialize(_pool_hash: bytes32, _operator: address,
 
 @private
 @constant
-def _expiry_hash(_expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
+def _shield_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
     return keccak256(
         concat(
-            convert(self, bytes32),
-            convert(self.currency_address, bytes32),
+            convert(self.protocol_dao_address, bytes32),
+            convert(_currency_address, bytes32),
             convert(_expiry, bytes32),
             convert(_underlying_address, bytes32),
             convert(_strike_price, bytes32)
         )
     )
+
+
+@private
+@constant
+def _expiry_hash(_expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
+    return self._shield_market_hash(self.currency_address, _expiry, _underlying_address, _strike_price)
 
 
 @private
@@ -303,6 +312,22 @@ def decrement_i_currency_supply(_expiry: timestamp, _underlying_address: address
         self.expiries[_expiry_hash].s_currency_hash,
         self.expiries[_expiry_hash].u_currency_hash,
         self.expiries[_expiry_hash].i_currency_hash, _l_currency_value))
+
+    return True
+
+
+@public
+def exercise_u_currency(_expiry: timestamp, _underlying_address: address, _strike_price: uint256, _u_currency_value: uint256) -> bool:
+    # validate sender
+    assert msg.sender == self.operator
+    # validate expiry
+    _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
+    assert self.expiries[_expiry_hash].is_active == True, "expiry is not offered"
+    assert_modifiable(UnderwriterPoolDao(self.owner).exercise_underwriter_currency(
+        self.pool_hash,
+        self.currency_address, _expiry, _underlying_address, _strike_price,
+        _u_currency_value
+    ))
 
     return True
 

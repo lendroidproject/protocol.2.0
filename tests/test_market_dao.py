@@ -81,7 +81,8 @@ def test_avail_loan(w3, get_contract, get_logs,
     assert tx_receipt['status'] == 1
     # initialize UnderwriterPoolDao
     tx_2_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address, CurrencyDao.address, MarketDao.address,
+        owner, LST_token.address,
+        CurrencyDao.address, MarketDao.address, ShieldPayoutDao.address,
         UnderwriterPool_library.address, ERC20_library.address,
         transact={'from': owner})
     tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)
@@ -391,7 +392,8 @@ def test_repay_loan(w3, get_contract, get_logs,
     assert tx_receipt['status'] == 1
     # initialize UnderwriterPoolDao
     tx_2_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address, CurrencyDao.address, MarketDao.address,
+        owner, LST_token.address,
+        CurrencyDao.address, MarketDao.address, ShieldPayoutDao.address,
         UnderwriterPool_library.address, ERC20_library.address,
         transact={'from': owner})
     tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)

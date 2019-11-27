@@ -5,6 +5,7 @@
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import UnderwriterPool
 from contracts.interfaces import MarketDao
+from contracts.interfaces import ShieldPayoutDao
 
 
 # structs
@@ -59,6 +60,7 @@ MULTI_FUNGIBLE_CURRENCY_DIMENSION_U: public(uint256)
 
 DAO_TYPE_CURRENCY: public(uint256)
 DAO_TYPE_MARKET: public(uint256)
+DAO_TYPE_SHIELD_PAYOUT: public(uint256)
 
 TEMPLATE_TYPE_UNDERWRITER_POOL: public(uint256)
 TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
@@ -78,6 +80,7 @@ def initialize(
         _protocol_currency_address: address,
         _dao_address_currency: address,
         _dao_address_market: address,
+        _dao_address_shield_payout: address,
         _template_address_underwriter_pool: address,
         _template_address_currency_erc20: address
         ) -> bool:
@@ -96,6 +99,8 @@ def initialize(
     self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
     self.DAO_TYPE_MARKET = 2
     self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
+    self.DAO_TYPE_SHIELD_PAYOUT = 3
+    self.daos[self.DAO_TYPE_SHIELD_PAYOUT] = _dao_address_shield_payout
 
     self.TEMPLATE_TYPE_UNDERWRITER_POOL = 1
     self.TEMPLATE_TYPE_CURRENCY_ERC20 = 2
@@ -283,6 +288,7 @@ def register_pool( _currency_address: address, _name: string[62], _symbol: strin
         _i_currency_address,
         _s_currency_address,
         _u_currency_address,
+        self.protocol_dao_address,
         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20])
     assert _external_call_successful
 
@@ -498,6 +504,23 @@ def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32,
         self.multi_fungible_currencies[_i_hash].token_id,
         msg.sender,
         _value
+    )
+
+    return True
+
+
+@public
+def exercise_underwriter_currency(_pool_hash: bytes32,
+    _currency_address: address, _expiry: timestamp,
+    _underlying_address: address, _strike_price: uint256,
+    _currency_quantity: uint256) -> bool:
+    assert self._is_initialized()
+    self._validate_pool(_pool_hash, msg.sender)
+    assert_modifiable(
+        ShieldPayoutDao(self.daos[self.DAO_TYPE_SHIELD_PAYOUT]).exercise_underwriter_currency(
+            _currency_address, _expiry, _underlying_address, _strike_price,
+            _currency_quantity, self.pools[_pool_hash].pool_operator
+        )
     )
 
     return True

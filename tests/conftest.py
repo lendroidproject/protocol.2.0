@@ -246,7 +246,9 @@ def Malicious_token(w3, get_contract):
 
 @pytest.fixture
 def ERC20_library(w3, get_contract):
-    contract = get_contract('contracts/templates/ERC20Template2.v.py')
+    contract = get_contract('contracts/templates/ERC20Template1.v.py',
+        '', '', 0, 0
+    )
     return contract
 
 
@@ -313,7 +315,7 @@ def UnderwriterPool_library(w3, get_contract):
 def UnderwriterPoolDao(w3, get_contract):
     contract = get_contract(
         'contracts/daos/UnderwriterPoolDao.v.py',
-        interfaces=['CurrencyDao', 'UnderwriterPool', 'MarketDao']
+        interfaces=['CurrencyDao', 'UnderwriterPool', 'MarketDao', 'ShieldPayoutDao']
     )
     return contract
 

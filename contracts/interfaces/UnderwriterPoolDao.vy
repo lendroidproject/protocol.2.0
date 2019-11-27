@@ -5,7 +5,7 @@ PoolRegistered: event({_operator: address, _currency_address: address, _pool_add
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_market: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_market: address, _dao_address_shield_payout: address, _template_address_underwriter_pool: address, _template_address_currency_erc20: address) -> bool:
     pass
 
 @constant
@@ -54,6 +54,10 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(s
 
 @public
 def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+    pass
+
+@public
+def exercise_underwriter_currency(_pool_hash: bytes32, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256) -> bool:
     pass
 
 @constant
@@ -204,6 +208,11 @@ def DAO_TYPE_CURRENCY() -> uint256:
 @constant
 @public
 def DAO_TYPE_MARKET() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
     pass
 
 @constant

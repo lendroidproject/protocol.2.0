@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_pool_hash: bytes32, _operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_pool_hash: bytes32, _operator: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _dao_address_protocol: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -77,6 +77,10 @@ def decrement_i_currency_supply(_expiry: uint256(sec, positional), _underlying_a
     pass
 
 @public
+def exercise_u_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _u_currency_value: uint256) -> bool:
+    pass
+
+@public
 def purchase_i_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _i_currency_value: uint256, _l_currency_fee: uint256) -> bool:
     pass
 
@@ -92,6 +96,11 @@ def pool_hash() -> bytes32:
 @constant
 @public
 def owner() -> address:
+    pass
+
+@constant
+@public
+def protocol_dao_address() -> address:
     pass
 
 @constant
