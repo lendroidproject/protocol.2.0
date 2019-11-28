@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_market: address, _template_address_collateral_auction_erc20: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _dao_address_market: address, _template_address_collateral_auction_erc20: address) -> bool:
     pass
 
 @public
@@ -10,10 +10,6 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 
 @public
 def create_graph(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address) -> address:
-    pass
-
-@public
-def start_auction(_loan_market_hash: bytes32, _price_at_expiry: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
     pass
 
 @constant
@@ -44,11 +40,6 @@ def templates(arg0: uint256) -> address:
 @constant
 @public
 def graphs(arg0: bytes32) -> address:
-    pass
-
-@constant
-@public
-def DAO_TYPE_CURRENCY() -> uint256:
     pass
 
 @constant

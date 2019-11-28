@@ -3,7 +3,7 @@ import os
 import pytest
 
 from conftest import (
-    ZERO_ADDRESS, EMPTY_BYTES32, Z19
+    _initialize_all_daos, ZERO_ADDRESS, EMPTY_BYTES32, Z19
 )
 
 
@@ -42,51 +42,17 @@ def test_avail_loan(w3, get_contract, get_logs,
         MarketDao
     ):
     owner = w3.eth.accounts[0]
-    # initialize CurrencyDao
-    tx_1_hash = CurrencyDao.initialize(
-        owner, LST_token.address, CurrencyPool_library.address,
-        ERC20_library.address, ERC1155_library.address,
-        MarketDao.address,
-        transact={'from': owner})
-    tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
-    assert tx_1_receipt['status'] == 1
-    # initialize CollateralAuctionDao
-    tx_hash = CollateralAuctionDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
-        MarketDao.address, CollateralAuctionGraph_Library.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize ShieldPayoutDao
-    tx_hash = ShieldPayoutDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
-        MarketDao.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize PositionRegistry
-    tx_hash = PositionRegistry.initialize(
-        owner, LST_token.address, MarketDao.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize MarketDao
-    tx_hash = MarketDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
-        InterestPoolDao.address, UnderwriterPoolDao.address,
-        ShieldPayoutDao.address, CollateralAuctionDao.address,
-        PositionRegistry.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize UnderwriterPoolDao
-    tx_2_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address,
-        CurrencyDao.address, MarketDao.address, ShieldPayoutDao.address,
-        UnderwriterPool_library.address, ERC20_library.address,
-        transact={'from': owner})
-    tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)
-    assert tx_2_receipt['status'] == 1
+    _initialize_all_daos(owner, w3,
+        LST_token,
+        ERC20_library, ERC1155_library,
+        CurrencyPool_library, CurrencyDao,
+        InterestPool_library, InterestPoolDao,
+        UnderwriterPool_library, UnderwriterPoolDao,
+        CollateralAuctionGraph_Library, CollateralAuctionDao,
+        ShieldPayoutDao,
+        PositionRegistry,
+        MarketDao
+    )
     # set_offer_registration_fee_lookup()
     _minimum_fee = 100
     _minimum_interval = 10
@@ -353,51 +319,17 @@ def test_repay_loan(w3, get_contract, get_logs,
         MarketDao
     ):
     owner = w3.eth.accounts[0]
-    # initialize CurrencyDao
-    tx_1_hash = CurrencyDao.initialize(
-        owner, LST_token.address, CurrencyPool_library.address,
-        ERC20_library.address, ERC1155_library.address,
-        MarketDao.address,
-        transact={'from': owner})
-    tx_1_receipt = w3.eth.waitForTransactionReceipt(tx_1_hash)
-    assert tx_1_receipt['status'] == 1
-    # initialize CollateralAuctionDao
-    tx_hash = CollateralAuctionDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
-        MarketDao.address, CollateralAuctionGraph_Library.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize ShieldPayoutDao
-    tx_hash = ShieldPayoutDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
-        MarketDao.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize PositionRegistry
-    tx_hash = PositionRegistry.initialize(
-        owner, LST_token.address, MarketDao.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize MarketDao
-    tx_hash = MarketDao.initialize(
-        owner, LST_token.address, CurrencyDao.address,
-        InterestPoolDao.address, UnderwriterPoolDao.address,
-        ShieldPayoutDao.address, CollateralAuctionDao.address,
-        PositionRegistry.address,
-        transact={'from': owner})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    # initialize UnderwriterPoolDao
-    tx_2_hash = UnderwriterPoolDao.initialize(
-        owner, LST_token.address,
-        CurrencyDao.address, MarketDao.address, ShieldPayoutDao.address,
-        UnderwriterPool_library.address, ERC20_library.address,
-        transact={'from': owner})
-    tx_2_receipt = w3.eth.waitForTransactionReceipt(tx_2_hash)
-    assert tx_2_receipt['status'] == 1
+    _initialize_all_daos(owner, w3,
+        LST_token,
+        ERC20_library, ERC1155_library,
+        CurrencyPool_library, CurrencyDao,
+        InterestPool_library, InterestPoolDao,
+        UnderwriterPool_library, UnderwriterPoolDao,
+        CollateralAuctionGraph_Library, CollateralAuctionDao,
+        ShieldPayoutDao,
+        PositionRegistry,
+        MarketDao
+    )
     # set_offer_registration_fee_lookup()
     _minimum_fee = 100
     _minimum_interval = 10

@@ -2,7 +2,6 @@
 # THIS CONTRACT HAS NOT BEEN AUDITED!
 
 
-from contracts.interfaces import CurrencyDao
 from contracts.interfaces import CollateralAuctionGraph
 
 
@@ -16,7 +15,6 @@ templates: public(map(uint256, address))
 # loan_market_hash => graph_address
 graphs: public(map(bytes32, address))
 
-DAO_TYPE_CURRENCY: public(uint256)
 DAO_TYPE_MARKET: public(uint256)
 
 TEMPLATE_TYPE_COLLATERAL_AUCTION_ERC20: public(uint256)
@@ -34,7 +32,6 @@ def _is_initialized() -> bool:
 def initialize(
         _owner: address,
         _protocol_currency_address: address,
-        _dao_address_currency: address,
         _dao_address_market: address,
         _template_address_collateral_auction_erc20: address
         ) -> bool:
@@ -44,8 +41,6 @@ def initialize(
     self.protocol_dao_address = msg.sender
     self.protocol_currency_address = _protocol_currency_address
 
-    self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
     self.DAO_TYPE_MARKET = 2
     self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
 
@@ -69,57 +64,8 @@ def _loan_market_hash(_currency_address: address, _expiry: timestamp, _underlyin
 
 
 @private
-@constant
-def _is_currency_valid(_currency_address: address) -> bool:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_currency_valid(_currency_address)
-
-
-@private
-@constant
-def _multi_fungible_addresses(_currency_address: address) -> (address, address, address, address, address):
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).multi_fungible_addresses(_currency_address)
-
-
-@private
 def _validate_graph(_loan_market_hash: bytes32, _graph_address: address):
     assert self.graphs[_loan_market_hash] == _graph_address
-
-
-@private
-def _deposit_multi_fungible_l_currency(_currency_address: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_multi_fungible_l_currency(
-        _currency_address, _from, _to, _value))
-
-
-@private
-def _deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
-        _currency_address, _from, _to, _value))
-
-
-@private
-def _create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).create_erc1155_type(_parent_currency_type, _currency_address, _expiry, _underlying_address, _strike_price)
-
-
-@private
-def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value))
-
-
-@private
-def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_currency_address, _to, _value))
-
-
-@private
-def _mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value))
-
-
-@private
-def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value))
 
 
 # admin functions
