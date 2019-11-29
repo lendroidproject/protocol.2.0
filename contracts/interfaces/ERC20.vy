@@ -47,6 +47,10 @@ def burn(_value: uint256):
 def burnFrom(_to: address, _value: uint256) -> bool:
     pass
 
+@public
+def burnAsAuthorizedMinter(_to: address, _value: uint256) -> bool:
+    pass
+
 @constant
 @public
 def name() -> string[64]:

@@ -4,6 +4,11 @@
 def initialize(_owner: address, _protocol_currency_address: address, _dao_address_market: address, _template_address_collateral_auction_erc20: address) -> bool:
     pass
 
+@constant
+@public
+def loan_market_hash(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address) -> bytes32:
+    pass
+
 @public
 def set_template(_template_type: uint256, _address: address) -> bool:
     pass

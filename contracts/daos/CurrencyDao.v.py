@@ -169,7 +169,7 @@ def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _va
 
 @private
 def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256):
-    assert_modifiable(ERC20(_currency_address).burnFrom(_to, _value))
+    assert_modifiable(ERC20(_currency_address).burnAsAuthorizedMinter(_to, _value))
 
 
 @private

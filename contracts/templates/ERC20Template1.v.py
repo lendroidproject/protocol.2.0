@@ -209,3 +209,15 @@ def burnFrom(_to: address, _value: uint256) -> bool:
     self.allowances[_to][msg.sender] -= _value
     self._burn(_to, _value)
     return True
+
+
+@public
+def burnAsAuthorizedMinter(_to: address, _value: uint256) -> bool:
+    """
+    @dev Burn an amount of the token from a given account.
+    @param _to The account whose tokens will be burned.
+    @param _value The amount that will be burned.
+    """
+    assert msg.sender == self.minter
+    self._burn(_to, _value)
+    return True

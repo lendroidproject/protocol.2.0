@@ -67,19 +67,13 @@ def _lot() -> uint256:
 
 @private
 @constant
-def _slope() -> uint256:
-    if self.is_active:
-        return (as_unitless_number(self.end_price) - as_unitless_number(self.start_price)) / as_unitless_number(self.AUCTION_DURATION)
-    else:
-        return 0
-
-
-@private
-@constant
 def _current_price() -> uint256:
     # verify auction has not expired
     if self.is_active:
-        return as_unitless_number(block.timestamp) * as_unitless_number(self._slope()) + as_unitless_number(self.start_price)
+        if block.timestamp >= self._auction_expiry():
+            return self.end_price
+        else:
+            return (as_unitless_number(self.start_price) * as_unitless_number(self.AUCTION_DURATION) - (as_unitless_number(self.start_price) - as_unitless_number(self.end_price)) * (as_unitless_number(block.timestamp) - as_unitless_number(self.expiry))) / as_unitless_number(self.AUCTION_DURATION)
     else:
         return 0
 
@@ -98,12 +92,6 @@ def lot() -> uint256:
 
 @public
 @constant
-def slope() -> uint256:
-    return self._slope()
-
-
-@public
-@constant
 def current_price() -> uint256:
     return self._current_price()
 
@@ -113,14 +101,14 @@ def start(_underlying_price_per_currency_at_expiry: uint256, _currency_value: ui
     assert as_unitless_number(_underlying_price_per_currency_at_expiry) > 0
     assert as_unitless_number(_currency_value) > 0
     assert as_unitless_number(_underlying_value) > 0
-    assert msg.sender == self.owner
-    assert self.expiry > block.timestamp
+    assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
+    assert block.timestamp >= self.expiry
     assert not self.is_active
     self.max_supply = _underlying_value
     self.currency_value_remaining = _currency_value
     # set start_price
     self.start_price = (as_unitless_number(_underlying_price_per_currency_at_expiry) * as_unitless_number(self.SLIPPAGE_PERCENTAGE)) / 100
-    self.end_price = as_unitless_number(self.start_price) * (1 - (self.MAXIMUM_DISCOUNT_PERCENTAGE / 100))
+    self.end_price = as_unitless_number(self.start_price) * (100 - self.MAXIMUM_DISCOUNT_PERCENTAGE) / 100
     self.is_active = True
 
     return True

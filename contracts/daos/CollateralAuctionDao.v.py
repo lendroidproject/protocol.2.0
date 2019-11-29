@@ -68,6 +68,12 @@ def _validate_graph(_loan_market_hash: bytes32, _graph_address: address):
     assert self.graphs[_loan_market_hash] == _graph_address
 
 
+@public
+@constant
+def loan_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address) -> bytes32:
+    return self._loan_market_hash(_currency_address, _expiry, _underlying_address)
+
+
 # admin functions
 @public
 def set_template(_template_type: uint256, _address: address) -> bool:

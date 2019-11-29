@@ -401,21 +401,21 @@ def _settle_loan_market(_loan_market_hash: bytes32):
         self.loan_markets[_loan_market_hash].currency_address,
         self.loan_markets[_loan_market_hash].underlying_address
     )
-    assert self.price_oracles[_currency_underlying_pair_hash].is_contract
-    _underlying_price_per_currency_at_expiry: uint256 = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price()
-    self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = _underlying_price_per_currency_at_expiry
+    # assert self.price_oracles[_currency_underlying_pair_hash].is_contract
+    # self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price()
+    self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = 150 * 10 ** 18
     if as_unitless_number(self.loan_markets[_loan_market_hash].shield_market_count) > 0:
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_SETTLING
+        # start collateral auction
+        assert_modifiable(CollateralAuctionGraph(self.loan_markets[_loan_market_hash].collateral_auction_graph_address).start(
+            self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry,
+            self.loan_markets[_loan_market_hash].total_outstanding_currency_value_at_expiry,
+            self.loan_markets[_loan_market_hash].total_outstanding_underlying_value_at_expiry
+        ))
         # send oustanding_value of underlying_currency to collateral auction contract
         assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).secure_l_currency_to_currency(
             self.loan_markets[_loan_market_hash].underlying_address,
             self.loan_markets[_loan_market_hash].collateral_auction_graph_address,
-            self.loan_markets[_loan_market_hash].total_outstanding_underlying_value_at_expiry
-        ))
-        # start collateral auction
-        assert_modifiable(CollateralAuctionGraph(self.loan_markets[_loan_market_hash].collateral_auction_graph_address).start(
-            _underlying_price_per_currency_at_expiry,
-            self.loan_markets[_loan_market_hash].total_outstanding_currency_value_at_expiry,
             self.loan_markets[_loan_market_hash].total_outstanding_underlying_value_at_expiry
         ))
     else:
@@ -479,7 +479,7 @@ def open_shield_market(_currency_address: address, _expiry: timestamp, _underlyi
 @public
 def settle_loan_market(_loan_market_hash: bytes32):
     assert block.timestamp >= self.loan_markets[_loan_market_hash].expiry
-    assert self.loan_markets[_loan_market_hash].status == self.LOAN_MARKET_STATUS_SETTLING
+    assert self.loan_markets[_loan_market_hash].status == self.LOAN_MARKET_STATUS_OPEN
     self._settle_loan_market(_loan_market_hash)
     # TODO : reward msg.sender with LST for initiating loan market settlement
 

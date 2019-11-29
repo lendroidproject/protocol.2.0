@@ -20,6 +20,7 @@ from web3.logs import DISCARD
 from web3.providers.eth_tester import (
     EthereumTesterProvider,
 )
+from web3.testing import Testing
 
 from vyper import (
     compiler,
@@ -204,6 +205,18 @@ def assert_tx_failed(tester):
             assert exc_text in str(excinfo.value)
 
     return assert_tx_failed
+
+
+@pytest.fixture
+def time_travel(w3):
+    def time_travel(timestamp):
+        current_timestamp = w3.eth.getBlock('latest')['timestamp']
+        testing = Testing(w3)
+        testing.timeTravel(timestamp)
+        testing.mine()
+        assert w3.eth.getBlock('latest')['timestamp'] > current_timestamp
+
+    return time_travel
 
 
 # Library contracts and DAOS
