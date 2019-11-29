@@ -371,6 +371,22 @@ def PositionRegistry(w3, get_contract):
 
 
 @pytest.fixture
+def PriceFeed(w3, get_contract):
+    contract = get_contract('tests/TestPriceFeed.v.py')
+    return contract
+
+
+@pytest.fixture
+def PriceOracle(w3, get_contract, Lend_token, Borrow_token, PriceFeed):
+    contract = get_contract(
+        'contracts/templates/SimplePriceOracleTemplate1.v.py',
+        Lend_token.address, Borrow_token.address, PriceFeed.address,
+        interfaces=['SimplePriceOracle']
+    )
+    return contract
+
+
+@pytest.fixture
 def MarketDao(w3, get_contract):
     contract = get_contract(
         'contracts/daos/MarketDao.v.py',
@@ -409,7 +425,7 @@ def ProtocolDao(w3, get_contract,
 
 
 def _initialize_all_daos(owner, w3,
-        LST_token,
+        LST_token, Lend_token, Borrow_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
         InterestPool_library, InterestPoolDao,
@@ -417,6 +433,7 @@ def _initialize_all_daos(owner, w3,
         CollateralAuctionGraph_Library, CollateralAuctionDao,
         ShieldPayoutDao,
         PositionRegistry,
+        PriceOracle,
         MarketDao
     ):
     # initialize CurrencyDao
@@ -447,6 +464,12 @@ def _initialize_all_daos(owner, w3,
         InterestPoolDao.address, UnderwriterPoolDao.address,
         ShieldPayoutDao.address, CollateralAuctionDao.address,
         PositionRegistry.address,
+        transact={'from': owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # set price oracle
+    tx_hash = MarketDao.set_price_oracle(
+        Lend_token.address, Borrow_token.address, PriceOracle.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1

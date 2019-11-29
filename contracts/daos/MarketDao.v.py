@@ -401,9 +401,9 @@ def _settle_loan_market(_loan_market_hash: bytes32):
         self.loan_markets[_loan_market_hash].currency_address,
         self.loan_markets[_loan_market_hash].underlying_address
     )
-    # assert self.price_oracles[_currency_underlying_pair_hash].is_contract
-    # self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price()
-    self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = 150 * 10 ** 18
+    assert self.price_oracles[_currency_underlying_pair_hash].is_contract
+    self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price()
+    # self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = 150 * 10 ** 18
     if as_unitless_number(self.loan_markets[_loan_market_hash].shield_market_count) > 0:
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_SETTLING
         # start collateral auction
@@ -454,6 +454,24 @@ def _open_shield_market(_currency_address: address, _expiry: timestamp, _underly
     # update loan market
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency_address, _expiry, _underlying_address)
     self.loan_markets[_loan_market_hash].shield_market_count += 1
+
+
+@public
+@constant
+def loan_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address) -> bytes32:
+    return self._loan_market_hash(_currency_address, _expiry, _underlying_address)
+
+
+@public
+@constant
+def currency_underlying_pair_hash(_currency_address: address, _underlying_address: address) -> bytes32:
+    return self._currency_underlying_pair_hash(_currency_address, _underlying_address)
+
+
+@public
+@constant
+def shield_currency_minimum_collateral_values(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
+    return self.shield_markets[self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)].minimum_collateral_value
 
 
 @public
@@ -516,12 +534,6 @@ def set_price_oracle(_currency_address: address, _underlying_address: address, _
     self.price_oracles[_currency_underlying_pair_hash] = _price_oracle_address
 
     return True
-
-
-@public
-@constant
-def shield_currency_minimum_collateral_values(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return self.shield_markets[self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)].minimum_collateral_value
 
 
 @public

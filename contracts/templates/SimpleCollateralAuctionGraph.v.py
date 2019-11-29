@@ -119,7 +119,7 @@ def purchase(_underlying_value: uint256) -> bool:
     assert self.is_active
     assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
     _underlying_value_remaining: uint256 = as_unitless_number(self._lot()) - as_unitless_number(_underlying_value)
-    _currency_value: uint256 = as_unitless_number(_underlying_value) * self._current_price()
+    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
     assert as_unitless_number(self.currency_value_remaining) >= as_unitless_number(_currency_value)
     # deactivate if auction has expired or all underlying currency has been auctioned
     if (_underlying_value_remaining == 0) or \

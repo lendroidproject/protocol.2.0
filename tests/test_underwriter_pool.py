@@ -43,11 +43,13 @@ def test_purchase_i_currency(w3, get_contract, get_logs,
         CollateralAuctionGraph_Library, CollateralAuctionDao,
         ShieldPayoutDao,
         PositionRegistry,
+        PriceFeed,
+        PriceOracle,
         MarketDao
     ):
     owner = w3.eth.accounts[0]
     _initialize_all_daos(owner, w3,
-        LST_token,
+        LST_token, Lend_token, Borrow_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
         InterestPool_library, InterestPoolDao,
@@ -55,6 +57,7 @@ def test_purchase_i_currency(w3, get_contract, get_logs,
         CollateralAuctionGraph_Library, CollateralAuctionDao,
         ShieldPayoutDao,
         PositionRegistry,
+        PriceOracle,
         MarketDao
     )
     # set_offer_registration_fee_lookup()
@@ -191,11 +194,13 @@ def test_purchase_s_currency(w3, get_contract, get_logs,
         CollateralAuctionGraph_Library, CollateralAuctionDao,
         ShieldPayoutDao,
         PositionRegistry,
+        PriceFeed,
+        PriceOracle,
         MarketDao
     ):
     owner = w3.eth.accounts[0]
     _initialize_all_daos(owner, w3,
-        LST_token,
+        LST_token, Lend_token, Borrow_token,
         ERC20_library, ERC1155_library,
         CurrencyPool_library, CurrencyDao,
         InterestPool_library, InterestPoolDao,
@@ -203,6 +208,7 @@ def test_purchase_s_currency(w3, get_contract, get_logs,
         CollateralAuctionGraph_Library, CollateralAuctionDao,
         ShieldPayoutDao,
         PositionRegistry,
+        PriceOracle,
         MarketDao
     )
     # set_offer_registration_fee_lookup()
