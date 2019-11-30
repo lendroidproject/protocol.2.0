@@ -16,20 +16,23 @@ def lot() -> uint256:
 
 @constant
 @public
-def slope() -> uint256:
-    pass
-
-@constant
-@public
 def current_price() -> uint256:
     pass
 
 @public
-def start(_price_of_underlying_per_currency_at_expiry: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
+def start(_underlying_price_per_currency_at_expiry: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
     pass
 
 @public
-def purchase(_to: address, _underlying_value: uint256) -> bool:
+def purchase(_underlying_value: uint256) -> bool:
+    pass
+
+@public
+def purchase_for_remaining_currency() -> bool:
+    pass
+
+@public
+def purchase_remaining_underlying() -> bool:
     pass
 
 @constant

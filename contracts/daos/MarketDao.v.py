@@ -404,7 +404,7 @@ def _settle_loan_market(_loan_market_hash: bytes32):
     assert self.price_oracles[_currency_underlying_pair_hash].is_contract
     self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price()
     # self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry = 150 * 10 ** 18
-    if as_unitless_number(self.loan_markets[_loan_market_hash].shield_market_count) > 0:
+    if as_unitless_number(self.loan_markets[_loan_market_hash].total_outstanding_currency_value_at_expiry) > 0:
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_SETTLING
         # start collateral auction
         assert_modifiable(CollateralAuctionGraph(self.loan_markets[_loan_market_hash].collateral_auction_graph_address).start(
@@ -581,7 +581,7 @@ def secure_currency_deposit_and_market_update_from_auction_purchase(
     self.loan_markets[_loan_market_hash].total_underlying_sold_during_auction += _underlying_value
     if not _is_auction_active:
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_CLOSED
-        self.loan_markets[_loan_market_hash].underlying_settlement_price_per_currency = as_unitless_number(self.loan_markets[_loan_market_hash].total_currency_raised_during_auction) / as_unitless_number(self.loan_markets[_loan_market_hash].total_underlying_sold_during_auction)
+        self.loan_markets[_loan_market_hash].underlying_settlement_price_per_currency = (as_unitless_number(self.loan_markets[_loan_market_hash].total_currency_raised_during_auction) * (10 ** 18)) / as_unitless_number(self.loan_markets[_loan_market_hash].total_underlying_sold_during_auction)
 
     return True
 

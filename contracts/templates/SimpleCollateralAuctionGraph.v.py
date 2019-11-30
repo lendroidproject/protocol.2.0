@@ -114,26 +114,62 @@ def start(_underlying_price_per_currency_at_expiry: uint256, _currency_value: ui
     return True
 
 
-@public
-def purchase(_underlying_value: uint256) -> bool:
-    assert self.is_active
-    assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
-    _underlying_value_remaining: uint256 = as_unitless_number(self._lot()) - as_unitless_number(_underlying_value)
-    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
-    assert as_unitless_number(self.currency_value_remaining) >= as_unitless_number(_currency_value)
+@private
+def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: uint256):
     # deactivate if auction has expired or all underlying currency has been auctioned
+    _underlying_value_remaining: uint256 = as_unitless_number(self._lot()) - as_unitless_number(_underlying_value)
     if (_underlying_value_remaining == 0) or \
         (as_unitless_number(self.currency_value_remaining) - as_unitless_number(_currency_value) == 0):
         self.is_active = False
     self.currency_value_remaining -= _currency_value
-    assert_modifiable(ERC20(self.underlying_address).transfer(msg.sender, _underlying_value))
+    assert_modifiable(ERC20(self.underlying_address).transfer(_purchaser, _underlying_value))
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).secure_currency_deposit_and_market_update_from_auction_purchase(
         self.currency_address, self.expiry, self.underlying_address,
-        msg.sender, _currency_value, _underlying_value, self.is_active
+        _purchaser, _currency_value, _underlying_value, self.is_active
     ))
     if (not self.is_active) and (_underlying_value_remaining > 0):
         assert_modifiable(ERC20(self.underlying_address).transfer(
             self.daos[self.DAO_TYPE_MARKET],
             _underlying_value_remaining
         ))
+
+
+@public
+def purchase(_underlying_value: uint256) -> bool:
+    assert self.is_active
+    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
+    assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
+    assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_value_remaining)
+    self._purchase(msg.sender, _currency_value, _underlying_value)
+
+    return True
+
+
+@public
+def purchase_for_remaining_currency() -> bool:
+    assert self.is_active
+    _underlying_value: uint256 = (as_unitless_number(self.currency_value_remaining) * (10 ** 18)) / as_unitless_number(self._current_price())
+    _currency_value: uint256 = self.currency_value_remaining
+    if as_unitless_number(_underlying_value) > as_unitless_number(self._lot()):
+        _currency_value = as_unitless_number(self._lot()) * as_unitless_number(self._current_price()) / 10 ** 18
+        _underlying_value = self._lot()
+    assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
+    assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_value_remaining)
+    self._purchase(msg.sender, _currency_value, _underlying_value)
+
+    return True
+
+
+@public
+def purchase_remaining_underlying() -> bool:
+    assert self.is_active
+    _underlying_value: uint256 = as_unitless_number(self._lot())
+    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
+    if as_unitless_number(_currency_value) > as_unitless_number(self.currency_value_remaining):
+        _underlying_value = (as_unitless_number(self.currency_value_remaining) * (10 ** 18)) / as_unitless_number(self._current_price())
+        _currency_value = self.currency_value_remaining
+    assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
+    assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_value_remaining)
+    self._purchase(msg.sender, _currency_value, _underlying_value)
+
     return True
