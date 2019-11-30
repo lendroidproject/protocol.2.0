@@ -275,17 +275,17 @@ def test_start(w3, get_contract, get_logs, time_travel,
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -518,17 +518,17 @@ def test_purchase(w3, get_contract, get_logs, time_travel,
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -764,17 +764,17 @@ def test_purchase_until_total_collateral_is_sold(w3, get_contract, get_logs, tim
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -1015,17 +1015,17 @@ def test_purchase_until_total_lend_currency_is_raised(w3, get_contract, get_logs
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -1266,17 +1266,17 @@ def test_purchase_until_total_borrow_currency_is_sold(w3, get_contract, get_logs
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )

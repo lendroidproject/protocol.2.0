@@ -519,7 +519,7 @@ def exercise_underwriter_currency(_pool_hash: bytes32,
     assert_modifiable(
         ShieldPayoutDao(self.daos[self.DAO_TYPE_SHIELD_PAYOUT]).exercise_underwriter_currency(
             _currency_address, _expiry, _underlying_address, _strike_price,
-            _currency_quantity, self.pools[_pool_hash].pool_operator
+            _currency_quantity, self.pools[_pool_hash].pool_operator, msg.sender
         )
     )
 

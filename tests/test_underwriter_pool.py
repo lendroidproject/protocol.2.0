@@ -156,7 +156,7 @@ def test_purchase_i_currency(w3, get_contract, get_logs,
     assert tx_14_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
@@ -308,12 +308,12 @@ def test_purchase_s_currency(w3, get_contract, get_logs,
     assert tx_14_receipt['status'] == 1
     # get S_token and U_token
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -338,7 +338,7 @@ def test_purchase_s_currency(w3, get_contract, get_logs,
     assert UnderwriterPool.l_currency_balance() == 200 * 10 ** 18
     assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 600 * 10 ** 18
     assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 1 * 10 ** 18
-    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 1 * 10 ** 18
+    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
     # verify High_Risk_Insurer balance of s and u tokens
     assert S_token.balanceOf(High_Risk_Insurer, UnderwriterPool.expiries__i_currency_id(_expiry_hash)) == 2 * 10 ** 18
-    assert U_token.balanceOf(High_Risk_Insurer, UnderwriterPool.expiries__i_currency_id(_expiry_hash)) == 2 * 10 ** 18
+    assert U_token.balanceOf(High_Risk_Insurer, UnderwriterPool.expiries__i_currency_id(_expiry_hash)) == 0

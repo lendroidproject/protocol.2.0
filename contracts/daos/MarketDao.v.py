@@ -232,9 +232,17 @@ def _shield_payout(
         _underlying_settlement_price_per_currency: uint256
         ) -> uint256:
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
-    if _underlying_settlement_price_per_currency <= self.shield_markets[_shield_market_hash].strike_price:
-        return 0
-    return (as_unitless_number(_underlying_settlement_price_per_currency) - as_unitless_number(self.shield_markets[_shield_market_hash].strike_price)) / as_unitless_number(_underlying_settlement_price_per_currency)
+    if as_unitless_number(_underlying_settlement_price_per_currency) > 0:
+        if as_unitless_number(_underlying_settlement_price_per_currency) > as_unitless_number(self.shield_markets[_shield_market_hash].strike_price):
+            return as_unitless_number(_underlying_settlement_price_per_currency) - as_unitless_number(self.shield_markets[_shield_market_hash].strike_price)
+        else:
+            return 0
+    else:
+        _loan_market_hash: bytes32 = self._loan_market_hash(_currency_address, _expiry, _underlying_address)
+        if as_unitless_number(self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry) >= as_unitless_number(self.shield_markets[_shield_market_hash].strike_price):
+            return 0
+        else:
+            return as_unitless_number(self.shield_markets[_shield_market_hash].strike_price) - as_unitless_number(self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry)
 
 
 @private
@@ -245,9 +253,17 @@ def _underwriter_payout(
     _underlying_settlement_price_per_currency: uint256
     ) -> uint256:
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
-    if _underlying_settlement_price_per_currency <= self.shield_markets[_shield_market_hash].strike_price:
-        return 0
-    return as_unitless_number(self.shield_markets[_shield_market_hash].strike_price) / as_unitless_number(_underlying_settlement_price_per_currency)
+    if as_unitless_number(_underlying_settlement_price_per_currency) > 0:
+        if as_unitless_number(_underlying_settlement_price_per_currency) > as_unitless_number(self.shield_markets[_shield_market_hash].strike_price):
+            return as_unitless_number(self.shield_markets[_shield_market_hash].strike_price)
+        else:
+            return as_unitless_number(_underlying_settlement_price_per_currency)
+    else:
+        _loan_market_hash: bytes32 = self._loan_market_hash(_currency_address, _expiry, _underlying_address)
+        if as_unitless_number(self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry) >= as_unitless_number(self.shield_markets[_shield_market_hash].strike_price):
+            return as_unitless_number(self.shield_markets[_shield_market_hash].strike_price)
+        else:
+            return as_unitless_number(self.loan_markets[_loan_market_hash].currency_value_per_underlying_at_expiry)
 
 
 @public

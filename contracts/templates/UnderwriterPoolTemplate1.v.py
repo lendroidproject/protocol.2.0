@@ -366,10 +366,10 @@ def purchase_s_currency(_expiry: timestamp, _underlying_address: address, _strik
         self, msg.sender,
         self.expiries[_expiry_hash].s_currency_id,
         _s_currency_value, EMPTY_BYTES32))
-    # transfer u_tokens from self to msg.sender
-    assert_modifiable(ERC1155(self.u_currency_address).safeTransferFrom(
-        self, msg.sender,
-        self.expiries[_expiry_hash].u_currency_id,
-        _s_currency_value, EMPTY_BYTES32))
+    # # transfer u_tokens from self to msg.sender
+    # assert_modifiable(ERC1155(self.u_currency_address).safeTransferFrom(
+    #     self, msg.sender,
+    #     self.expiries[_expiry_hash].u_currency_id,
+    #     _s_currency_value, EMPTY_BYTES32))
 
     return True

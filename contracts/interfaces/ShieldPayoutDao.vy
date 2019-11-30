@@ -1,7 +1,12 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_market: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_underwriter_pool: address, _dao_address_market: address) -> bool:
+    pass
+
+@constant
+@public
+def shield_market_hash(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
     pass
 
 @constant
@@ -23,7 +28,7 @@ def exercise_shield_currency(_currency_address: address, _expiry: uint256(sec, p
     pass
 
 @public
-def exercise_underwriter_currency(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256, _recipient: address) -> bool:
+def exercise_underwriter_currency(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256, _recipient: address, _pool_address: address) -> bool:
     pass
 
 @constant

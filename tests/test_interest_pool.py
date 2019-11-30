@@ -153,7 +153,7 @@ def test_purchase_i_currency(w3, get_contract, get_logs,
     assert InterestPool.total_l_currency_balance() == 100 * 10 ** 18
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
@@ -304,7 +304,7 @@ def test_redeem_f_currency(w3, get_contract, get_logs,
     assert tx_13_receipt['status'] == 1
     # get F_token
     F_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__f_currency_address(Lend_token.address)
     )

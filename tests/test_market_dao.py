@@ -113,17 +113,15 @@ def test_avail_loan(w3, get_contract, get_logs,
         _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
-    # get L_Lend_token
-    L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = get_contract(
+    # get L_currency_token
+    L_currency_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Lend_token_address
+        address=CurrencyDao.currencies__l_currency_address(Lend_token.address)
     )
     # get L_underlying_token
-    L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     L_underlying_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Borrow_token_address
+        address=CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
@@ -179,17 +177,17 @@ def test_avail_loan(w3, get_contract, get_logs,
     assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -214,7 +212,7 @@ def test_avail_loan(w3, get_contract, get_logs,
     assert UnderwriterPool.l_currency_balance() == 200 * 10 ** 18
     assert UnderwriterPool.i_currency_balance(Z19, Borrow_token.address, _strike_price) == 500 * 10 ** 18
     assert UnderwriterPool.s_currency_balance(Z19, Borrow_token.address, _strike_price) == 1 * 10 ** 18
-    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 1 * 10 ** 18
+    assert UnderwriterPool.u_currency_balance(Z19, Borrow_token.address, _strike_price) == 3 * 10 ** 18
     # assign one of the accounts as a Borrower
     Borrower = w3.eth.accounts[3]
     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
@@ -393,17 +391,15 @@ def test_repay_loan(w3, get_contract, get_logs,
         _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
-    # get L_Lend_token
-    L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = get_contract(
+    # get L_currency_token
+    L_currency_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Lend_token_address
+        address=CurrencyDao.currencies__l_currency_address(Lend_token.address)
     )
     # get L_underlying_token
-    L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     L_underlying_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Borrow_token_address
+        address=CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
@@ -444,17 +440,17 @@ def test_repay_loan(w3, get_contract, get_logs,
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -611,17 +607,15 @@ def test_settle_loan_market_with_no_loans(w3, get_contract, get_logs, time_trave
         _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
-    # get L_Lend_token
-    L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = get_contract(
+    # get L_currency_token
+    L_currency_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Lend_token_address
+        address=CurrencyDao.currencies__l_currency_address(Lend_token.address)
     )
     # get L_underlying_token
-    L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     L_underlying_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Borrow_token_address
+        address=CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
@@ -662,17 +656,17 @@ def test_settle_loan_market_with_no_loans(w3, get_contract, get_logs, time_trave
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -833,17 +827,15 @@ def test_settle_loan_market_with_loans(w3, get_contract, get_logs, time_travel,
         _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
-    # get L_Lend_token
-    L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = get_contract(
+    # get L_currency_token
+    L_currency_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Lend_token_address
+        address=CurrencyDao.currencies__l_currency_address(Lend_token.address)
     )
     # get L_underlying_token
-    L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     L_underlying_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Borrow_token_address
+        address=CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
@@ -884,17 +876,17 @@ def test_settle_loan_market_with_loans(w3, get_contract, get_logs, time_travel,
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -1063,17 +1055,15 @@ def test_situation_after_loan_market_settlement_for_expiry_price_above_original_
         _strike_price, transact={'from': pool_owner, 'gas': 2600000})
     tx_10_receipt = w3.eth.waitForTransactionReceipt(tx_10_hash)
     assert tx_10_receipt['status'] == 1
-    # get L_Lend_token
-    L_Lend_token_address = CurrencyDao.currencies__l_currency_address(Lend_token.address)
-    L_Lend_token = get_contract(
+    # get L_currency_token
+    L_currency_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Lend_token_address
+        address=CurrencyDao.currencies__l_currency_address(Lend_token.address)
     )
     # get L_underlying_token
-    L_Borrow_token_address = CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     L_underlying_token = get_contract(
         'contracts/templates/ERC20Template1.v.py',
-        address=L_Borrow_token_address
+        address=CurrencyDao.currencies__l_currency_address(Borrow_token.address)
     )
     # assign one of the accounts as a Lender
     Lender = w3.eth.accounts[2]
@@ -1114,17 +1104,17 @@ def test_situation_after_loan_market_settlement_for_expiry_price_above_original_
     assert tx_16_receipt['status'] == 1
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )
@@ -1396,17 +1386,17 @@ def test_l_token_balances_until_loan_market_settlement_for_expiry_price_below_or
     assert Lend_token.balanceOf(CurrencyDao.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
     # get I_token
     I_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__i_currency_address(Lend_token.address)
     )
     S_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__s_currency_address(Lend_token.address)
     )
     U_token = get_contract(
-        'contracts/templates/ERC1155Template1.v.py',
+        'contracts/templates/ERC1155Template2.v.py',
         interfaces=['ERC1155TokenReceiver'],
         address=CurrencyDao.currencies__u_currency_address(Lend_token.address)
     )

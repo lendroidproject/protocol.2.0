@@ -32,6 +32,7 @@ def initialize(
         _owner: address,
         _protocol_currency_address: address,
         _dao_address_currency: address,
+        _dao_address_underwriter_pool: address,
         _dao_address_market: address
         ) -> bool:
     assert not self._is_initialized()
@@ -42,7 +43,9 @@ def initialize(
 
     self.DAO_TYPE_CURRENCY = 1
     self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
-    self.DAO_TYPE_MARKET = 2
+    self.DAO_TYPE_UNDERWRITER_POOL = 2
+    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_address_underwriter_pool
+    self.DAO_TYPE_MARKET = 3
     self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
 
     return True
@@ -144,7 +147,7 @@ def _l_currency_from_s_currency(
 
 @private
 def _l_currency_from_u_currency(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
-    _currency_quantity: uint256, _recipient: address):
+    _currency_quantity: uint256, _recipient: address, _pool_address: address):
     assert self._is_initialized()
     # validate currency
     assert self._is_currency_valid(_currency_address)
@@ -169,9 +172,15 @@ def _l_currency_from_u_currency(_currency_address: address, _expiry: timestamp, 
     self._burn_erc1155(
         MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_parent_address(_shield_market_hash),
         MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_token_id(_shield_market_hash),
-        _recipient,
+        _pool_address,
         as_unitless_number(_currency_quantity) * (10 ** 18)
     )
+
+
+@public
+@constant
+def shield_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
+    return self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
 
 
 @public
@@ -209,8 +218,9 @@ def exercise_shield_currency(_currency_address: address, _expiry: timestamp, _un
 
 @public
 def exercise_underwriter_currency(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
-    _currency_quantity: uint256, _recipient: address) -> bool:
+    _currency_quantity: uint256, _recipient: address, _pool_address: address) -> bool:
+    assert msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert block.timestamp > _expiry
-    self._l_currency_from_u_currency(_currency_address, _expiry, _underlying_address, _strike_price, _currency_quantity, _recipient)
+    self._l_currency_from_u_currency(_currency_address, _expiry, _underlying_address, _strike_price, _currency_quantity, _recipient, _pool_address)
 
     return True

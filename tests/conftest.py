@@ -112,7 +112,7 @@ CONCISE_NORMALIZERS = (_none_addr,)
 
 @pytest.fixture
 def tester():
-    genesis_overrides = {"gas_limit": 4500000}
+    genesis_overrides = {"gas_limit": 4700000}
     custom_genesis_params = PyEVMBackend._generate_genesis_params(
         overrides=genesis_overrides
     )
@@ -483,7 +483,7 @@ def _initialize_all_daos(owner, w3,
     # initialize ShieldPayoutDao
     tx_hash = ShieldPayoutDao.initialize(
         owner, LST_token.address, CurrencyDao.address,
-        MarketDao.address,
+        UnderwriterPoolDao.address, MarketDao.address,
         transact={'from': owner})
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt['status'] == 1
