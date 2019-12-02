@@ -32,7 +32,7 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def register_pool(_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bool:
+def register_pool(_accepts_public_contributions: bool, _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256, _i_currency_operator_fee_percentage: uint256) -> bool:
     pass
 
 @public
@@ -44,15 +44,11 @@ def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> 
     pass
 
 @public
-def l_currency_to_f_currency(_pool_hash: bytes32, _f_hash: bytes32, _recipient: address, _value: uint256) -> bool:
+def l_currency_to_i_and_f_currency(_currency_address: address, _expiry: uint256(sec, positional), _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_to_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
-    pass
-
-@public
-def l_currency_from_i_and_f_currency(_pool_hash: bytes32, _i_hash: bytes32, _f_hash: bytes32, _value: uint256) -> bool:
+def l_currency_from_i_and_f_currency(_currency_address: address, _expiry: uint256(sec, positional), _value: uint256) -> bool:
     pass
 
 @constant
@@ -163,6 +159,26 @@ def offer_registration_fee_lookup__last_registered_at(arg0: address) -> uint256(
 @constant
 @public
 def offer_registration_fee_lookup__last_paid_fee(arg0: address) -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_I() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_F() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_S() -> uint256:
+    pass
+
+@constant
+@public
+def MULTI_FUNGIBLE_CURRENCY_DIMENSION_U() -> uint256:
     pass
 
 @constant

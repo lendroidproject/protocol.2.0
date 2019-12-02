@@ -37,7 +37,7 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def register_pool(_currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bytes32:
+def register_pool(_accepts_public_contributions: bool, _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256, _i_currency_operator_fee_percentage: uint256, _s_currency_operator_fee_percentage: uint256) -> bytes32:
     pass
 
 @public
@@ -49,11 +49,11 @@ def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> 
     pass
 
 @public
-def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+def l_currency_to_i_and_s_and_u_currency(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+def l_currency_from_i_and_s_and_u_currency(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @public

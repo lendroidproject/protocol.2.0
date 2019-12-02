@@ -31,6 +31,16 @@ def onERC1155Received(_operator: address, _from: address, _id: uint256, _value: 
 def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5], _values: uint256[5], _data: bytes32) -> bytes[10]:
     pass
 
+@constant
+@public
+def loan_market_hash(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address) -> bytes32:
+    pass
+
+@constant
+@public
+def currency_underlying_pair_hash(_currency_address: address, _underlying_address: address) -> bytes32:
+    pass
+
 @public
 def open_shield_market(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_hash: bytes32, _s_parent_address: address, _s_id: uint256, _u_hash: bytes32, _u_parent_address: address, _u_id: uint256) -> bool:
     pass
@@ -44,20 +54,7 @@ def set_registry(_registry_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def set_shield_market_minimum_collateral_value(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _price: uint256) -> bool:
-    pass
-
-@public
 def set_price_oracle(_currency_address: address, _underlying_address: address, _price_oracle_address: address) -> bool:
-    pass
-
-@constant
-@public
-def shield_currency_minimum_collateral_values(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
-    pass
-
-@public
-def i_currency_for_offer_creation(_creator: address, _s_quantity: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (address, uint256):
     pass
 
 @public
@@ -65,15 +62,15 @@ def secure_currency_deposit_and_market_update_from_auction_purchase(_currency_ad
     pass
 
 @public
-def open_position(_shield_market_hash: bytes32, _offer_creator: address, _i_parent_address: address, _i_token_id: uint256, _i_quantity: uint256, _s_quantity: uint256, _lend_currency_value: uint256, _borrow_currency_value: uint256, _borrower: address) -> bool:
+def open_position(_borrower: address, _currency_value: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def close_position(_shield_market_hash: bytes32, _i_parent_address: address, _i_token_id: uint256, _i_quantity: uint256, _s_quantity: uint256, _lend_currency_value: uint256, _borrow_currency_value: uint256, _borrower: address) -> bool:
+def close_position(_borrower: address, _currency_value: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def close_liquidated_position(_shield_market_hash: bytes32, _s_quantity: uint256, _lend_currency_value: uint256, _borrow_currency_value: uint256, _borrower: address) -> bool:
+def close_liquidated_position(_borrower: address, _currency_value: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
     pass
 
 @constant
@@ -249,11 +246,6 @@ def shield_markets__u_parent_address(arg0: bytes32) -> address:
 @constant
 @public
 def shield_markets__u_token_id(arg0: bytes32) -> uint256:
-    pass
-
-@constant
-@public
-def shield_markets__minimum_collateral_value(arg0: bytes32) -> uint256:
     pass
 
 @constant

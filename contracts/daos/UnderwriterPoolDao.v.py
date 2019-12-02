@@ -263,7 +263,11 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 
 
 @public
-def register_pool( _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256) -> bytes32:
+def register_pool(_accepts_public_contributions: bool,
+    _currency_address: address, _name: string[62], _symbol: string[32],
+    _initial_exchange_rate: uint256,
+    _i_currency_operator_fee_percentage: uint256,
+    _s_currency_operator_fee_percentage: uint256) -> bytes32:
     assert self._is_initialized()
     # validate currency
     assert self._is_currency_valid(_currency_address)
@@ -281,7 +285,10 @@ def register_pool( _currency_address: address, _name: string[62], _symbol: strin
     _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
     _pool_hash = self._pool_hash(_currency_address, _pool_address)
     _external_call_successful = UnderwriterPool(_pool_address).initialize(
-        _pool_hash, msg.sender,
+        _pool_hash, _accepts_public_contributions,
+        msg.sender,
+        _i_currency_operator_fee_percentage,
+        _s_currency_operator_fee_percentage,
         _name, _symbol, _initial_exchange_rate,
         _currency_address,
         _l_currency_address,
@@ -394,19 +401,21 @@ def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> 
 
 
 @public
-def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32,
-    _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
-    _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+def l_currency_to_i_and_s_and_u_currency(
+    _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
+    _value: uint256) -> bool:
     assert self._is_initialized()
-    self._validate_pool(_pool_hash, msg.sender)
-    _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
-    # verify _value is not less than minimum collateral value
-    _minimum_collateral_value: uint256 = MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_currency_minimum_collateral_values(
-        _currency_address, _expiry, _underlying_address, _strike_price
-    )
-    assert not as_unitless_number(_minimum_collateral_value) == 0, "shield price has not been set"
-    assert as_unitless_number(_value) % as_unitless_number(_minimum_collateral_value) == 0
+    assert self._is_currency_valid(_underlying_address)
+    _l_currency_address: address = ZERO_ADDRESS
+    _i_currency_address: address = ZERO_ADDRESS
+    _f_currency_address: address = ZERO_ADDRESS
+    _s_currency_address: address = ZERO_ADDRESS
+    _u_currency_address: address = ZERO_ADDRESS
+    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
+    _i_hash: bytes32 = self._multi_fungible_currency_hash(_i_currency_address, _currency_address, _expiry, ZERO_ADDRESS, 0)
+    _s_hash: bytes32 = self._multi_fungible_currency_hash(_s_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+    _u_hash: bytes32 = self._multi_fungible_currency_hash(_u_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert self.multi_fungible_currencies[_s_hash].has_id and \
            self.multi_fungible_currencies[_u_hash].has_id and \
@@ -415,19 +424,8 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32,
            self.multi_fungible_currencies[_u_hash].currency_address == _currency_address and \
            self.multi_fungible_currencies[_i_hash].currency_address == _currency_address and \
            self.multi_fungible_currencies[_s_hash].underlying_address == self.multi_fungible_currencies[_u_hash].underlying_address
-    # validate underlying
-    assert self._is_currency_valid(self.multi_fungible_currencies[_s_hash].underlying_address)
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
     # burn l_token from interest_pool account
     self._burn_as_self_authorized_erc20(_l_currency_address, msg.sender, _value)
-    # calculate su currency quantitites to be minted
-    _su_currencies_to_mint: uint256 = (as_unitless_number(_value) * (10 ** 18)) / as_unitless_number(_minimum_collateral_value)
-    assert _su_currencies_to_mint >= 10 ** 18
     # mint i_token into interest_pool account
     self._mint_and_self_authorize_erc1155(
         _i_currency_address,
@@ -439,72 +437,66 @@ def l_currency_to_i_and_s_and_u_currency(_pool_hash: bytes32,
         _s_currency_address,
         self.multi_fungible_currencies[_s_hash].token_id,
         msg.sender,
-        _su_currencies_to_mint
+        _value
     )
     self._mint_and_self_authorize_erc1155(
         _u_currency_address,
         self.multi_fungible_currencies[_u_hash].token_id,
         msg.sender,
-        _su_currencies_to_mint
+        _value
     )
 
     return True
 
 
 @public
-def l_currency_from_i_and_s_and_u_currency(_pool_hash: bytes32,
-    _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
-    _s_hash: bytes32, _u_hash: bytes32, _i_hash: bytes32, _value: uint256) -> bool:
+def l_currency_from_i_and_s_and_u_currency(
+    _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
+    _value: uint256) -> bool:
     assert self._is_initialized()
-    self._validate_pool(_pool_hash, msg.sender)
-    _currency_address: address = self.pools[_pool_hash].currency_address
     assert self._is_currency_valid(_currency_address)
-    # verify _value is not less than minimum collateral value
-    _minimum_collateral_value: uint256 = MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_currency_minimum_collateral_values(
-        _currency_address, _expiry, _underlying_address, _strike_price
-    )
-    assert not as_unitless_number(_minimum_collateral_value) == 0, "shield price has not been set"
-    assert as_unitless_number(_value) >= as_unitless_number(_minimum_collateral_value)
-    # validate i, s, and u token types exists for combination of expiry, underlying, and strike
-    assert self.multi_fungible_currencies[_s_hash].has_id and \
-           self.multi_fungible_currencies[_u_hash].has_id and \
-           self.multi_fungible_currencies[_i_hash].has_id and \
-           self.multi_fungible_currencies[_s_hash].currency_address == _currency_address and \
-           self.multi_fungible_currencies[_u_hash].currency_address == _currency_address and \
-           self.multi_fungible_currencies[_i_hash].currency_address == _currency_address and \
-           self.multi_fungible_currencies[_s_hash].underlying_address == self.multi_fungible_currencies[_u_hash].underlying_address
-    # validate underlying
-    assert self._is_currency_valid(self.multi_fungible_currencies[_s_hash].underlying_address)
+    assert self._is_currency_valid(_underlying_address)
     _l_currency_address: address = ZERO_ADDRESS
     _i_currency_address: address = ZERO_ADDRESS
     _f_currency_address: address = ZERO_ADDRESS
     _s_currency_address: address = ZERO_ADDRESS
     _u_currency_address: address = ZERO_ADDRESS
     _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    # burn l_token from interest_pool account
+    _i_hash: bytes32 = self._multi_fungible_currency_hash(_i_currency_address, _currency_address, _expiry, ZERO_ADDRESS, 0)
+    _s_hash: bytes32 = self._multi_fungible_currency_hash(_s_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+    _u_hash: bytes32 = self._multi_fungible_currency_hash(_u_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+    # validate i, s, and u token types exists for combination of expiry, underlying, and strike
+    assert self.multi_fungible_currencies[_i_hash].has_id and \
+           self.multi_fungible_currencies[_s_hash].has_id and \
+           self.multi_fungible_currencies[_u_hash].has_id and \
+           self.multi_fungible_currencies[_i_hash].currency_address == _currency_address and \
+           self.multi_fungible_currencies[_s_hash].currency_address == _currency_address and \
+           self.multi_fungible_currencies[_u_hash].currency_address == _currency_address and \
+           self.multi_fungible_currencies[_s_hash].underlying_address == self.multi_fungible_currencies[_u_hash].underlying_address
+    # mint l_tokens to underwriter_pool account
     self._mint_and_self_authorize_erc20(_l_currency_address, msg.sender, _value)
-    # calculate su currency quantitites to be minted
-    _su_currencies_to_burn: uint256 = (as_unitless_number(_value) * (10 ** 18)) / as_unitless_number(_minimum_collateral_value)
-    assert _su_currencies_to_burn >= 10 ** 18
-    # mint i_token into interest_pool account
-    self._burn_erc1155(
-        _s_currency_address,
-        self.multi_fungible_currencies[_s_hash].token_id,
-        msg.sender,
-        _su_currencies_to_burn
-    )
-    self._burn_erc1155(
-        _u_currency_address,
-        self.multi_fungible_currencies[_u_hash].token_id,
-        msg.sender,
-        _su_currencies_to_burn
-    )
+    # burn i_tokens from underwriter_pool account
     self._burn_erc1155(
         _i_currency_address,
         self.multi_fungible_currencies[_i_hash].token_id,
         msg.sender,
         _value
     )
+    # burn s_tokens from underwriter_pool account
+    self._burn_erc1155(
+        _s_currency_address,
+        self.multi_fungible_currencies[_s_hash].token_id,
+        msg.sender,
+        _value
+    )
+    # burn u_tokens from underwriter_pool account
+    self._burn_erc1155(
+        _u_currency_address,
+        self.multi_fungible_currencies[_u_hash].token_id,
+        msg.sender,
+        _value
+    )
+
 
     return True
 

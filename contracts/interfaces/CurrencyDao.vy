@@ -39,6 +39,26 @@ def release_currency_from_pool(_currency_address: address, _to: address, _value:
 def create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
     pass
 
+@constant
+@public
+def multi_fungible_currency_f(_currency_address: address, _expiry: uint256(sec, positional)) -> (address, uint256):
+    pass
+
+@constant
+@public
+def multi_fungible_currency_i(_currency_address: address, _expiry: uint256(sec, positional)) -> (address, uint256):
+    pass
+
+@constant
+@public
+def multi_fungible_currency_s(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (address, uint256):
+    pass
+
+@constant
+@public
+def multi_fungible_currency_u(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (address, uint256):
+    pass
+
 @public
 def mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256) -> bool:
     pass

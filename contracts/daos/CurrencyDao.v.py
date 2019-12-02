@@ -291,6 +291,38 @@ def create_erc1155_type(_parent_currency_type: uint256, _currency_address: addre
 
 
 @public
+@constant
+def multi_fungible_currency_f(_currency_address: address, _expiry: timestamp) -> (address, uint256):
+    _multi_fungible_currency_hash: bytes32 = self._multi_fungible_currency_hash(self.currencies[_currency_address].f_currency_address, _currency_address, _expiry, ZERO_ADDRESS, 0)
+
+    return self.currencies[_currency_address].f_currency_address, self.multi_fungible_currencies[_multi_fungible_currency_hash].token_id
+
+
+@public
+@constant
+def multi_fungible_currency_i(_currency_address: address, _expiry: timestamp) -> (address, uint256):
+    _multi_fungible_currency_hash: bytes32 = self._multi_fungible_currency_hash(self.currencies[_currency_address].i_currency_address, _currency_address, _expiry, ZERO_ADDRESS, 0)
+
+    return self.currencies[_currency_address].i_currency_address, self.multi_fungible_currencies[_multi_fungible_currency_hash].token_id
+
+
+@public
+@constant
+def multi_fungible_currency_s(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> (address, uint256):
+    _multi_fungible_currency_hash: bytes32 = self._multi_fungible_currency_hash(self.currencies[_currency_address].s_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+
+    return self.currencies[_currency_address].s_currency_address, self.multi_fungible_currencies[_multi_fungible_currency_hash].token_id
+
+
+@public
+@constant
+def multi_fungible_currency_u(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> (address, uint256):
+    _multi_fungible_currency_hash: bytes32 = self._multi_fungible_currency_hash(self.currencies[_currency_address].u_currency_address, _currency_address, _expiry, _underlying_address, _strike_price)
+
+    return self.currencies[_currency_address].u_currency_address, self.multi_fungible_currencies[_multi_fungible_currency_hash].token_id
+
+
+@public
 def mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256) -> bool:
     assert self._is_initialized()
     self._mint_and_self_authorize_erc20(_currency_address, _to, _value)
