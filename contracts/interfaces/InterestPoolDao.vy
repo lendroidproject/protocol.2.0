@@ -5,7 +5,7 @@ PoolRegistered: event({_operator: address, _currency_address: address, _pool_add
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _template_address_interest_pool: address, _template_address_currency_erc20: address) -> bool:
+def initialize(_owner: address, _protocol_currency_address: address, _registry_address_pool_name: address, _dao_address_currency: address, _template_address_interest_pool: address, _template_address_currency_erc20: address) -> bool:
     pass
 
 @constant
@@ -15,16 +15,15 @@ def currency_dao_address() -> address:
 
 @constant
 @public
-def offer_registration_fee() -> uint256:
-    pass
-
-@constant
-@public
-def pool_hash(_currency_address: address, _pool_address: address) -> bytes32:
+def protocol_currency_stake_value(_pool_name: string[64]) -> uint256:
     pass
 
 @public
-def set_offer_registration_fee_lookup(_minimum_fee: uint256, _minimum_interval: uint256(sec), _fee_multiplier: uint256, _fee_multiplier_decimals: uint256) -> bool:
+def set_minimum_multi_fungible_currency_support_fee(_value: uint256) -> bool:
+    pass
+
+@public
+def set_fee_multiplier_per_multi_fungible_currency_supported(_multi_fungible_currency_count: uint256, _value: uint256) -> bool:
     pass
 
 @public
@@ -32,15 +31,19 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def register_pool(_accepts_public_contributions: bool, _currency_address: address, _name: string[62], _symbol: string[32], _initial_exchange_rate: uint256, _i_currency_operator_fee_percentage: uint256) -> bool:
+def register_pool(_accepts_public_contributions: bool, _currency_address: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _i_currency_operator_fee_percentage: uint256) -> bool:
     pass
 
 @public
-def register_expiry(_pool_hash: bytes32, _expiry: uint256(sec, positional)) -> (bool, bytes32, bytes32, uint256, uint256):
+def register_expiry(_pool_name: string[64], _expiry: uint256(sec, positional)) -> (bool, bytes32, bytes32, uint256, uint256):
     pass
 
 @public
-def deposit_l_currency(_pool_hash: bytes32, _from: address, _value: uint256) -> bool:
+def remove_expiry(_pool_name: string[64], _expiry: uint256(sec, positional)) -> bool:
+    pass
+
+@public
+def deposit_l_currency(_pool_name: string[64], _from: address, _value: uint256) -> bool:
     pass
 
 @public
@@ -73,32 +76,42 @@ def daos(arg0: uint256) -> address:
 
 @constant
 @public
+def registries(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
 def templates(arg0: uint256) -> address:
     pass
 
 @constant
 @public
-def pools__currency_address(arg0: bytes32) -> address:
+def pools__currency_address(arg0: string[64]) -> address:
     pass
 
 @constant
 @public
-def pools__pool_name(arg0: bytes32) -> string[64]:
+def pools__pool_name(arg0: string[64]) -> string[64]:
     pass
 
 @constant
 @public
-def pools__pool_address(arg0: bytes32) -> address:
+def pools__pool_address(arg0: string[64]) -> address:
     pass
 
 @constant
 @public
-def pools__pool_operator(arg0: bytes32) -> address:
+def pools__pool_operator(arg0: string[64]) -> address:
     pass
 
 @constant
 @public
-def pools__hash(arg0: bytes32) -> bytes32:
+def pools__multi_fungible_currencies_supported(arg0: string[64]) -> uint256:
+    pass
+
+@constant
+@public
+def pools__protocol_currency_staked(arg0: string[64]) -> uint256:
     pass
 
 @constant
@@ -133,32 +146,17 @@ def multi_fungible_currencies__hash(arg0: bytes32) -> bytes32:
 
 @constant
 @public
-def offer_registration_fee_lookup__minimum_fee(arg0: address) -> uint256:
+def fee_multiplier_per_multi_fungible_currency_supported(arg0: uint256) -> uint256:
     pass
 
 @constant
 @public
-def offer_registration_fee_lookup__minimum_interval(arg0: address) -> uint256(sec):
+def minimum_multi_fungible_currency_support_fee() -> uint256:
     pass
 
 @constant
 @public
-def offer_registration_fee_lookup__fee_multiplier(arg0: address) -> uint256:
-    pass
-
-@constant
-@public
-def offer_registration_fee_lookup__fee_multiplier_decimals(arg0: address) -> uint256:
-    pass
-
-@constant
-@public
-def offer_registration_fee_lookup__last_registered_at(arg0: address) -> uint256(sec, positional):
-    pass
-
-@constant
-@public
-def offer_registration_fee_lookup__last_paid_fee(arg0: address) -> uint256:
+def protocol_currency_staked(arg0: string[64], arg1: uint256(sec, positional)) -> uint256:
     pass
 
 @constant
@@ -179,6 +177,11 @@ def MULTI_FUNGIBLE_CURRENCY_DIMENSION_S() -> uint256:
 @constant
 @public
 def MULTI_FUNGIBLE_CURRENCY_DIMENSION_U() -> uint256:
+    pass
+
+@constant
+@public
+def REGISTRY_TYPE_POOL_NAME() -> uint256:
     pass
 
 @constant

@@ -34,8 +34,6 @@ borrow_position_count: public(map(address, uint256))
 borrow_position_index: public(map(address, map(uint256, uint256)))
 # borrower_address => (borrow_position_count => loan_id)
 borrow_position: public(map(address, map(uint256, uint256)))
-# index per offer
-last_offer_index: public(uint256)
 # nonreentrant locks for positions, inspired from https://github.com/ethereum/vyper/issues/1204
 nonreentrant_offer_locks: map(uint256, bool)
 

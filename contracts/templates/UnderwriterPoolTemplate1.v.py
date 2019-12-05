@@ -25,7 +25,6 @@ struct Expiry:
     hash: bytes32
 
 
-pool_hash: public(bytes32)
 owner: public(address)
 protocol_dao_address: public(address)
 operator: public(address)
@@ -59,7 +58,7 @@ ERC1155_BATCH_ACCEPTED: bytes[10]
 
 
 @public
-def initialize(_pool_hash: bytes32, _accepts_public_contributions: bool,
+def initialize(_accepts_public_contributions: bool,
     _operator: address,
     _i_currency_operator_fee_percentage: uint256,
     _s_currency_operator_fee_percentage: uint256,
@@ -73,7 +72,6 @@ def initialize(_pool_hash: bytes32, _accepts_public_contributions: bool,
     self.is_initialized = True
     self.owner = msg.sender
     self.protocol_dao_address = _dao_address_protocol
-    self.pool_hash = _pool_hash
     self.operator = _operator
     self.name = _name
     self.initial_exchange_rate = _initial_exchange_rate
@@ -311,7 +309,7 @@ def register_expiry(_expiry: timestamp, _underlying_address: address, _strike_pr
     _i_id: uint256 = 0
     _s_id: uint256 = 0
     _u_id: uint256 = 0
-    _external_call_successful, _i_hash, _s_hash, _u_hash, _i_id, _s_id, _u_id = UnderwriterPoolDao(self.owner).register_expiry(self.pool_hash, _expiry, _underlying_address, _strike_price)
+    _external_call_successful, _i_hash, _s_hash, _u_hash, _i_id, _s_id, _u_id = UnderwriterPoolDao(self.owner).register_expiry(self.name, _expiry, _underlying_address, _strike_price)
     assert _external_call_successful
     self.expiries[_expiry_hash] = Expiry({
         expiry_timestamp: _expiry,
@@ -336,6 +334,9 @@ def remove_expiry(_expiry: timestamp, _underlying_address: address, _strike_pric
     assert msg.sender == self.operator
     _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
     self.expiries[_expiry_hash].is_active = False
+    assert_modifiable(UnderwriterPoolDao(self.owner).remove_expiry(
+        self.name, self.currency_address, _expiry, _underlying_address, _strike_price
+    ))
 
     return True
 
@@ -438,7 +439,7 @@ def purchase_pool_currency(_l_currency_value: uint256) -> bool:
         assert msg.sender == self.operator
     # ask UnderwriterPoolDao to deposit l_tokens to self
     assert_modifiable(UnderwriterPoolDao(self.owner).deposit_l_currency(
-        self.pool_hash, msg.sender, _l_currency_value))
+        self.name, msg.sender, _l_currency_value))
     # authorize CurrencyDao to handle _l_currency_value quantity of l_currency
     assert_modifiable(ERC20(self.l_currency_address).approve(
         UnderwriterPoolDao(self.owner).currency_dao_address(), _l_currency_value))
@@ -554,7 +555,7 @@ def exercise_u_currency(_expiry: timestamp, _underlying_address: address, _strik
     _expiry_hash: bytes32 = self._expiry_hash(_expiry, _underlying_address, _strike_price)
     assert self.expiries[_expiry_hash].is_active == True, "expiry is not offered"
     assert_modifiable(UnderwriterPoolDao(self.owner).exercise_underwriter_currency(
-        self.pool_hash,
+        self.name,
         self.currency_address, _expiry, _underlying_address, _strike_price,
         _u_currency_value
     ))

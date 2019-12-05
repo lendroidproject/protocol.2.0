@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_pool_hash: bytes32, _accepts_public_contributions: bool, _operator: address, _i_currency_operator_fee_percentage: uint256, _s_currency_operator_fee_percentage: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _dao_address_protocol: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_accepts_public_contributions: bool, _operator: address, _i_currency_operator_fee_percentage: uint256, _s_currency_operator_fee_percentage: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _dao_address_protocol: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -129,11 +129,6 @@ def purchase_s_currency(_expiry: uint256(sec, positional), _underlying_address: 
 
 @public
 def exercise_u_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _u_currency_value: uint256) -> bool:
-    pass
-
-@constant
-@public
-def pool_hash() -> bytes32:
     pass
 
 @constant

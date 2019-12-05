@@ -138,21 +138,21 @@ def _is_initialized() -> bool:
 #     return True
 
 
-@public
-def initialize_interest_pool_dao() -> bool:
-    assert self._is_initialized()
-    assert msg.sender == self.owner
-    # initialize interest pool dao
-    assert_modifiable(InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).initialize(
-        self.owner, self.protocol_currency_address,
-        self.daos[self.DAO_TYPE_CURRENCY],
-        self.templates[self.TEMPLATE_TYPE_INTEREST_POOL],
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]
-    ))
-
-    log.DAOInitialized(msg.sender, self.DAO_TYPE_INTEREST_POOL, self.daos[self.DAO_TYPE_INTEREST_POOL])
-
-    return True
+# @public
+# def initialize_interest_pool_dao() -> bool:
+#     assert self._is_initialized()
+#     assert msg.sender == self.owner
+#     # initialize interest pool dao
+#     assert_modifiable(InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).initialize(
+#         self.owner, self.protocol_currency_address,
+#         self.daos[self.DAO_TYPE_CURRENCY],
+#         self.templates[self.TEMPLATE_TYPE_INTEREST_POOL],
+#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]
+#     ))
+#
+#     log.DAOInitialized(msg.sender, self.DAO_TYPE_INTEREST_POOL, self.daos[self.DAO_TYPE_INTEREST_POOL])
+#
+#     return True
 
 
 # @public

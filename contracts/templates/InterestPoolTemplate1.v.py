@@ -21,7 +21,6 @@ struct Expiry:
     is_active: bool
 
 
-pool_hash: public(bytes32)
 owner: public(address)
 operator: public(address)
 name: public(string[64])
@@ -53,7 +52,7 @@ ERC1155_BATCH_ACCEPTED: bytes[10]
 
 
 @public
-def initialize(_pool_hash: bytes32, _accepts_public_contributions: bool,
+def initialize(_accepts_public_contributions: bool,
     _operator: address, _i_currency_operator_fee_percentage: uint256,
     _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256,
     _currency_address: address,
@@ -62,7 +61,6 @@ def initialize(_pool_hash: bytes32, _accepts_public_contributions: bool,
     assert not self.is_initialized
     self.is_initialized = True
     self.owner = msg.sender
-    self.pool_hash = _pool_hash
     self.accepts_public_contributions = _accepts_public_contributions
     self.operator = _operator
     self.name = _name
@@ -264,7 +262,7 @@ def register_expiry(_expiry: timestamp, _i_currency_cost_per_day: uint256) -> bo
     _i_hash: bytes32 = EMPTY_BYTES32
     _f_id: uint256 = 0
     _i_id: uint256 = 0
-    _external_call_successful, _f_hash, _i_hash, _f_id, _i_id = InterestPoolDao(self.owner).register_expiry(self.pool_hash, _expiry)
+    _external_call_successful, _f_hash, _i_hash, _f_id, _i_id = InterestPoolDao(self.owner).register_expiry(self.name, _expiry)
     assert _external_call_successful
     self.expiries[_expiry] = Expiry({
         expiry_timestamp: _expiry,
@@ -284,6 +282,9 @@ def remove_expiry(_expiry: timestamp) -> bool:
     assert self.is_initialized
     assert msg.sender == self.operator
     self.expiries[_expiry].is_active = False
+    assert_modifiable(InterestPoolDao(self.owner).remove_expiry(
+        self.name, _expiry
+    ))
 
     return True
 
@@ -358,7 +359,7 @@ def purchase_pool_currency(_l_currency_value: uint256) -> bool:
     if not self.accepts_public_contributions:
         assert msg.sender == self.operator
     # ask InterestPoolDao to deposit l_tokens to self
-    assert_modifiable(InterestPoolDao(self.owner).deposit_l_currency(self.pool_hash, msg.sender, _l_currency_value))
+    assert_modifiable(InterestPoolDao(self.owner).deposit_l_currency(self.name, msg.sender, _l_currency_value))
     # authorize CurrencyDao to handle _l_currency_value quantity of l_currency
     assert_modifiable(ERC20(self.l_currency_address).approve(InterestPoolDao(self.owner).currency_dao_address(), _l_currency_value))
     # mint pool tokens to msg.sender
