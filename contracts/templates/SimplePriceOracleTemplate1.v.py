@@ -12,24 +12,22 @@ contract Feed:
 
 
 owner: public(address)
-currency_address: public(address)
-underlying_address: public(address)
+currency: public(address)
+underlying: public(address)
 feed_address: public(address)
 current_price: public(uint256)
 
 
 @public
-def __init__(
-            _currency_address: address, _underlying_address: address,
-            _feed_address: address
-        ):
+def __init__(_currency: address, _underlying: address, _feed_address: address):
     # verify inputs
-    assert _currency_address.is_contract
-    assert _underlying_address.is_contract
+    assert _currency.is_contract
+    assert _underlying.is_contract
+    assert _feed_address.is_contract
     # set parameters
     self.owner = msg.sender
-    self.currency_address = _currency_address
-    self.underlying_address = _underlying_address
+    self.currency = _currency
+    self.underlying = _underlying
     self.feed_address = _feed_address
 
 

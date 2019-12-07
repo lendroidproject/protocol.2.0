@@ -2,12 +2,13 @@
 # THIS CONTRACT HAS NOT BEEN AUDITED!
 
 
+from contracts.interfaces import MultiFungibleToken
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import MarketDao
 
 
-protocol_currency_address: public(address)
-protocol_dao_address: public(address)
+LST: public(address)
+protocol_dao: public(address)
 owner: public(address)
 # dao_type => dao_address
 daos: public(map(uint256, address))
@@ -30,49 +31,36 @@ def _is_initialized() -> bool:
 @public
 def initialize(
         _owner: address,
-        _protocol_currency_address: address,
-        _dao_address_currency: address,
-        _dao_address_underwriter_pool: address,
-        _dao_address_market: address
+        _LST: address,
+        _dao_currency: address,
+        _dao_underwriter_pool: address,
+        _dao_market: address
         ) -> bool:
     assert not self._is_initialized()
     self.initialized = True
     self.owner = _owner
-    self.protocol_dao_address = msg.sender
-    self.protocol_currency_address = _protocol_currency_address
+    self.protocol_dao = msg.sender
+    self.LST = _LST
 
     self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
+    self.daos[self.DAO_TYPE_CURRENCY] = _dao_currency
     self.DAO_TYPE_UNDERWRITER_POOL = 2
-    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_address_underwriter_pool
+    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_underwriter_pool
     self.DAO_TYPE_MARKET = 3
-    self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
+    self.daos[self.DAO_TYPE_MARKET] = _dao_market
 
     return True
 
 
 @private
 @constant
-def _loan_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address) -> bytes32:
+def _shield_market_hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
     return keccak256(
         concat(
-            convert(self.protocol_dao_address, bytes32),
-            convert(_currency_address, bytes32),
+            convert(self.protocol_dao, bytes32),
+            convert(_currency, bytes32),
             convert(_expiry, bytes32),
-            convert(_underlying_address, bytes32)
-        )
-    )
-
-
-@private
-@constant
-def _shield_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
-    return keccak256(
-        concat(
-            convert(self.protocol_dao_address, bytes32),
-            convert(_currency_address, bytes32),
-            convert(_expiry, bytes32),
-            convert(_underlying_address, bytes32),
+            convert(_underlying, bytes32),
             convert(_strike_price, bytes32)
         )
     )
@@ -80,98 +68,104 @@ def _shield_market_hash(_currency_address: address, _expiry: timestamp, _underly
 
 @private
 @constant
-def _is_currency_valid(_currency_address: address) -> bool:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_currency_valid(_currency_address)
+def _loan_market_hash(_currency: address, _expiry: timestamp, _underlying: address) -> bytes32:
+    return self._shield_market_hash(_currency, _expiry, _underlying, 0)
 
 
 @private
 @constant
-def _multi_fungible_addresses(_currency_address: address) -> (address, address, address, address, address):
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).multi_fungible_addresses(_currency_address)
-
-
-@private
-def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value))
-
-
-@private
-def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value))
+def _is_token_supported(_token: address) -> bool:
+    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_token_supported(_token)
 
 
 @private
 @constant
-def _shield_payout(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_payout(_currency_address, _expiry, _underlying_address, _strike_price)
+def _mft_addresses(_token: address) -> (address, address, address, address, address):
+    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mft_addresses(_token)
+
+
+@private
+def _mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
+
+
+@private
+def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
+    assert_modifiable(MultiFungibleToken(_token).burn(_id, _from, _value))
 
 
 @private
 @constant
-def _underwriter_payout(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return MarketDao(self.daos[self.DAO_TYPE_MARKET]).underwriter_payout(_currency_address, _expiry, _underlying_address, _strike_price)
+def _s_payoff(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    return MarketDao(self.daos[self.DAO_TYPE_MARKET]).s_payoff(_currency, _expiry, _underlying, _strike_price)
 
 
 @private
-def _l_currency_from_s_currency(
-    _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
+@constant
+def _u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    return MarketDao(self.daos[self.DAO_TYPE_MARKET]).u_payoff(_currency, _expiry, _underlying, _strike_price)
+
+
+@private
+def _payout_s(
+    _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256,
     _currency_quantity: uint256, _recipient: address):
     assert self._is_initialized()
     # validate currency
-    assert self._is_currency_valid(_currency_address)
+    assert self._is_token_supported(_currency)
     # validate underlying
-    assert self._is_currency_valid(_underlying_address)
-    _loan_market_hash: bytes32 = self._loan_market_hash(_currency_address, _expiry, _underlying_address)
+    assert self._is_token_supported(_underlying)
+    _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
     assert MarketDao(self.daos[self.DAO_TYPE_MARKET]).loan_markets__status(_loan_market_hash) == MarketDao(self.daos[self.DAO_TYPE_MARKET]).LOAN_MARKET_STATUS_CLOSED()
-    _shield_market_hash: bytes32 = self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
+    _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     assert self.registered_shield_markets[_shield_market_hash]
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    # mint _payout_value in l_currency
-    _payout_value: uint256 = self._shield_payout(_currency_address, _expiry, _underlying_address, _strike_price)
-    assert as_unitless_number(_payout_value) > 0
-    self._mint_and_self_authorize_erc20(_l_currency_address, _recipient,
-        as_unitless_number(_payout_value) * as_unitless_number(_currency_quantity))
+    _l_address: address = ZERO_ADDRESS
+    _i_address: address = ZERO_ADDRESS
+    _f_address: address = ZERO_ADDRESS
+    _s_address: address = ZERO_ADDRESS
+    _u_address: address = ZERO_ADDRESS
+    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    # mint _payout in l_currency
+    _payout: uint256 = self._s_payoff(_currency, _expiry, _underlying, _strike_price)
+    assert as_unitless_number(_payout) > 0
+    self._mint_and_self_authorize_erc20(_l_address, _recipient,
+        as_unitless_number(_payout) * as_unitless_number(_currency_quantity))
     # burn s_currency
-    self._burn_erc1155(
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__s_parent_address(_shield_market_hash),
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__s_token_id(_shield_market_hash),
+    self._burn_mft(
+        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__s_address(_shield_market_hash),
+        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__s_id(_shield_market_hash),
         _recipient,
         as_unitless_number(_currency_quantity) * (10 ** 18)
     )
 
 
 @private
-def _l_currency_from_u_currency(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
+def _payout_u(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256,
     _currency_quantity: uint256, _recipient: address, _pool_address: address):
     assert self._is_initialized()
     # validate currency
-    assert self._is_currency_valid(_currency_address)
+    assert self._is_token_supported(_currency)
     # validate underlying
-    assert self._is_currency_valid(_underlying_address)
-    _loan_market_hash: bytes32 = self._loan_market_hash(_currency_address, _expiry, _underlying_address)
+    assert self._is_token_supported(_underlying)
+    _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
     assert MarketDao(self.daos[self.DAO_TYPE_MARKET]).loan_markets__status(_loan_market_hash) == MarketDao(self.daos[self.DAO_TYPE_MARKET]).LOAN_MARKET_STATUS_CLOSED()
-    _shield_market_hash: bytes32 = self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
+    _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     assert self.registered_shield_markets[_shield_market_hash]
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    # mint _payout_value in l_currency
-    _payout_value: uint256 = self._underwriter_payout(_currency_address, _expiry, _underlying_address, _strike_price)
-    assert as_unitless_number(_payout_value) > 0
-    self._mint_and_self_authorize_erc20(_l_currency_address, _recipient,
-        as_unitless_number(_payout_value) * as_unitless_number(_currency_quantity))
+    _l_address: address = ZERO_ADDRESS
+    _i_address: address = ZERO_ADDRESS
+    _f_address: address = ZERO_ADDRESS
+    _s_address: address = ZERO_ADDRESS
+    _u_address: address = ZERO_ADDRESS
+    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    # mint _payout in l_currency
+    _payout: uint256 = self._u_payoff(_currency, _expiry, _underlying, _strike_price)
+    assert as_unitless_number(_payout) > 0
+    self._mint_and_self_authorize_erc20(_l_address, _recipient,
+        as_unitless_number(_payout) * as_unitless_number(_currency_quantity))
     # burn s_currency
-    self._burn_erc1155(
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_parent_address(_shield_market_hash),
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_token_id(_shield_market_hash),
+    self._burn_mft(
+        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_address(_shield_market_hash),
+        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_id(_shield_market_hash),
         _pool_address,
         as_unitless_number(_currency_quantity) * (10 ** 18)
     )
@@ -179,28 +173,28 @@ def _l_currency_from_u_currency(_currency_address: address, _expiry: timestamp, 
 
 @public
 @constant
-def shield_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
-    return self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
+def shield_market_hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    return self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
 
 
 @public
 @constant
-def shield_payout(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return self._shield_payout(_currency_address, _expiry, _underlying_address, _strike_price)
+def s_payoff(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    return self._s_payoff(_currency, _expiry, _underlying, _strike_price)
 
 
 @public
 @constant
-def underwriter_payout(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return self._underwriter_payout(_currency_address, _expiry, _underlying_address, _strike_price)
+def u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    return self._u_payoff(_currency, _expiry, _underlying, _strike_price)
 
 
 
 # admin functions
 @public
-def register_shield_market(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bool:
+def register_shield_market(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
     assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
-    _shield_market_hash: bytes32 = self._shield_market_hash(_currency_address, _expiry, _underlying_address, _strike_price)
+    _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     self.registered_shield_markets[_shield_market_hash] = True
 
     return True
@@ -208,19 +202,19 @@ def register_shield_market(_currency_address: address, _expiry: timestamp, _unde
 
 # non-admin functions
 @public
-def exercise_shield_currency(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
-    _currency_quantity: uint256) -> bool:
+def exercise_s_token(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256,
+    _quantity: uint256) -> bool:
     assert block.timestamp > _expiry
-    self._l_currency_from_s_currency(_currency_address, _expiry, _underlying_address, _strike_price, _currency_quantity, msg.sender)
+    self._payout_s(_currency, _expiry, _underlying, _strike_price, _quantity, msg.sender)
 
     return True
 
 
 @public
-def exercise_underwriter_currency(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
-    _currency_quantity: uint256, _recipient: address, _pool_address: address) -> bool:
+def exercise_u_token(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256,
+    _quantity: uint256, _recipient: address, _pool_address: address) -> bool:
     assert msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert block.timestamp > _expiry
-    self._l_currency_from_u_currency(_currency_address, _expiry, _underlying_address, _strike_price, _currency_quantity, _recipient, _pool_address)
+    self._payout_u(_currency, _expiry, _underlying, _strike_price, _quantity, _recipient, _pool_address)
 
     return True

@@ -21,7 +21,7 @@ DAOInitialized: event({_setter: indexed(address), _dao_type: indexed(uint256), _
 TemplateSettingsUpdated: event({_setter: indexed(address), _template_type: indexed(uint256), _template_address: address})
 
 # Variables of the protocol.
-protocol_currency_address: public(address)
+LST: public(address)
 owner: public(address)
 # dao_type => dao_address
 daos: public(map(uint256, address))
@@ -35,9 +35,9 @@ DAO_TYPE_INTEREST_POOL: public(uint256)
 DAO_TYPE_UNDERWRITER_POOL: public(uint256)
 DAO_TYPE_MARKET: public(uint256)
 
-TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
-TEMPLATE_TYPE_CURRENCY_ERC1155: public(uint256)
-TEMPLATE_TYPE_CURRENCY_POOL: public(uint256)
+TEMPLATE_TYPE_ERC20: public(uint256)
+TEMPLATE_TYPE_MFT: public(uint256)
+TEMPLATE_TYPE_TOKEN_POOL: public(uint256)
 TEMPLATE_TYPE_INTEREST_POOL: public(uint256)
 TEMPLATE_TYPE_UNDERWRITER_POOL: public(uint256)
 
@@ -46,71 +46,76 @@ initialized: public(bool)
 
 @public
 def __init__(
-        _address_currency_dao: address,
-        _address_protocol_currency: address,
-        _template_address_currency_pool: address,
-        _template_address_currency_erc20: address,
-        _template_address_currency_erc1155: address,
-        _address_interest_pool_dao: address,
-        _template_address_interest_pool: address,
-        _address_underwriter_pool_dao: address,
-        _template_address_underwriter_pool: address,
-        _address_market_dao: address,
+        _LST: address,
+        _dao_currency: address,
+        _template_token_pool: address,
+        _dao_interest_pool: address,
+        _template_interest_pool: address,
+        _dao_underwriter_pool: address,
+        _template_underwriter_pool: address,
+        _dao_market: address,
+        _template_erc20: address,
+        _template_mft: address,
     ):
     # Before init, need to deploy the following template contracts:
+    #. PoolNameRegistryTemplate
     #. CurrencyDao
-    #. ContinuousCurrencyPoolERC20Template1
+    #. ERC20TokenPoolTemplate
     #. InterestPoolDao
-    #. InterestPoolTemplate1
+    #. InterestPoolTemplate
     #. UnderwriterPoolDao
-    #. UnderwriterPoolTemplate1
-    #. ERC20Template1
-    #. ERC1155Template2
+    #. UnderwriterPoolTemplate
     #. MarketDao
+    #. PositionRegistryTemplate
+    #. SimplePriceOracleTemplate
+    #. SimpleCollateralAuctionCurveTemplate
+    #. ShieldPayoutDao
+    #. ERC20Template
+    #. MultiFungibleTokenTemplate
 
     self.initialized = True
     self.owner = msg.sender
-    self.protocol_currency_address = _address_protocol_currency
+    self.LST = _LST
 
     self.DAO_TYPE_CURRENCY = 1
     self.DAO_TYPE_INTEREST_POOL = 2
     self.DAO_TYPE_UNDERWRITER_POOL = 3
     self.DAO_TYPE_MARKET = 4
 
-    self.TEMPLATE_TYPE_CURRENCY_ERC20 = 1
-    self.TEMPLATE_TYPE_CURRENCY_ERC1155 = 2
-    self.TEMPLATE_TYPE_CURRENCY_POOL = 3
+    self.TEMPLATE_TYPE_ERC20 = 1
+    self.TEMPLATE_TYPE_MFT = 2
+    self.TEMPLATE_TYPE_TOKEN_POOL = 3
     self.TEMPLATE_TYPE_INTEREST_POOL = 4
     self.TEMPLATE_TYPE_UNDERWRITER_POOL = 5
 
     # set dao addresses
-    assert _address_currency_dao.is_contract
-    self.daos[self.DAO_TYPE_CURRENCY] = _address_currency_dao
+    assert _dao_currency.is_contract
+    self.daos[self.DAO_TYPE_CURRENCY] = _dao_currency
 
-    assert _address_interest_pool_dao.is_contract
-    self.daos[self.DAO_TYPE_INTEREST_POOL] = _address_interest_pool_dao
+    assert _dao_interest_pool.is_contract
+    self.daos[self.DAO_TYPE_INTEREST_POOL] = _dao_interest_pool
 
-    assert _address_underwriter_pool_dao.is_contract
-    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _address_underwriter_pool_dao
+    assert _dao_underwriter_pool.is_contract
+    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_underwriter_pool
 
-    assert _address_market_dao.is_contract
-    self.daos[self.DAO_TYPE_MARKET] = _address_market_dao
+    assert _dao_market.is_contract
+    self.daos[self.DAO_TYPE_MARKET] = _dao_market
 
     # set template addresses
-    assert _template_address_currency_erc20.is_contract
-    self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20] = _template_address_currency_erc20
+    assert _template_erc20.is_contract
+    self.templates[self.TEMPLATE_TYPE_ERC20] = _template_erc20
 
-    assert _template_address_currency_erc1155.is_contract
-    self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC1155] = _template_address_currency_erc1155
+    assert _template_mft.is_contract
+    self.templates[self.TEMPLATE_TYPE_MFT] = _template_mft
 
-    assert _template_address_currency_pool.is_contract
-    self.templates[self.TEMPLATE_TYPE_CURRENCY_POOL] = _template_address_currency_pool
+    assert _template_token_pool.is_contract
+    self.templates[self.TEMPLATE_TYPE_TOKEN_POOL] = _template_token_pool
 
-    assert _template_address_interest_pool.is_contract
-    self.templates[self.TEMPLATE_TYPE_INTEREST_POOL] = _template_address_interest_pool
+    assert _template_interest_pool.is_contract
+    self.templates[self.TEMPLATE_TYPE_INTEREST_POOL] = _template_interest_pool
 
-    assert _template_address_underwriter_pool.is_contract
-    self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL] = _template_address_underwriter_pool
+    assert _template_underwriter_pool.is_contract
+    self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL] = _template_underwriter_pool
 
 
 @private
@@ -127,10 +132,10 @@ def _is_initialized() -> bool:
 #     assert msg.sender == self.owner
 #     # initialize currency dao
 #     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).initialize(
-#         self.owner, self.protocol_currency_address,
-#         self.templates[self.TEMPLATE_TYPE_CURRENCY_POOL],
-#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20],
-#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC1155]
+#         self.owner, self.LST,
+#         self.templates[self.TEMPLATE_TYPE_TOKEN_POOL],
+#         self.templates[self.TEMPLATE_TYPE_ERC20],
+#         self.templates[self.TEMPLATE_TYPE_MFT]
 #     ))
 #
 #     log.DAOInitialized(msg.sender, self.DAO_TYPE_CURRENCY, self.daos[self.DAO_TYPE_CURRENCY])
@@ -144,10 +149,10 @@ def _is_initialized() -> bool:
 #     assert msg.sender == self.owner
 #     # initialize interest pool dao
 #     assert_modifiable(InterestPoolDao(self.daos[self.DAO_TYPE_INTEREST_POOL]).initialize(
-#         self.owner, self.protocol_currency_address,
+#         self.owner, self.LST,
 #         self.daos[self.DAO_TYPE_CURRENCY],
 #         self.templates[self.TEMPLATE_TYPE_INTEREST_POOL],
-#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]
+#         self.templates[self.TEMPLATE_TYPE_ERC20]
 #     ))
 #
 #     log.DAOInitialized(msg.sender, self.DAO_TYPE_INTEREST_POOL, self.daos[self.DAO_TYPE_INTEREST_POOL])
@@ -161,10 +166,10 @@ def _is_initialized() -> bool:
 #     assert msg.sender == self.owner
 #     # initialize underwriter pool dao
 #     assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).initialize(
-#         self.owner, self.protocol_currency_address,
+#         self.owner, self.LST,
 #         self.daos[self.DAO_TYPE_CURRENCY],
 #         self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL],
-#         self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]
+#         self.templates[self.TEMPLATE_TYPE_ERC20]
 #     ))
 #
 #     log.DAOInitialized(msg.sender, self.DAO_TYPE_UNDERWRITER_POOL, self.daos[self.DAO_TYPE_UNDERWRITER_POOL])
@@ -178,7 +183,7 @@ def _is_initialized() -> bool:
 #     assert msg.sender == self.owner
 #     # initialize loan dao
 #     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).initialize(
-#         self.owner, self.protocol_currency_address,
+#         self.owner, self.LST,
 #         self.daos[self.DAO_TYPE_CURRENCY],
 #         self.daos[self.DAO_TYPE_INTEREST_POOL],
 #         self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
@@ -205,9 +210,9 @@ def set_expiry_support(_timestamp: timestamp, _label: string[3], _is_active: boo
 def set_template(_template_type: uint256, _address: address) -> bool:
     assert self._is_initialized()
     assert msg.sender == self.owner
-    assert _template_type == self.TEMPLATE_TYPE_CURRENCY_ERC20 or \
-           _template_type == self.TEMPLATE_TYPE_CURRENCY_ERC1155 or \
-           _template_type == self.TEMPLATE_TYPE_CURRENCY_POOL or \
+    assert _template_type == self.TEMPLATE_TYPE_ERC20 or \
+           _template_type == self.TEMPLATE_TYPE_MFT or \
+           _template_type == self.TEMPLATE_TYPE_TOKEN_POOL or \
            _template_type == self.TEMPLATE_TYPE_INTEREST_POOL or \
            _template_type == self.TEMPLATE_TYPE_UNDERWRITER_POOL
     self.templates[_template_type] = _address

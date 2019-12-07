@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_interest_pool: address, _dao_address_underwriter_pool: address, _minimum_name_registration_stake_value: uint256) -> bool:
+def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _name_registration_minimum_stake: uint256) -> bool:
     pass
 
 @constant
@@ -31,7 +31,7 @@ def deregister_name(_name: string[64]) -> bool:
 
 @constant
 @public
-def protocol_currency_address() -> address:
+def LST() -> address:
     pass
 
 @constant
@@ -61,7 +61,7 @@ def names__operator(arg0: uint256) -> address:
 
 @constant
 @public
-def names__protocol_currency_staked(arg0: uint256) -> uint256:
+def names__LST_staked(arg0: uint256) -> uint256:
     pass
 
 @constant
@@ -91,12 +91,12 @@ def name_registration_stake_lookup__name_length(arg0: int128) -> int128:
 
 @constant
 @public
-def name_registration_stake_lookup__stake_value(arg0: int128) -> uint256:
+def name_registration_stake_lookup__stake(arg0: int128) -> uint256:
     pass
 
 @constant
 @public
-def minimum_name_registration_stake_value() -> uint256:
+def name_registration_minimum_stake() -> uint256:
     pass
 
 @constant

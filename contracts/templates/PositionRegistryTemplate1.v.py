@@ -8,8 +8,8 @@ from contracts.interfaces import MarketDao
 # Structs
 struct Position:
     borrower: address
-    currency_address: address
-    underlying_address: address
+    currency: address
+    underlying: address
     currency_value: uint256
     underlying_value: uint256
     status: uint256
@@ -108,8 +108,8 @@ def _open_position(_borrower: address, _currency_value: uint256,
 
     self.positions[self.last_position_id] = Position({
         borrower: _borrower,
-        currency_address: _currency_address,
-        underlying_address: _underlying_address,
+        currency: _currency_address,
+        underlying: _underlying_address,
         currency_value: _currency_value,
         underlying_value: as_unitless_number(_currency_value) / as_unitless_number(_strike_price),
         status: self.LOAN_STATUS_ACTIVE,
@@ -174,9 +174,9 @@ def repay_loan(_position_id: uint256) -> bool:
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_position(
         self.positions[_position_id].borrower,
         self.positions[_position_id].currency_value,
-        self.positions[_position_id].currency_address,
+        self.positions[_position_id].currency,
         self.positions[_position_id].expiry,
-        self.positions[_position_id].underlying_address,
+        self.positions[_position_id].underlying,
         self.positions[_position_id].strike_price
     ))
     # close position
@@ -192,9 +192,9 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_liquidated_position(
         self.positions[_position_id].borrower,
         self.positions[_position_id].currency_value,
-        self.positions[_position_id].currency_address,
+        self.positions[_position_id].currency,
         self.positions[_position_id].expiry,
-        self.positions[_position_id].underlying_address,
+        self.positions[_position_id].underlying,
         self.positions[_position_id].strike_price
     ))
     # liquidate position

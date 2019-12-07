@@ -1,37 +1,42 @@
 # Functions
 
 @public
-def initialize(_accepts_public_contributions: bool, _operator: address, _i_currency_operator_fee_percentage: uint256, _s_currency_operator_fee_percentage: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency_address: address, _l_currency_address: address, _i_currency_address: address, _s_currency_address: address, _u_currency_address: address, _dao_address_protocol: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _s_address: address, _u_address: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
 @public
-def expiry_hash(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
+def total_pool_share_token_supply() -> uint256:
     pass
 
 @constant
 @public
-def total_pool_currency_supply() -> uint256:
+def l_token_balance() -> uint256:
     pass
 
 @constant
 @public
-def l_currency_balance() -> uint256:
+def i_token_balance(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def i_currency_balance(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def s_token_balance(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def s_currency_balance(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def u_token_balance(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def u_currency_balance(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def total_u_token_balance() -> uint256:
+    pass
+
+@constant
+@public
+def total_l_token_balance() -> uint256:
     pass
 
 @constant
@@ -41,17 +46,17 @@ def exchange_rate() -> uint256:
 
 @constant
 @public
-def estimated_pool_tokens(_l_currency_value: uint256) -> uint256:
+def estimated_pool_share_tokens(_l_token_value: uint256) -> uint256:
     pass
 
 @constant
 @public
-def i_currency_fee(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def i_token_fee(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def s_currency_fee(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def s_token_fee(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @public
@@ -64,11 +69,7 @@ def supportsInterface(interfaceID: bytes[10]) -> bool:
     pass
 
 @public
-def onERC1155Received(_operator: address, _from: address, _id: uint256, _value: uint256, _data: bytes32) -> bytes[10]:
-    pass
-
-@public
-def onERC1155BatchReceived(_operator: address, _from: address, _ids: uint256[5], _values: uint256[5], _data: bytes32) -> bytes[10]:
+def onMFTReceived(_operator: address, _from: address, _id: uint256, _value: uint256, _data: bytes32) -> bytes[10]:
     pass
 
 @public
@@ -76,27 +77,27 @@ def set_public_contribution_acceptance(_acceptance: bool) -> bool:
     pass
 
 @public
-def register_expiry(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _i_currency_cost_per_day: uint256, _s_currency_cost_per_day: uint256) -> bool:
+def support_mft(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _i_cost_per_day: uint256, _s_cost_per_day: uint256) -> bool:
     pass
 
 @public
-def remove_expiry(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
+def withdraw_mft_support(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def set_i_currency_cost_per_day(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
+def set_i_cost_per_day(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @public
-def set_s_currency_cost_per_day(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
+def set_s_cost_per_day(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @public
-def set_i_currency_operator_fee_percentage(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
+def set_fee_percentage_per_i_token(_value: uint256) -> bool:
     pass
 
 @public
-def set_s_currency_operator_fee_percentage(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _value: uint256) -> bool:
+def set_fee_percentage_per_s_token(_value: uint256) -> bool:
     pass
 
 @public
@@ -104,41 +105,45 @@ def withdraw_earnings() -> bool:
     pass
 
 @public
-def increment_i_currency_supply(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _l_currency_value: uint256) -> bool:
+def deregister() -> bool:
     pass
 
 @public
-def decrement_i_currency_supply(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _l_currency_value: uint256) -> bool:
+def increment_s_tokens(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _l_token_value: uint256) -> bool:
     pass
 
 @public
-def purchase_pool_currency(_l_currency_value: uint256) -> bool:
+def decrement_s_tokens(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _l_token_value: uint256) -> bool:
     pass
 
 @public
-def redeem_pool_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _pool_currency_value: uint256) -> bool:
+def contribute(_l_token_value: uint256) -> bool:
     pass
 
 @public
-def purchase_i_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _i_currency_value: uint256, _fee_in_l_currency: uint256) -> bool:
+def withdraw_contribution(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _pool_share_token_value: uint256) -> bool:
     pass
 
 @public
-def purchase_s_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _s_currency_value: uint256, _fee_in_l_currency: uint256) -> bool:
+def purchase_i_tokens(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _i_token_value: uint256, _fee_in_l_token: uint256) -> bool:
     pass
 
 @public
-def exercise_u_currency(_expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _u_currency_value: uint256) -> bool:
+def purchase_s_tokens(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _s_token_value: uint256, _fee_in_l_token: uint256) -> bool:
+    pass
+
+@public
+def exercise_u_token(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _u_token_value: uint256) -> bool:
+    pass
+
+@constant
+@public
+def protocol_dao() -> address:
     pass
 
 @constant
 @public
 def owner() -> address:
-    pass
-
-@constant
-@public
-def protocol_dao_address() -> address:
     pass
 
 @constant
@@ -163,42 +168,42 @@ def initial_exchange_rate() -> uint256:
 
 @constant
 @public
-def currency_address() -> address:
+def currency() -> address:
     pass
 
 @constant
 @public
-def l_currency_address() -> address:
+def l_address() -> address:
     pass
 
 @constant
 @public
-def i_currency_address() -> address:
+def i_address() -> address:
     pass
 
 @constant
 @public
-def s_currency_address() -> address:
+def s_address() -> address:
     pass
 
 @constant
 @public
-def u_currency_address() -> address:
+def u_address() -> address:
     pass
 
 @constant
 @public
-def pool_currency_address() -> address:
+def pool_share_token() -> address:
     pass
 
 @constant
 @public
-def i_currency_operator_fee_percentage() -> uint256:
+def fee_percentage_per_i_token() -> uint256:
     pass
 
 @constant
 @public
-def s_currency_operator_fee_percentage() -> uint256:
+def fee_percentage_per_s_token() -> uint256:
     pass
 
 @constant
@@ -208,62 +213,62 @@ def operator_earnings() -> uint256:
 
 @constant
 @public
-def expiries__expiry_timestamp(arg0: bytes32) -> uint256(sec, positional):
+def markets__expiry(arg0: bytes32) -> uint256(sec, positional):
     pass
 
 @constant
 @public
-def expiries__i_currency_hash(arg0: bytes32) -> bytes32:
+def markets__i_id(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def expiries__i_currency_id(arg0: bytes32) -> uint256:
+def markets__s_id(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def expiries__s_currency_hash(arg0: bytes32) -> bytes32:
+def markets__u_id(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def expiries__s_currency_id(arg0: bytes32) -> uint256:
+def markets__i_cost_per_day(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def expiries__u_currency_hash(arg0: bytes32) -> bytes32:
+def markets__s_cost_per_day(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def expiries__u_currency_id(arg0: bytes32) -> uint256:
+def markets__is_active(arg0: bytes32) -> bool:
     pass
 
 @constant
 @public
-def expiries__i_currency_cost_per_day(arg0: bytes32) -> uint256:
+def markets__id(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def expiries__s_currency_cost_per_day(arg0: bytes32) -> uint256:
+def markets__hash(arg0: bytes32) -> bytes32:
     pass
 
 @constant
 @public
-def expiries__is_active(arg0: bytes32) -> bool:
+def market_id_to_hash(arg0: uint256) -> bytes32:
     pass
 
 @constant
 @public
-def expiries__hash(arg0: bytes32) -> bytes32:
+def next_market_id() -> uint256:
     pass
 
 @constant
 @public
-def is_initialized() -> bool:
+def initialized() -> bool:
     pass
 
 @constant

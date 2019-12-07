@@ -1,87 +1,75 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _template_address_currency_pool: address, _template_address_currency_erc20: address, _template_address_currency_erc1155: address, _dao_address_market: address) -> bool:
+def initialize(_owner: address, _LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _dao_market: address) -> bool:
     pass
 
 @constant
 @public
-def multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
+def mft_hash(_address: address, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bytes32:
     pass
 
 @constant
 @public
-def is_currency_valid(_currency_address: address) -> bool:
+def is_token_supported(_token: address) -> bool:
     pass
 
 @constant
 @public
-def multi_fungible_addresses(_currency_address: address) -> (address, address, address, address, address):
+def mft_addresses(_token: address) -> (address, address, address, address, address):
     pass
 
 @public
-def deposit_multi_fungible_l_currency(_currency_address: address, _from: address, _to: address, _value: uint256) -> bool:
+def deposit_l(_token: address, _from: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256) -> bool:
-    pass
-
-@public
-def deposit_currency_to_pool(_currency_address: address, _from: address, _value: uint256) -> bool:
-    pass
-
-@public
-def release_currency_from_pool(_currency_address: address, _to: address, _value: uint256) -> bool:
-    pass
-
-@public
-def create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def deposit_erc20(_token: address, _from: address, _to: address, _value: uint256) -> bool:
     pass
 
 @constant
 @public
-def multi_fungible_currency_f(_currency_address: address, _expiry: uint256(sec, positional)) -> (address, uint256):
+def f_token(_currency: address, _expiry: uint256(sec, positional)) -> (address, uint256):
     pass
 
 @constant
 @public
-def multi_fungible_currency_i(_currency_address: address, _expiry: uint256(sec, positional)) -> (address, uint256):
+def i_token(_currency: address, _expiry: uint256(sec, positional)) -> (address, uint256):
     pass
 
 @constant
 @public
-def multi_fungible_currency_s(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (address, uint256):
+def s_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> (address, uint256):
     pass
 
 @constant
 @public
-def multi_fungible_currency_u(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> (address, uint256):
+def u_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> (address, uint256):
     pass
 
 @public
-def mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256) -> bool:
+def mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256) -> bool:
+def burn_as_self_authorized_erc20(_token: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256) -> bool:
+def mint_mft(_token: address, _id: uint256, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def burn_erc1155(_currency_address: address, _id: uint256, _from: address, _value: uint256) -> bool:
+def burn_mft(_token: address, _id: uint256, _from: address, _value: uint256) -> bool:
     pass
 
 @public
-def transfer_as_self_authorized_erc1155_and_authorize(_from: address, _to: address, _currency_address: address, _id: uint256, _value: uint256) -> bool:
+def transfer_mft(_from: address, _to: address, _token: address, _id: uint256, _value: uint256) -> bool:
     pass
 
 @constant
 @public
-def pool_hash(_currency_address: address) -> bytes32:
+def pool_hash(_token: address) -> bytes32:
     pass
 
 @public
@@ -89,33 +77,37 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
-def set_currency_support(_currency_address: address, _is_active: bool) -> bool:
+def set_token_support(_token: address, _is_active: bool) -> bool:
     pass
 
 @public
-def currency_to_l_currency(_currency_address: address, _value: uint256) -> bool:
+def wrap(_token: address, _value: uint256) -> bool:
     pass
 
 @public
-def l_currency_to_currency(_currency_address: address, _value: uint256) -> bool:
+def unwrap(_token: address, _value: uint256) -> bool:
     pass
 
 @public
-def secure_l_currency_to_currency(_currency_address: address, _to: address, _value: uint256) -> bool:
+def authorized_unwrap(_token: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def secure_deposit_currency_to_pool(_currency_address: address, _from: address, _value: uint256) -> bool:
+def authorized_deposit_token(_token: address, _from: address, _value: uint256) -> bool:
+    pass
+
+@public
+def authorized_withdraw_token(_token: address, _to: address, _value: uint256) -> bool:
     pass
 
 @constant
 @public
-def protocol_currency_address() -> address:
+def LST() -> address:
     pass
 
 @constant
 @public
-def protocol_dao_address() -> address:
+def protocol_dao() -> address:
     pass
 
 @constant
@@ -125,52 +117,52 @@ def owner() -> address:
 
 @constant
 @public
-def currencies__currency_address(arg0: address) -> address:
+def token_addresses__eth(arg0: address) -> address:
     pass
 
 @constant
 @public
-def currencies__l_currency_address(arg0: address) -> address:
+def token_addresses__l(arg0: address) -> address:
     pass
 
 @constant
 @public
-def currencies__i_currency_address(arg0: address) -> address:
+def token_addresses__i(arg0: address) -> address:
     pass
 
 @constant
 @public
-def currencies__f_currency_address(arg0: address) -> address:
+def token_addresses__f(arg0: address) -> address:
     pass
 
 @constant
 @public
-def currencies__s_currency_address(arg0: address) -> address:
+def token_addresses__s(arg0: address) -> address:
     pass
 
 @constant
 @public
-def currencies__u_currency_address(arg0: address) -> address:
+def token_addresses__u(arg0: address) -> address:
     pass
 
 @constant
 @public
-def pools__currency_address(arg0: bytes32) -> address:
+def pools__currency(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def pools__pool_name(arg0: bytes32) -> string[64]:
+def pools__name(arg0: bytes32) -> string[64]:
     pass
 
 @constant
 @public
-def pools__pool_address(arg0: bytes32) -> address:
+def pools__address_(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def pools__pool_operator(arg0: bytes32) -> address:
+def pools__operator(arg0: bytes32) -> address:
     pass
 
 @constant
@@ -190,62 +182,62 @@ def templates(arg0: uint256) -> address:
 
 @constant
 @public
-def multi_fungible_currencies__parent_currency_address(arg0: bytes32) -> address:
+def mfts__address_(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def multi_fungible_currencies__currency_address(arg0: bytes32) -> address:
+def mfts__currency(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def multi_fungible_currencies__expiry_timestamp(arg0: bytes32) -> uint256(sec, positional):
+def mfts__expiry(arg0: bytes32) -> uint256(sec, positional):
     pass
 
 @constant
 @public
-def multi_fungible_currencies__underlying_address(arg0: bytes32) -> address:
+def mfts__underlying(arg0: bytes32) -> address:
     pass
 
 @constant
 @public
-def multi_fungible_currencies__strike_price(arg0: bytes32) -> uint256:
+def mfts__strike_price(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def multi_fungible_currencies__has_id(arg0: bytes32) -> bool:
+def mfts__has_id(arg0: bytes32) -> bool:
     pass
 
 @constant
 @public
-def multi_fungible_currencies__token_id(arg0: bytes32) -> uint256:
+def mfts__id(arg0: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def multi_fungible_currencies__hash(arg0: bytes32) -> bytes32:
+def mfts__hash(arg0: bytes32) -> bytes32:
     pass
 
 @constant
 @public
-def MULTI_FUNGIBLE_CURRENCY_DIMENSION_I() -> uint256:
+def MFT_DIMENSION_I() -> uint256:
     pass
 
 @constant
 @public
-def MULTI_FUNGIBLE_CURRENCY_DIMENSION_F() -> uint256:
+def MFT_DIMENSION_F() -> uint256:
     pass
 
 @constant
 @public
-def MULTI_FUNGIBLE_CURRENCY_DIMENSION_S() -> uint256:
+def MFT_DIMENSION_S() -> uint256:
     pass
 
 @constant
 @public
-def MULTI_FUNGIBLE_CURRENCY_DIMENSION_U() -> uint256:
+def MFT_DIMENSION_U() -> uint256:
     pass
 
 @constant
@@ -255,17 +247,17 @@ def DAO_TYPE_MARKET() -> uint256:
 
 @constant
 @public
-def TEMPLATE_TYPE_CURRENCY_POOL() -> uint256:
+def TEMPLATE_TYPE_TOKEN_POOL() -> uint256:
     pass
 
 @constant
 @public
-def TEMPLATE_TYPE_CURRENCY_ERC20() -> uint256:
+def TEMPLATE_TYPE_TOKEN_ERC20() -> uint256:
     pass
 
 @constant
 @public
-def TEMPLATE_TYPE_CURRENCY_ERC1155() -> uint256:
+def TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE() -> uint256:
     pass
 
 @constant

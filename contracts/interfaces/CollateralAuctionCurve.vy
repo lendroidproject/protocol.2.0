@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_currency_address: address, _underlying_address: address, _expiry: uint256(sec, positional), _dao_address_market: address) -> bool:
+def start(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
     pass
 
 @constant
@@ -17,10 +17,6 @@ def lot() -> uint256:
 @constant
 @public
 def current_price() -> uint256:
-    pass
-
-@public
-def start(_underlying_price_per_currency_at_expiry: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
     pass
 
 @public
@@ -42,12 +38,12 @@ def owner() -> address:
 
 @constant
 @public
-def currency_address() -> address:
+def currency() -> address:
     pass
 
 @constant
 @public
-def underlying_address() -> address:
+def underlying() -> address:
     pass
 
 @constant
@@ -62,7 +58,7 @@ def max_supply() -> uint256:
 
 @constant
 @public
-def currency_value_remaining() -> uint256:
+def currency_remaining() -> uint256:
     pass
 
 @constant
@@ -78,16 +74,6 @@ def end_price() -> uint256:
 @constant
 @public
 def is_active() -> bool:
-    pass
-
-@constant
-@public
-def daos(arg0: uint256) -> address:
-    pass
-
-@constant
-@public
-def DAO_TYPE_MARKET() -> uint256:
     pass
 
 @constant

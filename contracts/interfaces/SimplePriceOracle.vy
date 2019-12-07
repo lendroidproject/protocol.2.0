@@ -11,12 +11,12 @@ def owner() -> address:
 
 @constant
 @public
-def currency_address() -> address:
+def currency() -> address:
     pass
 
 @constant
 @public
-def underlying_address() -> address:
+def underlying() -> address:
     pass
 
 @constant

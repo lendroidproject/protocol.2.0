@@ -10,17 +10,17 @@ from contracts.interfaces import CurrencyDao
 struct Name:
     name: string[64]
     operator: address
-    protocol_currency_staked: uint256
+    LST_staked: uint256
     active_pools: uint256
     id: uint256
 
 
 struct NameRegistrationStakeLookup:
     name_length: int128
-    stake_value: uint256
+    stake: uint256
 
 
-protocol_currency_address: public(address)
+LST: public(address)
 protocol_dao_address: public(address)
 owner: public(address)
 # dao_type => dao_address
@@ -33,7 +33,7 @@ name_to_id: public(map(string[64], uint256))
 next_name_id: public(uint256)
 # lookup_key => lookup_value
 name_registration_stake_lookup: public(map(int128, NameRegistrationStakeLookup))
-name_registration_stake_minimum_value: public(uint256)
+name_registration_minimum_stake: public(uint256)
 
 initialized: public(bool)
 
@@ -45,34 +45,34 @@ DAO_TYPE_UNDERWRITER_POOL: public(uint256)
 @public
 def initialize(
         _owner: address,
-        _protocol_currency_address: address,
-        _dao_address_currency: address,
-        _dao_address_interest_pool: address,
-        _dao_address_underwriter_pool: address,
-        _minimum_name_registration_stake_value: uint256
+        _LST: address,
+        _dao_currency: address,
+        _dao_interest_pool: address,
+        _dao_underwriter_pool: address,
+        _name_registration_minimum_stake: uint256
     ) -> bool:
     assert not self.initialized
     self.initialized = True
     self.owner = _owner
     self.protocol_dao_address = msg.sender
-    self.protocol_currency_address = _protocol_currency_address
+    self.LST = _LST
 
     self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
+    self.daos[self.DAO_TYPE_CURRENCY] = _dao_currency
     self.DAO_TYPE_INTEREST_POOL = 2
-    self.daos[self.DAO_TYPE_INTEREST_POOL] = _dao_address_interest_pool
+    self.daos[self.DAO_TYPE_INTEREST_POOL] = _dao_interest_pool
     self.DAO_TYPE_UNDERWRITER_POOL = 3
-    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_address_underwriter_pool
+    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_underwriter_pool
 
-    self.name_registration_stake_minimum_value = _minimum_name_registration_stake_value
+    self.name_registration_minimum_stake = _name_registration_minimum_stake
 
     return True
 
 
 @private
-def _deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256):
+def _deposit_erc20(_token: address, _from: address, _to: address, _value: uint256):
     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
-        _currency_address, _from, _to, _value))
+        _token, _from, _to, _value))
 
 
 @private
@@ -84,35 +84,34 @@ def _name_exists(_name: string[64]) -> bool:
 @private
 def _add_name(_name: string[64], _operator: address, _active_pools: uint256):
     self.name_to_id[_name] = self.next_name_id
-    _protocol_currency_stake_value: uint256 = self.name_registration_stake_lookup[len(_name)].stake_value
-    if as_unitless_number(_protocol_currency_stake_value) == 0:
-        _protocol_currency_stake_value = self.name_registration_stake_minimum_value
+    _LST_stake: uint256 = self.name_registration_stake_lookup[len(_name)].stake
+    if as_unitless_number(_LST_stake) == 0:
+        _LST_stake = self.name_registration_minimum_stake
     self.names[self.next_name_id] = Name({
         name: _name,
         operator: _operator,
-        protocol_currency_staked: _protocol_currency_stake_value,
+        LST_staked: _LST_stake,
         active_pools: _active_pools,
         id: self.next_name_id
     })
     self.next_name_id += 1
 
-    self._deposit_erc20(self.protocol_currency_address, _operator, self,
-        _protocol_currency_stake_value)
+    self._deposit_erc20(self.LST, _operator, self, _LST_stake)
 
 
 @private
 def _remove_name(_name: string[64], _name_id: uint256):
 
-    assert_modifiable(ERC20(self.protocol_currency_address).transfer(
+    assert_modifiable(ERC20(self.LST).transfer(
         self.names[_name_id].operator,
-        self.names[_name_id].protocol_currency_staked
+        self.names[_name_id].LST_staked
     ))
     clear(self.name_to_id[_name])
     if as_unitless_number(_name_id) < as_unitless_number(self.next_name_id - 1):
         self.names[_name_id] = Name({
             name: self.names[self.next_name_id - 1].name,
             operator: self.names[self.next_name_id - 1].operator,
-            protocol_currency_staked: self.names[self.next_name_id - 1].protocol_currency_staked,
+            LST_staked: self.names[self.next_name_id - 1].LST_staked,
             active_pools: self.names[self.next_name_id - 1].active_pools,
             id: _name_id
         })
@@ -156,7 +155,7 @@ def increment_pool_count(_name: string[64]) -> bool:
            msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert self._name_exists(_name)
     _name_id: uint256 = self.name_to_id[_name]
-    assert as_unitless_number(self.names[_name_id].protocol_currency_staked) > 0
+    assert as_unitless_number(self.names[_name_id].LST_staked) > 0
     assert self.names[_name_id].operator == msg.sender
     self.names[_name_id].active_pools += 1
 
@@ -170,7 +169,7 @@ def decrement_pool_count(_name: string[64]) -> bool:
            msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert self._name_exists(_name)
     _name_id: uint256 = self.name_to_id[_name]
-    assert as_unitless_number(self.names[_name_id].protocol_currency_staked) > 0
+    assert as_unitless_number(self.names[_name_id].LST_staked) > 0
     assert self.names[_name_id].operator == msg.sender
     self.names[_name_id].active_pools -= 1
 

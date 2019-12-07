@@ -1,44 +1,44 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_currency: address, _dao_address_underwriter_pool: address, _dao_address_market: address) -> bool:
+def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_underwriter_pool: address, _dao_market: address) -> bool:
     pass
 
 @constant
 @public
-def shield_market_hash(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bytes32:
+def shield_market_hash(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bytes32:
     pass
 
 @constant
 @public
-def shield_payout(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def s_payoff(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @constant
 @public
-def underwriter_payout(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> uint256:
+def u_payoff(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
 @public
-def register_shield_market(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256) -> bool:
+def register_shield_market(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def exercise_shield_currency(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256) -> bool:
+def exercise_s_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _quantity: uint256) -> bool:
     pass
 
 @public
-def exercise_underwriter_currency(_currency_address: address, _expiry: uint256(sec, positional), _underlying_address: address, _strike_price: uint256, _currency_quantity: uint256, _recipient: address, _pool_address: address) -> bool:
-    pass
-
-@constant
-@public
-def protocol_currency_address() -> address:
+def exercise_u_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _quantity: uint256, _recipient: address, _pool_address: address) -> bool:
     pass
 
 @constant
 @public
-def protocol_dao_address() -> address:
+def LST() -> address:
+    pass
+
+@constant
+@public
+def protocol_dao() -> address:
     pass
 
 @constant

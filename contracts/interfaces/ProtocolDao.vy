@@ -6,22 +6,6 @@ TemplateSettingsUpdated: event({_setter: address, _template_type: uint256, _temp
 # Functions
 
 @public
-def initialize_currency_dao() -> bool:
-    pass
-
-@public
-def initialize_interest_pool_dao() -> bool:
-    pass
-
-@public
-def initialize_underwriter_pool_dao() -> bool:
-    pass
-
-@public
-def initialize_loan_dao() -> bool:
-    pass
-
-@public
 def set_expiry_support(_timestamp: uint256(sec, positional), _label: string[3], _is_active: bool) -> bool:
     pass
 
@@ -31,7 +15,7 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 
 @constant
 @public
-def protocol_currency_address() -> address:
+def LST() -> address:
     pass
 
 @constant
@@ -81,22 +65,22 @@ def DAO_TYPE_UNDERWRITER_POOL() -> uint256:
 
 @constant
 @public
-def DAO_TYPE_LOAN() -> uint256:
+def DAO_TYPE_MARKET() -> uint256:
     pass
 
 @constant
 @public
-def TEMPLATE_TYPE_CURRENCY_ERC20() -> uint256:
+def TEMPLATE_TYPE_ERC20() -> uint256:
     pass
 
 @constant
 @public
-def TEMPLATE_TYPE_CURRENCY_ERC1155() -> uint256:
+def TEMPLATE_TYPE_MFT() -> uint256:
     pass
 
 @constant
 @public
-def TEMPLATE_TYPE_CURRENCY_POOL() -> uint256:
+def TEMPLATE_TYPE_TOKEN_POOL() -> uint256:
     pass
 
 @constant

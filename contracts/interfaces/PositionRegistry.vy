@@ -48,12 +48,12 @@ def positions__borrower(arg0: uint256) -> address:
 
 @constant
 @public
-def positions__currency_address(arg0: uint256) -> address:
+def positions__currency(arg0: uint256) -> address:
     pass
 
 @constant
 @public
-def positions__underlying_address(arg0: uint256) -> address:
+def positions__underlying(arg0: uint256) -> address:
     pass
 
 @constant
@@ -104,11 +104,6 @@ def borrow_position_index(arg0: address, arg1: uint256) -> uint256:
 @constant
 @public
 def borrow_position(arg0: address, arg1: uint256) -> uint256:
-    pass
-
-@constant
-@public
-def last_offer_index() -> uint256:
     pass
 
 @constant

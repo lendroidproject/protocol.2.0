@@ -3,32 +3,40 @@
 
 
 from contracts.interfaces import ERC20
+from contracts.interfaces import MultiFungibleToken
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import InterestPool
 from contracts.interfaces import PoolNameRegistry
 
 # structs
 struct Pool:
-    currency_address: address
-    pool_name: string[64]
-    pool_address: address
-    pool_operator: address
-    multi_fungible_currencies_supported: uint256
-    protocol_currency_staked: uint256
+    currency: address
+    name: string[64]
+    address_: address
+    operator: address
+    mft_count: uint256
+    LST_staked: uint256
+    is_active: bool
+    id: uint256
 
-struct MultiFungibleCurrency:
-    parent_currency_address: address
-    currency_address: address
-    expiry_timestamp: timestamp
+
+struct MFT:
+    address_: address
+    currency: address
+    expiry: timestamp
+    underlying: address
+    strike_price: uint256
     has_id: bool
-    token_id: uint256
+    id: uint256
     hash: bytes32
 
-# Events
-PoolRegistered: event({_operator: indexed(address), _currency_address: indexed(address), _pool_address: indexed(address)})
 
-protocol_currency_address: public(address)
-protocol_dao_address: public(address)
+# Events
+PoolRegistered: event({_operator: indexed(address), _currency: indexed(address), address_: indexed(address)})
+PoolDeRegistered: event({_operator: indexed(address), _currency: indexed(address), address_: indexed(address)})
+
+LST: public(address)
+protocol_dao: public(address)
 owner: public(address)
 # dao_type => dao_address
 daos: public(map(uint256, address))
@@ -36,79 +44,67 @@ daos: public(map(uint256, address))
 registries: public(map(uint256, address))
 # template_name => template_contract_address
 templates: public(map(uint256, address))
-# pool_name => Pool
+# name => Pool
 pools: public(map(string[64], Pool))
-# currency_hash => MultiFungibleCurrency
-multi_fungible_currencies: public(map(bytes32, MultiFungibleCurrency))
-# count of multi_fungible_currencies_supported => fee_multiplies
-fee_multiplier_per_multi_fungible_currency_supported: public(map(uint256, uint256))
-minimum_multi_fungible_currency_support_fee: public(uint256)
-# pool_name => (_expiry => stake)
-protocol_currency_staked: public(map(string[64], map(timestamp, uint256)))
-
-MULTI_FUNGIBLE_CURRENCY_DIMENSION_I: public(uint256)
-MULTI_FUNGIBLE_CURRENCY_DIMENSION_F: public(uint256)
-MULTI_FUNGIBLE_CURRENCY_DIMENSION_S: public(uint256)
-MULTI_FUNGIBLE_CURRENCY_DIMENSION_U: public(uint256)
+# pool id => pool name
+pool_id_to_name: public(map(uint256, string[64]))
+# pool id counter
+next_pool_id: public(uint256)
+# _mft_hash => MFT
+mfts: public(map(bytes32, MFT))
+# mft_count => fee_multiplier
+fee_multiplier_per_mft_count: public(map(uint256, uint256))
+minimum_mft_fee: public(uint256)
+# pool name => (_market_hash => stake)
+LST_staked_per_mft: public(map(string[64], map(bytes32, uint256)))
 
 REGISTRY_TYPE_POOL_NAME: public(uint256)
 
 DAO_TYPE_CURRENCY: public(uint256)
 
 TEMPLATE_TYPE_INTEREST_POOL: public(uint256)
-TEMPLATE_TYPE_CURRENCY_ERC20: public(uint256)
+TEMPLATE_TYPE_TOKEN_ERC20: public(uint256)
 
 initialized: public(bool)
-
-
-@private
-@constant
-def _is_initialized() -> bool:
-    return self.initialized == True
 
 
 @public
 def initialize(
         _owner: address,
-        _protocol_currency_address: address,
-        _registry_address_pool_name: address,
-        _dao_address_currency: address,
-        _template_address_interest_pool: address,
-        _template_address_currency_erc20: address
+        _LST: address,
+        _registry_pool_name: address,
+        _dao_currency: address,
+        _template_interest_pool: address,
+        _template_token_erc20: address
         ) -> bool:
-    assert not self._is_initialized()
+    assert not self.initialized
     self.initialized = True
     self.owner = _owner
-    self.protocol_dao_address = msg.sender
-    self.protocol_currency_address = _protocol_currency_address
+    self.protocol_dao = msg.sender
+    self.LST = _LST
 
     self.REGISTRY_TYPE_POOL_NAME = 1
-    self.registries[self.REGISTRY_TYPE_POOL_NAME] = _registry_address_pool_name
-
-    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_I = 1
-    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_F = 2
-    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_S = 3
-    self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_U = 4
+    self.registries[self.REGISTRY_TYPE_POOL_NAME] = _registry_pool_name
 
     self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_address_currency
+    self.daos[self.DAO_TYPE_CURRENCY] = _dao_currency
 
     self.TEMPLATE_TYPE_INTEREST_POOL = 1
-    self.TEMPLATE_TYPE_CURRENCY_ERC20 = 2
-    self.templates[self.TEMPLATE_TYPE_INTEREST_POOL] = _template_address_interest_pool
-    self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20] = _template_address_currency_erc20
+    self.TEMPLATE_TYPE_TOKEN_ERC20 = 2
+    self.templates[self.TEMPLATE_TYPE_INTEREST_POOL] = _template_interest_pool
+    self.templates[self.TEMPLATE_TYPE_TOKEN_ERC20] = _template_token_erc20
 
     return True
 
 
 @private
 @constant
-def _multi_fungible_currency_hash(parent_currency_address: address, _currency_address: address, _expiry: timestamp) -> bytes32:
+def _mft_hash(_address: address, _currency: address, _expiry: timestamp) -> bytes32:
     return keccak256(
         concat(
-            convert(self.protocol_dao_address, bytes32),
-            convert(parent_currency_address, bytes32),
-            convert(_currency_address, bytes32),
+            convert(self.protocol_dao, bytes32),
+            convert(_address, bytes32),
+            convert(_currency, bytes32),
             convert(_expiry, bytes32),
             convert(ZERO_ADDRESS, bytes32),
             convert(0, bytes32)
@@ -118,130 +114,146 @@ def _multi_fungible_currency_hash(parent_currency_address: address, _currency_ad
 
 @private
 @constant
-def _is_currency_valid(_currency_address: address) -> bool:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_currency_valid(_currency_address)
+def _market_hash(_currency: address, _expiry: timestamp) -> bytes32:
+    return keccak256(
+        concat(
+            convert(self.protocol_dao, bytes32),
+            convert(_currency, bytes32),
+            convert(_expiry, bytes32),
+            convert(ZERO_ADDRESS, bytes32),
+            convert(0, bytes32)
+        )
+    )
 
 
 @private
 @constant
-def _multi_fungible_addresses(_currency_address: address) -> (address, address, address, address, address):
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).multi_fungible_addresses(_currency_address)
+def _is_token_supported(_token: address) -> bool:
+    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_token_supported(_token)
 
 
 @private
-def _validate_pool(_pool_name: string[64], _pool_address: address):
-    assert self.pools[_pool_name].pool_address == _pool_address
+@constant
+def _mft_addresses(_token: address) -> (address, address, address, address, address):
+    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mft_addresses(_token)
 
 
 @private
-def _deposit_multi_fungible_l_currency(_currency_address: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_multi_fungible_l_currency(
-        _currency_address, _from, _to, _value))
+def _validate_pool(_name: string[64], _address: address):
+    assert self.pools[_name].address_ == _address
 
 
 @private
-def _deposit_erc20(_currency_address: address, _from: address, _to: address, _value: uint256):
+def _deposit_l(_token: address, _from: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_l(
+        _token, _from, _to, _value))
+
+
+@private
+def _deposit_erc20(_token: address, _from: address, _to: address, _value: uint256):
     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
-        _currency_address, _from, _to, _value))
+        _token, _from, _to, _value))
 
 
 @private
-def _create_erc1155_type(_parent_currency_type: uint256, _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> uint256:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).create_erc1155_type(_parent_currency_type, _currency_address, _expiry, _underlying_address, _strike_price)
+def _get_or_create_mft_id(_token: address, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    return MultiFungibleToken(_token).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
 
 
 @private
-def _mint_and_self_authorize_erc20(_currency_address: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_currency_address, _to, _value))
+def _mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
 
 
 @private
-def _burn_as_self_authorized_erc20(_currency_address: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_currency_address, _to, _value))
+def _burn_as_self_authorized_erc20(_token: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_token, _to, _value))
 
 
 @private
-def _mint_and_self_authorize_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc1155(_currency_address, _id, _to, _value))
+def _mint_mft(_token: address, _id: uint256, _to: address, _value: uint256):
+    assert_modifiable(MultiFungibleToken(_token).mint(_id, _to, _value))
 
 
 @private
-def _burn_erc1155(_currency_address: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_erc1155(_currency_address, _id, _to, _value))
+def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
+    assert_modifiable(MultiFungibleToken(_token).burn(_id, _from, _value))
 
 
 @private
 @constant
-def _protocol_currency_stake_value(_pool_name: string[64]) -> uint256:
-    if self.pools[_pool_name].multi_fungible_currencies_supported == 0:
-        return self.minimum_multi_fungible_currency_support_fee
-    _multiplier: uint256 = self.fee_multiplier_per_multi_fungible_currency_supported[self.pools[_pool_name].multi_fungible_currencies_supported+1]
+def _LST_stake_value(_name: string[64]) -> uint256:
+    if self.pools[_name].mft_count == 0:
+        return self.minimum_mft_fee
+    _multiplier: uint256 = self.fee_multiplier_per_mft_count[self.pools[_name].mft_count+1]
     if _multiplier == 0:
-        _multiplier = self.fee_multiplier_per_multi_fungible_currency_supported[0]
-    return as_unitless_number(self.pools[_pool_name].protocol_currency_staked) * as_unitless_number(_multiplier)
+        _multiplier = self.fee_multiplier_per_mft_count[0]
+    return as_unitless_number(self.pools[_name].LST_staked) * as_unitless_number(_multiplier)
 
 
 @private
-def _stake_protocol_currency(_pool_name: string[64], _expiry: timestamp):
-    _protocol_currency_value: uint256 = self._protocol_currency_stake_value(_pool_name)
-    assert as_unitless_number(_protocol_currency_value) > 0
-    self.pools[_pool_name].protocol_currency_staked += _protocol_currency_value
-    self.pools[_pool_name].multi_fungible_currencies_supported += 1
-    self.protocol_currency_staked[_pool_name][_expiry] = _protocol_currency_value
-    self._deposit_erc20(self.protocol_currency_address,
-        self.pools[_pool_name].pool_operator, self, _protocol_currency_value)
+def _stake_LST(_name: string[64], _expiry: timestamp):
+    _LST_value: uint256 = self._LST_stake_value(_name)
+    assert as_unitless_number(_LST_value) > 0
+    self.pools[_name].LST_staked += _LST_value
+    self.pools[_name].mft_count += 1
+    _market_hash: bytes32 = self._market_hash(self.pools[_name].currency, _expiry)
+    self.LST_staked_per_mft[_name][_market_hash] = _LST_value
+    self._deposit_erc20(self.LST,
+        self.pools[_name].operator, self, _LST_value)
 
 
 @private
-def _release_staked_protocol_currency(_pool_name: string[64], _expiry: timestamp):
-    # release staked lst to support fi currency
-    _protocol_currency_value: uint256 = self.protocol_currency_staked[_pool_name][_expiry]
-    assert as_unitless_number(_protocol_currency_value) > 0
-    self.pools[_pool_name].protocol_currency_staked -= _protocol_currency_value
-    self.pools[_pool_name].multi_fungible_currencies_supported -= 1
-    clear(self.protocol_currency_staked[_pool_name][_expiry])
-    assert_modifiable(ERC20(self.protocol_currency_address).transfer(
-        self.pools[_pool_name].pool_operator, _protocol_currency_value
+def _release_staked_LST(_name: string[64], _expiry: timestamp):
+    # release staked LST to support currency market
+    _market_hash: bytes32 = self._market_hash(self.pools[_name].currency, _expiry)
+    _LST_value: uint256 = self.LST_staked_per_mft[_name][_market_hash]
+    assert as_unitless_number(_LST_value) > 0
+    self.pools[_name].LST_staked -= _LST_value
+    self.pools[_name].mft_count -= 1
+    clear(self.LST_staked_per_mft[_name][_market_hash])
+    assert_modifiable(ERC20(self.LST).transfer(
+        self.pools[_name].operator, _LST_value
     ))
 
 
 @public
 @constant
-def currency_dao_address() -> address:
+def currency_dao() -> address:
     return self.daos[self.DAO_TYPE_CURRENCY]
 
 
 @public
 @constant
-def protocol_currency_stake_value(_pool_name: string[64]) -> uint256:
-    return self._protocol_currency_stake_value(_pool_name)
+def LST_stake_value(_name: string[64]) -> uint256:
+    return self._LST_stake_value(_name)
 
 
 # admin functions
 
 
 @public
-def set_minimum_multi_fungible_currency_support_fee(_value: uint256) -> bool:
-    assert self._is_initialized()
+def set_minimum_mft_fee(_value: uint256) -> bool:
+    assert self.initialized
     assert msg.sender == self.owner
-    self.minimum_multi_fungible_currency_support_fee = _value
+    self.minimum_mft_fee = _value
 
     return True
 
 
 @public
-def set_fee_multiplier_per_multi_fungible_currency_supported(
-    _multi_fungible_currency_count: uint256, _value: uint256) -> bool:
-    assert self._is_initialized()
+def set_fee_multiplier_per_mft_count(
+    _mft_count: uint256, _value: uint256) -> bool:
+    assert self.initialized
     assert msg.sender == self.owner
-    self.fee_multiplier_per_multi_fungible_currency_supported[_multi_fungible_currency_count] = _value
+    self.fee_multiplier_per_mft_count[_mft_count] = _value
 
     return True
 
 
 @public
 def set_template(_template_type: uint256, _address: address) -> bool:
-    assert self._is_initialized()
+    assert self.initialized
     assert msg.sender == self.owner
     assert _template_type == self.TEMPLATE_TYPE_INTEREST_POOL
     self.templates[_template_type] = _address
@@ -251,13 +263,13 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 @public
 def register_pool(
     _accepts_public_contributions: bool,
-    _currency_address: address, _name: string[64], _symbol: string[32],
+    _currency: address, _name: string[64], _symbol: string[32],
     _initial_exchange_rate: uint256,
-    _i_currency_operator_fee_percentage: uint256
+    _fee_percentage_per_i_token: uint256
     ) -> bool:
-    assert self._is_initialized()
+    assert self.initialized
     # validate currency
-    assert self._is_currency_valid(_currency_address)
+    assert self._is_token_supported(_currency)
     # Increment active pool count if pool name is already registered.
     # Otherwise, register pool name and increment active pool count
     if PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).name_exists(_name):
@@ -265,129 +277,149 @@ def register_pool(
     else:
         assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).register_name_and_pool(_name, msg.sender))
     # initialize pool
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _pool_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_INTEREST_POOL])
-    assert _pool_address.is_contract
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    assert_modifiable(InterestPool(_pool_address).initialize(
+    _l_address: address = ZERO_ADDRESS
+    _i_address: address = ZERO_ADDRESS
+    _f_address: address = ZERO_ADDRESS
+    _s_address: address = ZERO_ADDRESS
+    _u_address: address = ZERO_ADDRESS
+    _address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_INTEREST_POOL])
+    assert _address.is_contract
+    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    assert_modifiable(InterestPool(_address).initialize(
+        self.protocol_dao,
         _accepts_public_contributions,
-        msg.sender, _i_currency_operator_fee_percentage,
+        msg.sender, _fee_percentage_per_i_token,
         _name, _symbol, _initial_exchange_rate,
-        _currency_address,
-        _l_currency_address,
-        _i_currency_address,
-        _f_currency_address,
-        self.templates[self.TEMPLATE_TYPE_CURRENCY_ERC20]))
+        _currency, _l_address, _i_address, _f_address,
+        self.templates[self.TEMPLATE_TYPE_TOKEN_ERC20]))
 
     # save pool metadata
     self.pools[_name] = Pool({
-        currency_address: _currency_address,
-        pool_name: _name,
-        pool_address: _pool_address,
-        pool_operator: msg.sender,
-        multi_fungible_currencies_supported: 0,
-        protocol_currency_staked: 0
+        currency: _currency,
+        name: _name,
+        address_: _address,
+        operator: msg.sender,
+        mft_count: 0,
+        LST_staked: 0,
+        is_active: True,
+        id: self.next_pool_id
     })
+    # map pool id counter to pool name
+    self.pool_id_to_name[self.next_pool_id] = _name
+    # increment pool id counter
+    self.next_pool_id += 1
 
     # log PoolRegistered event
-    log.PoolRegistered(msg.sender, _currency_address, _pool_address)
+    log.PoolRegistered(msg.sender, _currency, _address)
 
     return True
 
 
 @public
-def register_expiry(_pool_name: string[64], _expiry: timestamp) -> (bool, bytes32, bytes32, uint256, uint256):
-    assert self._is_initialized()
-    self._validate_pool(_pool_name, msg.sender)
-    _currency_address: address = self.pools[_pool_name].currency_address
-    assert self._is_currency_valid(_currency_address)
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    _f_hash: bytes32 = self._multi_fungible_currency_hash(_f_currency_address, _currency_address, _expiry)
-    _i_hash: bytes32 = self._multi_fungible_currency_hash(_i_currency_address, _currency_address, _expiry)
-    _f_id: uint256 = self.multi_fungible_currencies[_f_hash].token_id
-    _i_id: uint256 = self.multi_fungible_currencies[_i_hash].token_id
-    # stake lst to support fi currency
-    self._stake_protocol_currency(_pool_name, _expiry)
+def deregister_pool(_name: string[64]) -> bool:
+    assert self.initialized
+    self._validate_pool(_name, msg.sender)
+    # validate that pool does not support any MFT
+    assert self.pools[_name].mft_count == 0
+    # deactivate pool
+    self.pools[_name].is_active = False
+    # Decrement active pool count from name registry
+    assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).decrement_pool_count(_name))
+    # log PoolDeRegistered event
+    log.PoolDeRegistered(self.pools[_name].operator, self.pools[_name].currency,
+        msg.sender)
 
-    if not self.multi_fungible_currencies[_f_hash].has_id:
-        _f_id = self._create_erc1155_type(self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_F, _currency_address, _expiry, ZERO_ADDRESS, 0)
-        self.multi_fungible_currencies[_f_hash] = MultiFungibleCurrency({
-            parent_currency_address: _f_currency_address,
-            currency_address: _currency_address,
-            expiry_timestamp: _expiry,
+    return True
+
+
+@public
+def register_mft_support(_name: string[64], _expiry: timestamp,
+    _f_address: address, _i_address: address) -> (bool, uint256, uint256):
+    assert self.initialized
+    self._validate_pool(_name, msg.sender)
+    _currency: address = self.pools[_name].currency
+    assert self._is_token_supported(_currency)
+    _f_hash: bytes32 = self._mft_hash(_f_address, _currency, _expiry)
+    _i_hash: bytes32 = self._mft_hash(_i_address, _currency, _expiry)
+    _f_id: uint256 = self.mfts[_f_hash].id
+    _i_id: uint256 = self.mfts[_i_hash].id
+    # stake LST to support currency market
+    self._stake_LST(_name, _expiry)
+
+    if not self.mfts[_f_hash].has_id:
+        _f_id = self._get_or_create_mft_id(_f_address, _currency, _expiry, ZERO_ADDRESS, 0)
+        self.mfts[_f_hash] = MFT({
+            address_: _f_address,
+            currency: _currency,
+            expiry: _expiry,
+            underlying: ZERO_ADDRESS,
+            strike_price: 0,
             has_id: True,
-            token_id: _f_id,
+            id: _f_id,
             hash: _f_hash
         })
-    if not self.multi_fungible_currencies[_i_hash].has_id:
-        _i_id = self._create_erc1155_type(self.MULTI_FUNGIBLE_CURRENCY_DIMENSION_I, _currency_address, _expiry, ZERO_ADDRESS, 0)
-        self.multi_fungible_currencies[_i_hash] = MultiFungibleCurrency({
-            parent_currency_address: _i_currency_address,
-            currency_address: _currency_address,
-            expiry_timestamp: _expiry,
+    if not self.mfts[_i_hash].has_id:
+        _i_id = self._get_or_create_mft_id(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
+        self.mfts[_i_hash] = MFT({
+            address_: _i_address,
+            currency: _currency,
+            expiry: _expiry,
+            underlying: ZERO_ADDRESS,
+            strike_price: 0,
             has_id: True,
-            token_id: _i_id,
+            id: _i_id,
             hash: _i_hash
         })
 
-    return True, _f_hash, _i_hash, _f_id, _i_id
+    return True, _f_id, _i_id
 
 
 @public
-def remove_expiry(_pool_name: string[64], _expiry: timestamp) -> bool:
-    assert self._is_initialized()
-    self._validate_pool(_pool_name, msg.sender)
-    self._release_staked_protocol_currency(_pool_name, _expiry)
+def deregister_mft_support(_name: string[64], _expiry: timestamp) -> bool:
+    assert self.initialized
+    self._validate_pool(_name, msg.sender)
+    self._release_staked_LST(_name, _expiry)
 
     return True
 
 
 @public
-def deposit_l_currency(_pool_name: string[64], _from: address, _value: uint256) -> bool:
-    assert self._is_initialized()
-    self._validate_pool(_pool_name, msg.sender)
+def deposit_l(_name: string[64], _from: address, _value: uint256) -> bool:
+    assert self.initialized
+    self._validate_pool(_name, msg.sender)
     # validate currency
-    assert self._is_currency_valid(self.pools[_pool_name].currency_address)
-    self._deposit_multi_fungible_l_currency(self.pools[_pool_name].currency_address, _from, msg.sender, _value)
+    assert self._is_token_supported(self.pools[_name].currency)
+    self._deposit_l(self.pools[_name].currency, _from, msg.sender, _value)
 
     return True
 
 
 @public
-def l_currency_to_i_and_f_currency(_currency_address: address, _expiry: timestamp, _value: uint256) -> bool:
-    assert self._is_initialized()
-    assert self._is_currency_valid(_currency_address)
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    _f_hash: bytes32 = self._multi_fungible_currency_hash(_f_currency_address, _currency_address, _expiry)
-    _i_hash: bytes32 = self._multi_fungible_currency_hash(_i_currency_address, _currency_address, _expiry)
-    assert CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).multi_fungible_currencies__has_id(_f_hash) and \
-           CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).multi_fungible_currencies__has_id(_i_hash)
+def split(_currency: address, _expiry: timestamp, _value: uint256) -> bool:
+    assert self.initialized
+    assert self._is_token_supported(_currency)
+    _l_address: address = ZERO_ADDRESS
+    _i_address: address = ZERO_ADDRESS
+    _f_address: address = ZERO_ADDRESS
+    _s_address: address = ZERO_ADDRESS
+    _u_address: address = ZERO_ADDRESS
+    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    _f_hash: bytes32 = self._mft_hash(_f_address, _currency, _expiry)
+    _i_hash: bytes32 = self._mft_hash(_i_address, _currency, _expiry)
+    assert CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mfts__has_id(_f_hash) and \
+           CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mfts__has_id(_i_hash)
     # burn l_token from interest_pool account
-    self._burn_as_self_authorized_erc20(_l_currency_address, msg.sender, _value)
+    self._burn_as_self_authorized_erc20(_l_address, msg.sender, _value)
     # mint i_token into interest_pool account
-    self._mint_and_self_authorize_erc1155(
-        _i_currency_address,
-        self.multi_fungible_currencies[_i_hash].token_id,
+    self._mint_mft(
+        _i_address,
+        self.mfts[_i_hash].id,
         msg.sender,
         _value
     )
-    self._mint_and_self_authorize_erc1155(
-        _f_currency_address,
-        self.multi_fungible_currencies[_f_hash].token_id,
+    self._mint_mft(
+        _f_address,
+        self.mfts[_f_hash].id,
         msg.sender,
         _value
     )
@@ -395,31 +427,31 @@ def l_currency_to_i_and_f_currency(_currency_address: address, _expiry: timestam
 
 
 @public
-def l_currency_from_i_and_f_currency(_currency_address: address, _expiry: timestamp, _value: uint256) -> bool:
-    assert self._is_initialized()
-    assert self._is_currency_valid(_currency_address)
-    _l_currency_address: address = ZERO_ADDRESS
-    _i_currency_address: address = ZERO_ADDRESS
-    _f_currency_address: address = ZERO_ADDRESS
-    _s_currency_address: address = ZERO_ADDRESS
-    _u_currency_address: address = ZERO_ADDRESS
-    _l_currency_address, _i_currency_address, _f_currency_address, _s_currency_address, _u_currency_address = self._multi_fungible_addresses(_currency_address)
-    _f_hash: bytes32 = self._multi_fungible_currency_hash(_f_currency_address, _currency_address, _expiry)
-    _i_hash: bytes32 = self._multi_fungible_currency_hash(_i_currency_address, _currency_address, _expiry)
-    _f_id: uint256 = self.multi_fungible_currencies[_f_hash].token_id
-    _i_id: uint256 = self.multi_fungible_currencies[_i_hash].token_id
+def fuse(_currency: address, _expiry: timestamp, _value: uint256) -> bool:
+    assert self.initialized
+    assert self._is_token_supported(_currency)
+    _l_address: address = ZERO_ADDRESS
+    _i_address: address = ZERO_ADDRESS
+    _f_address: address = ZERO_ADDRESS
+    _s_address: address = ZERO_ADDRESS
+    _u_address: address = ZERO_ADDRESS
+    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    _f_hash: bytes32 = self._mft_hash(_f_address, _currency, _expiry)
+    _i_hash: bytes32 = self._mft_hash(_i_address, _currency, _expiry)
+    _f_id: uint256 = self.mfts[_f_hash].id
+    _i_id: uint256 = self.mfts[_i_hash].id
     # burn l_token from interest_pool account
-    self._mint_and_self_authorize_erc20(_l_currency_address, msg.sender, _value)
+    self._mint_and_self_authorize_erc20(_l_address, msg.sender, _value)
     # mint i_token into interest_pool account
-    self._burn_erc1155(
-        _i_currency_address,
-        self.multi_fungible_currencies[_i_hash].token_id,
+    self._burn_mft(
+        _i_address,
+        self.mfts[_i_hash].id,
         msg.sender,
         _value
     )
-    self._burn_erc1155(
-        _f_currency_address,
-        self.multi_fungible_currencies[_f_hash].token_id,
+    self._burn_mft(
+        _f_address,
+        self.mfts[_f_hash].id,
         msg.sender,
         _value
     )
