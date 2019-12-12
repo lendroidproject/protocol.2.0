@@ -490,6 +490,15 @@ def _transfer_balance_mft(_token: address,
 
 
 @public
+def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: address):
+    assert self.initialized
+    assert msg.sender == self.owner
+    _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
+    assert_modifiable(CollateralAuctionCurve(self.loan_markets[_loan_market_hash].auction_curve).escape_hatch_underlying())
+    return True
+
+
+@public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     assert self.initialized
     assert msg.sender == self.owner
@@ -516,6 +525,9 @@ def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True
+
+
+# Non-admin actions
 
 
 @public

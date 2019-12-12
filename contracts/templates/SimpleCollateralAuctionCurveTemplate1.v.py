@@ -106,17 +106,28 @@ def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: 
         (as_unitless_number(self.currency_remaining) - as_unitless_number(_currency_value) == 0):
         self.is_active = False
     self.currency_remaining -= _currency_value
-    assert_modifiable(ERC20(self.underlying).transfer(_purchaser, _underlying_value))
     assert_modifiable(MarketDao(self.owner).process_auction_purchase(
         self.currency, self.expiry, self.underlying,
         _purchaser, _currency_value, _underlying_value, self.is_active
     ))
+    assert_modifiable(ERC20(self.underlying).transfer(_purchaser, _underlying_value))
     if (not self.is_active) and (_underlying_remaining > 0):
         assert_modifiable(ERC20(self.underlying).transfer(
             self.owner,
             _underlying_remaining
         ))
 
+
+# Admin actions
+
+@public
+def escape_hatch_underlying() -> bool:
+    assert msg.sender == self.owner
+    assert_modifiable(ERC20(self.underlying).transfer(self.owner, self._lot()))
+    return True
+
+
+# Non-admin actions
 
 @public
 def purchase(_underlying_value: uint256) -> bool:
