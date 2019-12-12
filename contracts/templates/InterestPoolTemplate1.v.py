@@ -367,6 +367,19 @@ def decrement_i_tokens(_expiry: timestamp, _l_token_value: uint256) -> bool:
     return True
 
 
+@public
+def exercise_f_tokens(_expiry: timestamp, _f_token_value: uint256) -> bool:
+    assert self.initialized
+    # validate sender
+    assert msg.sender == self.operator
+    # validate expiry
+    assert self.markets[self._market_hash(_expiry)].is_active == True, "expiry is not offered"
+    assert_modifiable(InterestPoolDao(self.owner).fuse(
+        self.currency, _expiry, _f_token_value))
+
+    return True
+
+
 # Non-admin operations
 
 
@@ -411,14 +424,12 @@ def withdraw_contribution(_expiry: timestamp, _pool_share_token_value: uint256) 
             msg.sender, _l_token_value))
     # transfer f_tokens from self to msg.sender
     assert_modifiable(MultiFungibleToken(self.f_address).safeTransferFrom(
-        self, msg.sender,
-        self.markets[_market_hash].f_id,
+        self, msg.sender, self.markets[_market_hash].f_id,
         _f_token_value, EMPTY_BYTES32))
     # transfer i_tokens from self to msg.sender
     if as_unitless_number(_i_token_value) > 0:
         assert_modifiable(MultiFungibleToken(self.i_address).safeTransferFrom(
-            self, msg.sender,
-            self.markets[_market_hash].i_id,
+            self, msg.sender, self.markets[_market_hash].i_id,
             _i_token_value, EMPTY_BYTES32))
 
     return True
@@ -442,8 +453,7 @@ def purchase_i_tokens(_expiry: timestamp, _i_token_value: uint256, _fee_in_l_tok
     ))
     # transfer i_tokens from self to msg.sender
     assert_modifiable(MultiFungibleToken(self.i_address).safeTransferFrom(
-        self, msg.sender,
-        self.markets[_market_hash].i_id,
+        self, msg.sender, self.markets[_market_hash].i_id,
         _i_token_value, EMPTY_BYTES32))
 
     return True

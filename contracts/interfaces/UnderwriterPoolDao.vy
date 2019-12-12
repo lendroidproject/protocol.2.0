@@ -32,6 +32,22 @@ def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
 @public
+def pause() -> bool:
+    pass
+
+@public
+def unpause() -> bool:
+    pass
+
+@public
+def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    pass
+
+@public
+def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+    pass
+
+@public
 def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256) -> bool:
     pass
 
@@ -57,10 +73,6 @@ def split(_currency: address, _expiry: uint256(sec, positional), _underlying: ad
 
 @public
 def fuse(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
-    pass
-
-@public
-def exercise_u_token(_name: string[64], _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
     pass
 
 @constant
@@ -231,4 +243,9 @@ def TEMPLATE_TYPE_TOKEN_ERC20() -> uint256:
 @constant
 @public
 def initialized() -> bool:
+    pass
+
+@constant
+@public
+def paused() -> bool:
     pass

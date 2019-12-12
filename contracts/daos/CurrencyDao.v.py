@@ -25,17 +25,6 @@ struct Pool:
     hash: bytes32
 
 
-struct MFT:
-    address_: address
-    currency: address
-    expiry: timestamp
-    underlying: address
-    strike_price: uint256
-    has_id: bool
-    id: uint256
-    hash: bytes32
-
-
 LST: public(address)
 protocol_dao: public(address)
 owner: public(address)
@@ -47,13 +36,6 @@ pools: public(map(bytes32, Pool))
 daos: public(map(uint256, address))
 # template_name => template_contract_address
 templates: public(map(uint256, address))
-# currency_hash => MFT
-mfts: public(map(bytes32, MFT))
-
-MFT_DIMENSION_I: public(uint256)
-MFT_DIMENSION_F: public(uint256)
-MFT_DIMENSION_S: public(uint256)
-MFT_DIMENSION_U: public(uint256)
 
 DAO_TYPE_MARKET: public(uint256)
 
@@ -63,6 +45,7 @@ TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE: public(uint256)
 
 
 initialized: public(bool)
+paused: public(bool)
 
 
 @public
@@ -79,11 +62,6 @@ def initialize(
     self.owner = _owner
     self.protocol_dao = msg.sender
     self.LST = _LST
-
-    self.MFT_DIMENSION_I = 1
-    self.MFT_DIMENSION_F = 2
-    self.MFT_DIMENSION_S = 3
-    self.MFT_DIMENSION_U = 4
 
     self.DAO_TYPE_MARKET = 1
     self.daos[self.DAO_TYPE_MARKET] = _dao_market
@@ -245,7 +223,7 @@ def f_token(_currency: address, _expiry: timestamp) -> (address, uint256):
     _mft_hash: bytes32 = self._mft_hash(
         self.token_addresses[_currency].f, _currency, _expiry, ZERO_ADDRESS, 0)
 
-    return self.token_addresses[_currency].f, self.mfts[_mft_hash].id
+    return self.token_addresses[_currency].f, MultiFungibleToken(self.token_addresses[_currency].f).hash_to_id(_mft_hash)
 
 
 @public
@@ -254,7 +232,7 @@ def i_token(_currency: address, _expiry: timestamp) -> (address, uint256):
     _mft_hash: bytes32 = self._mft_hash(
         self.token_addresses[_currency].i, _currency, _expiry, ZERO_ADDRESS, 0)
 
-    return self.token_addresses[_currency].i, self.mfts[_mft_hash].id
+    return self.token_addresses[_currency].i, MultiFungibleToken(self.token_addresses[_currency].i).hash_to_id(_mft_hash)
 
 
 @public
@@ -263,7 +241,7 @@ def s_token(_currency: address, _expiry: timestamp, _underlying: address, _strik
     _mft_hash: bytes32 = self._mft_hash(self.token_addresses[_currency].s,
         _currency, _expiry, _underlying, _strike_price)
 
-    return self.token_addresses[_currency].s, self.mfts[_mft_hash].id
+    return self.token_addresses[_currency].s, MultiFungibleToken(self.token_addresses[_currency].s).hash_to_id(_mft_hash)
 
 
 @public
@@ -272,7 +250,7 @@ def u_token(_currency: address, _expiry: timestamp, _underlying: address, _strik
     _mft_hash: bytes32 = self._mft_hash(self.token_addresses[_currency].u,
         _currency, _expiry, _underlying, _strike_price)
 
-    return self.token_addresses[_currency].u, self.mfts[_mft_hash].id
+    return self.token_addresses[_currency].u, MultiFungibleToken(self.token_addresses[_currency].u).hash_to_id(_mft_hash)
 
 
 @public
@@ -314,6 +292,77 @@ def transfer_mft(_from: address, _to: address, _token: address, _id: uint256, _v
 @constant
 def pool_hash(_token: address) -> bytes32:
     return self._pool_hash(_token)
+
+
+# Escape-hatches
+@private
+def _pause():
+    assert not self.paused
+    self.paused = True
+
+
+@private
+def _unpause():
+    assert self.paused
+    self.paused = False
+
+@public
+def pause() -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._pause()
+    return True
+
+
+@public
+def unpause() -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._unpause()
+    return True
+
+
+@private
+def _transfer_balance_erc20(_token: address):
+    assert_modifiable(ERC20(_token).transfer(self.owner, ERC20(_token).balanceOf(self)))
+
+
+@private
+def _transfer_balance_mft(_token: address,
+    _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256):
+    _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
+    _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
+    _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
+    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(self, self.owner, _id, _balance, EMPTY_BYTES32))
+
+
+@public
+def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    _token: address = _currency
+    if _is_l:
+        _token = self.token_addresses[_currency].l
+    self._transfer_balance_erc20(_currency)
+    return True
+
+
+@public
+def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    _token: address = ZERO_ADDRESS
+    if _sufi_type == 1:
+        _token = self.token_addresses[_currency].f
+    if _sufi_type == 2:
+        _token = self.token_addresses[_currency].i
+    if _sufi_type == 3:
+        _token = self.token_addresses[_currency].s
+    if _sufi_type == 4:
+        _token = self.token_addresses[_currency].u
+    assert not _token == ZERO_ADDRESS
+    self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
+    return True
 
 
 @public
@@ -401,6 +450,7 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
 @public
 def wrap(_token: address, _value: uint256) -> bool:
     assert self.initialized
+    assert not self.paused
     self._wrap(_token, msg.sender, msg.sender, _value)
 
     return True
@@ -409,6 +459,7 @@ def wrap(_token: address, _value: uint256) -> bool:
 @public
 def unwrap(_token: address, _value: uint256) -> bool:
     assert self.initialized
+    assert not self.paused
     self._unwrap(_token, msg.sender, msg.sender, _value)
 
     return True
@@ -417,6 +468,7 @@ def unwrap(_token: address, _value: uint256) -> bool:
 @public
 def authorized_unwrap(_token: address, _to: address, _value: uint256) -> bool:
     assert self.initialized
+    assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
     self._unwrap(_token, msg.sender, _to, _value)
 
@@ -426,6 +478,7 @@ def authorized_unwrap(_token: address, _to: address, _value: uint256) -> bool:
 @public
 def authorized_deposit_token(_token: address, _from: address, _value: uint256) -> bool:
     assert self.initialized
+    assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
     self._deposit_token_to_pool(_token, _from, _value)
 
@@ -435,6 +488,7 @@ def authorized_deposit_token(_token: address, _from: address, _value: uint256) -
 @public
 def authorized_withdraw_token(_token: address, _to: address, _value: uint256) -> bool:
     assert self.initialized
+    assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
     self._withdraw_token_from_pool(_token, _to, _value)
     return True

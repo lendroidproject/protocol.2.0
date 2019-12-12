@@ -110,6 +110,12 @@ def supportsInterface(_interfaceId: bytes[10]) -> bool:
 
 @public
 @constant
+def id(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    return self.hash_to_id[self._hash(_currency, _expiry, _underlying, _strike_price)]
+
+
+@public
+@constant
 def is_valid_id(_id: uint256) -> bool:
     return self.hash_to_id[self.id_to_hash[_id]] == _id
 

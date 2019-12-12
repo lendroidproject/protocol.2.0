@@ -16,6 +16,11 @@ def supportsInterface(_interfaceId: bytes[10]) -> bool:
 
 @constant
 @public
+def id(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
+    pass
+
+@constant
+@public
 def is_valid_id(_id: uint256) -> bool:
     pass
 

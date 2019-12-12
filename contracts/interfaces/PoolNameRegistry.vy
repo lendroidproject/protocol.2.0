@@ -1,3 +1,8 @@
+# Events
+
+StakeMinimumValueUpdated: event({_setter: address, _value: uint256})
+StakeLookupUpdated: event({_setter: address, _name_length: int128, _value: uint256})
+
 # Functions
 
 @public
@@ -7,6 +12,26 @@ def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_inte
 @constant
 @public
 def name_exists(_name: string[64]) -> bool:
+    pass
+
+@public
+def set_name_registration_minimum_stake(_value: uint256) -> bool:
+    pass
+
+@public
+def set_name_registration_stake_lookup(_name_length: int128, _stake: uint256) -> bool:
+    pass
+
+@public
+def pause() -> bool:
+    pass
+
+@public
+def unpause() -> bool:
+    pass
+
+@public
+def escape_hatch_erc20(_currency: address) -> bool:
     pass
 
 @public
@@ -102,6 +127,11 @@ def name_registration_minimum_stake() -> uint256:
 @constant
 @public
 def initialized() -> bool:
+    pass
+
+@constant
+@public
+def paused() -> bool:
     pass
 
 @constant

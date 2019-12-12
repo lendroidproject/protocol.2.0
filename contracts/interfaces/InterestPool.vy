@@ -99,6 +99,10 @@ def decrement_i_tokens(_expiry: uint256(sec, positional), _l_token_value: uint25
     pass
 
 @public
+def exercise_f_tokens(_expiry: uint256(sec, positional), _f_token_value: uint256) -> bool:
+    pass
+
+@public
 def contribute(_l_token_value: uint256) -> bool:
     pass
 

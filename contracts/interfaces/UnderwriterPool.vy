@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _s_address: address, _u_address: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _s_address: address, _u_address: address, _dao_shield_payout: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -117,6 +117,10 @@ def decrement_s_tokens(_expiry: uint256(sec, positional), _underlying: address, 
     pass
 
 @public
+def exercise_u_tokens(_name: string[64], _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
+    pass
+
+@public
 def contribute(_l_token_value: uint256) -> bool:
     pass
 
@@ -132,10 +136,6 @@ def purchase_i_tokens(_expiry: uint256(sec, positional), _underlying: address, _
 def purchase_s_tokens(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _s_token_value: uint256, _fee_in_l_token: uint256) -> bool:
     pass
 
-@public
-def exercise_u_token(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _u_token_value: uint256) -> bool:
-    pass
-
 @constant
 @public
 def protocol_dao() -> address:
@@ -144,6 +144,11 @@ def protocol_dao() -> address:
 @constant
 @public
 def owner() -> address:
+    pass
+
+@constant
+@public
+def daos(arg0: uint256) -> address:
     pass
 
 @constant
@@ -264,6 +269,11 @@ def market_id_to_hash(arg0: uint256) -> bytes32:
 @constant
 @public
 def next_market_id() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
     pass
 
 @constant

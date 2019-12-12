@@ -19,7 +19,7 @@ struct Position:
     id: uint256
 
 
-protocol_currency_address: public(address)
+LST: public(address)
 protocol_dao_address: public(address)
 owner: public(address)
 # dao_type => dao_address
@@ -35,7 +35,7 @@ borrow_position_index: public(map(address, map(uint256, uint256)))
 # borrower_address => (borrow_position_count => loan_id)
 borrow_position: public(map(address, map(uint256, uint256)))
 # nonreentrant locks for positions, inspired from https://github.com/ethereum/vyper/issues/1204
-nonreentrant_offer_locks: map(uint256, bool)
+nonreentrant_position_locks: map(uint256, bool)
 
 DAO_TYPE_MARKET: public(uint256)
 
@@ -44,25 +44,20 @@ LOAN_STATUS_LIQUIDATED: public(uint256)
 LOAN_STATUS_CLOSED: public(uint256)
 
 initialized: public(bool)
-
-
-@private
-@constant
-def _is_initialized() -> bool:
-    return self.initialized == True
+paused: public(bool)
 
 
 @public
 def initialize(
         _owner: address,
-        _protocol_currency_address: address,
+        _LST: address,
         _dao_address_market: address
     ) -> bool:
-    assert not self._is_initialized()
+    assert not self.initialized
     self.initialized = True
     self.owner = _owner
     self.protocol_dao_address = msg.sender
-    self.protocol_currency_address = _protocol_currency_address
+    self.LST = _LST
 
     self.DAO_TYPE_MARKET = 1
     self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
@@ -99,6 +94,18 @@ def _shield_market_hash(_currency_address: address, _expiry: timestamp, _underly
             convert(_strike_price, bytes32)
         )
     )
+
+
+@private
+def _lock_position(_id: uint256):
+    assert self.nonreentrant_position_locks[_id] == False
+    self.nonreentrant_position_locks[_id] = True
+
+
+@private
+def _unlock_position(_id: uint256):
+    assert self.nonreentrant_position_locks[_id] == True
+    self.nonreentrant_position_locks[_id] = False
 
 
 @private
@@ -148,11 +155,47 @@ def _liquidate_position(_position_id: uint256):
     self._remove_position(_position_id)
 
 
+# Admin functions
+
+# Escape-hatches
+
+@private
+def _pause():
+    assert not self.paused
+    self.paused = True
+
+
+@private
+def _unpause():
+    assert self.paused
+    self.paused = False
+
+@public
+def pause() -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._pause()
+    return True
+
+
+@public
+def unpause() -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._unpause()
+    return True
+
+
+# Non-admin functions
+
+
 @public
 def avail_loan(
     _currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256,
     _currency_value: uint256
     ) -> bool:
+    assert self.initialized
+    assert not self.paused
     assert block.timestamp < _expiry
     # create position
     self._open_position(msg.sender, _currency_value,
@@ -167,9 +210,12 @@ def avail_loan(
 
 @public
 def repay_loan(_position_id: uint256) -> bool:
+    assert self.initialized
+    assert not self.paused
     assert block.timestamp < self.positions[_position_id].expiry
     # validate borrower
     assert self.positions[_position_id].borrower == msg.sender
+    self._lock_position(_position_id)
     # validate position currencies
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_position(
         self.positions[_position_id].borrower,
@@ -181,13 +227,17 @@ def repay_loan(_position_id: uint256) -> bool:
     ))
     # close position
     self._close_position(_position_id)
+    self._unlock_position(_position_id)
 
     return True
 
 
 @public
 def close_liquidated_loan(_position_id: uint256) -> bool:
+    assert self.initialized
+    assert not self.paused
     assert block.timestamp > self.positions[_position_id].expiry
+    self._lock_position(_position_id)
     # validate position currencies
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_liquidated_position(
         self.positions[_position_id].borrower,
@@ -199,5 +249,6 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
     ))
     # liquidate position
     self._liquidate_position(_position_id)
+    self._lock_position(_position_id)
 
     return True

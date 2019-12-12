@@ -6,6 +6,7 @@ from contracts.interfaces import ERC20
 from contracts.interfaces import MultiFungibleToken
 from contracts.interfaces import MultiFungibleTokenReceiver
 from contracts.interfaces import UnderwriterPoolDao
+from contracts.interfaces import ShieldPayoutDao
 
 
 implements: MultiFungibleTokenReceiver
@@ -24,6 +25,8 @@ struct Market:
 
 protocol_dao: public(address)
 owner: public(address)
+# dao_type => dao_address
+daos: public(map(uint256, address))
 operator: public(address)
 name: public(string[64])
 symbol: public(string[32])
@@ -42,6 +45,8 @@ markets: public(map(bytes32, Market))
 market_id_to_hash: public(map(uint256, bytes32))
 # market id counter
 next_market_id: public(uint256)
+
+DAO_TYPE_SHIELD_PAYOUT: public(uint256)
 
 initialized: public(bool)
 accepts_public_contributions: public(bool)
@@ -68,6 +73,7 @@ def initialize(
     _currency: address,
     _l_address: address, _i_address: address,
     _s_address: address, _u_address: address,
+    _dao_shield_payout: address,
     _erc20_currency_template_address: address) -> bool:
     assert not self.initialized
     self.initialized = True
@@ -88,6 +94,9 @@ def initialize(
     self.i_address = _i_address
     self.s_address = _s_address
     self.u_address = _u_address
+
+    self.DAO_TYPE_SHIELD_PAYOUT = 1
+    self.daos[self.DAO_TYPE_SHIELD_PAYOUT] = _dao_shield_payout
 
     self.MFT_ACCEPTED = "0xf23a6e61"# bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes)"))
 
@@ -436,6 +445,20 @@ def decrement_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: 
     return True
 
 
+@public
+def exercise_u_tokens(_name: string[64],
+    _currency: address, _expiry: timestamp,
+    _underlying: address, _strike_price: uint256,
+    _value: uint256) -> bool:
+    assert self.initialized
+    assert _expiry > block.timestamp
+    assert_modifiable(
+        ShieldPayoutDao(self.daos[self.DAO_TYPE_SHIELD_PAYOUT]).exercise_u(
+            _currency, _expiry, _underlying, _strike_price, _value))
+
+    return True
+
+
 # Non-admin operations
 
 
@@ -549,22 +572,5 @@ def purchase_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: u
         self, msg.sender,
         self.markets[_market_hash].s_id,
         _s_token_value, EMPTY_BYTES32))
-
-    return True
-
-
-@public
-def exercise_u_token(_expiry: timestamp, _underlying: address, _strike_price: uint256, _u_token_value: uint256) -> bool:
-    assert self.initialized
-    # validate sender
-    assert msg.sender == self.operator
-    # validate expiry
-    _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-    assert self.markets[_market_hash].is_active == True, "expiry is not offered"
-    assert_modifiable(UnderwriterPoolDao(self.owner).exercise_u_token(
-        self.name,
-        self.currency, _expiry, _underlying, _strike_price,
-        _u_token_value
-    ))
 
     return True

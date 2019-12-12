@@ -73,6 +73,22 @@ def pool_hash(_token: address) -> bytes32:
     pass
 
 @public
+def pause() -> bool:
+    pass
+
+@public
+def unpause() -> bool:
+    pass
+
+@public
+def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    pass
+
+@public
+def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+    pass
+
+@public
 def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
@@ -182,66 +198,6 @@ def templates(arg0: uint256) -> address:
 
 @constant
 @public
-def mfts__address_(arg0: bytes32) -> address:
-    pass
-
-@constant
-@public
-def mfts__currency(arg0: bytes32) -> address:
-    pass
-
-@constant
-@public
-def mfts__expiry(arg0: bytes32) -> uint256(sec, positional):
-    pass
-
-@constant
-@public
-def mfts__underlying(arg0: bytes32) -> address:
-    pass
-
-@constant
-@public
-def mfts__strike_price(arg0: bytes32) -> uint256:
-    pass
-
-@constant
-@public
-def mfts__has_id(arg0: bytes32) -> bool:
-    pass
-
-@constant
-@public
-def mfts__id(arg0: bytes32) -> uint256:
-    pass
-
-@constant
-@public
-def mfts__hash(arg0: bytes32) -> bytes32:
-    pass
-
-@constant
-@public
-def MFT_DIMENSION_I() -> uint256:
-    pass
-
-@constant
-@public
-def MFT_DIMENSION_F() -> uint256:
-    pass
-
-@constant
-@public
-def MFT_DIMENSION_S() -> uint256:
-    pass
-
-@constant
-@public
-def MFT_DIMENSION_U() -> uint256:
-    pass
-
-@constant
-@public
 def DAO_TYPE_MARKET() -> uint256:
     pass
 
@@ -263,4 +219,9 @@ def TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE() -> uint256:
 @constant
 @public
 def initialized() -> bool:
+    pass
+
+@constant
+@public
+def paused() -> bool:
     pass

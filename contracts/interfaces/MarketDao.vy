@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_shield_payout: address, _dao_auction: address, _registry_address_position: address, _template_auction_erc20: address) -> bool:
+def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_shield_payout: address, _registry_position: address, _template_auction_erc20: address) -> bool:
     pass
 
 @constant
@@ -38,19 +38,35 @@ def currency_underlying_pair_hash(_currency: address, _underlying: address) -> b
     pass
 
 @public
-def open_shield_market(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _s_address: address, _s_id: uint256, _u_address: address, _u_id: uint256) -> bool:
-    pass
-
-@public
-def settle_loan_market(_loan_market_hash: bytes32):
-    pass
-
-@public
 def set_registry(_registry_type: uint256, _address: address) -> bool:
     pass
 
 @public
 def set_price_oracle(_currency: address, _underlying: address, _oracle: address) -> bool:
+    pass
+
+@public
+def pause() -> bool:
+    pass
+
+@public
+def unpause() -> bool:
+    pass
+
+@public
+def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    pass
+
+@public
+def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+    pass
+
+@public
+def open_shield_market(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _s_address: address, _s_id: uint256, _u_address: address, _u_id: uint256) -> bool:
+    pass
+
+@public
+def settle_loan_market(_loan_market_hash: bytes32):
     pass
 
 @public
@@ -286,11 +302,6 @@ def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
 
 @constant
 @public
-def DAO_TYPE_COLLATERAL_AUCION() -> uint256:
-    pass
-
-@constant
-@public
 def TEMPLATE_TYPE_AUCTION_ERC20() -> uint256:
     pass
 
@@ -342,4 +353,9 @@ def lastValue() -> uint256:
 @constant
 @public
 def initialized() -> bool:
+    pass
+
+@constant
+@public
+def paused() -> bool:
     pass

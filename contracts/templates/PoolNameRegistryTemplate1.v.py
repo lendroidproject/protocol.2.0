@@ -20,6 +20,12 @@ struct NameRegistrationStakeLookup:
     stake: uint256
 
 
+# Events
+StakeMinimumValueUpdated: event({_setter: indexed(address), _value: indexed(uint256)})
+StakeLookupUpdated: event({_setter: indexed(address), _name_length: indexed(int128), _value: indexed(uint256)})
+
+
+# Variables
 LST: public(address)
 protocol_dao_address: public(address)
 owner: public(address)
@@ -31,11 +37,12 @@ names: public(map(uint256, Name))
 name_to_id: public(map(string[64], uint256))
 # name counter
 next_name_id: public(uint256)
-# lookup_key => lookup_value
+# name_length => NameRegistrationStakeLookup
 name_registration_stake_lookup: public(map(int128, NameRegistrationStakeLookup))
 name_registration_minimum_stake: public(uint256)
 
 initialized: public(bool)
+paused: public(bool)
 
 DAO_TYPE_CURRENCY: public(uint256)
 DAO_TYPE_INTEREST_POOL: public(uint256)
@@ -128,9 +135,79 @@ def name_exists(_name: string[64]) -> bool:
     return self._name_exists(_name)
 
 
+# Admin functions
+@public
+def set_name_registration_minimum_stake(_value: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.protocol_dao_address
+    self.name_registration_minimum_stake = _value
+
+    log.StakeMinimumValueUpdated(msg.sender, _value)
+
+    return True
+
+
+@public
+def set_name_registration_stake_lookup(_name_length: int128, _stake: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.protocol_dao_address
+    self.name_registration_stake_lookup[_name_length] = NameRegistrationStakeLookup({
+        name_length: _name_length,
+        stake: _stake
+    })
+
+    log.StakeLookupUpdated(msg.sender, _name_length, _stake)
+
+    return True
+
+
+# Escape-hatches
+@private
+def _pause():
+    assert not self.paused
+    self.paused = True
+
+
+@private
+def _unpause():
+    assert self.paused
+    self.paused = False
+
+@public
+def pause() -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._pause()
+    return True
+
+
+@public
+def unpause() -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._unpause()
+    return True
+
+
+@private
+def _transfer_balance_erc20(_token: address):
+    assert_modifiable(ERC20(_token).transfer(self.owner, ERC20(_token).balanceOf(self)))
+
+
+@public
+def escape_hatch_erc20(_currency: address) -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self._transfer_balance_erc20(_currency)
+    return True
+
+
+# Non-admin functions
+
 @public
 def register_name(_name: string[64]) -> bool:
     assert self.initialized
+    assert not self.paused
     assert not self._name_exists(_name)
     self._add_name(_name, msg.sender, 0)
 
@@ -140,6 +217,7 @@ def register_name(_name: string[64]) -> bool:
 @public
 def register_name_and_pool(_name: string[64], _operator: address) -> bool:
     assert self.initialized
+    assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
            msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert not self._name_exists(_name)
@@ -151,6 +229,7 @@ def register_name_and_pool(_name: string[64], _operator: address) -> bool:
 @public
 def increment_pool_count(_name: string[64]) -> bool:
     assert self.initialized
+    assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
            msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert self._name_exists(_name)
@@ -165,6 +244,7 @@ def increment_pool_count(_name: string[64]) -> bool:
 @public
 def decrement_pool_count(_name: string[64]) -> bool:
     assert self.initialized
+    assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
            msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert self._name_exists(_name)
@@ -179,8 +259,10 @@ def decrement_pool_count(_name: string[64]) -> bool:
 @public
 def deregister_name(_name: string[64]) -> bool:
     assert self.initialized
+    assert not self.paused
     assert self._name_exists(_name)
     _name_id: uint256 = self.name_to_id[_name]
+    assert self.names[_name_id].operator == msg.sender
     assert self.names[_name_id].active_pools == 0
     assert _name_id < self.next_name_id
     self._remove_name(_name, _name_id)

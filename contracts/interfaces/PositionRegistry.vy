@@ -1,7 +1,15 @@
 # Functions
 
 @public
-def initialize(_owner: address, _protocol_currency_address: address, _dao_address_market: address) -> bool:
+def initialize(_owner: address, _LST: address, _dao_address_market: address) -> bool:
+    pass
+
+@public
+def pause() -> bool:
+    pass
+
+@public
+def unpause() -> bool:
     pass
 
 @public
@@ -18,7 +26,7 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
 
 @constant
 @public
-def protocol_currency_address() -> address:
+def LST() -> address:
     pass
 
 @constant
@@ -129,4 +137,9 @@ def LOAN_STATUS_CLOSED() -> uint256:
 @constant
 @public
 def initialized() -> bool:
+    pass
+
+@constant
+@public
+def paused() -> bool:
     pass

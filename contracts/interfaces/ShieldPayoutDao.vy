@@ -24,11 +24,27 @@ def register_shield_market(_currency: address, _expiry: uint256(sec, positional)
     pass
 
 @public
-def exercise_s_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _quantity: uint256) -> bool:
+def pause() -> bool:
     pass
 
 @public
-def exercise_u_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _quantity: uint256, _recipient: address, _pool_address: address) -> bool:
+def unpause() -> bool:
+    pass
+
+@public
+def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    pass
+
+@public
+def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+    pass
+
+@public
+def exercise_s(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _quantity: uint256) -> bool:
+    pass
+
+@public
+def exercise_u(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _quantity: uint256) -> bool:
     pass
 
 @constant
@@ -74,4 +90,9 @@ def DAO_TYPE_MARKET() -> uint256:
 @constant
 @public
 def initialized() -> bool:
+    pass
+
+@constant
+@public
+def paused() -> bool:
     pass
