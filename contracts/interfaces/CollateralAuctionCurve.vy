@@ -20,6 +20,10 @@ def current_price() -> uint256:
     pass
 
 @public
+def escape_hatch_underlying() -> bool:
+    pass
+
+@public
 def purchase(_underlying_value: uint256) -> bool:
     pass
 

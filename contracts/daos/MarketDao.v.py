@@ -242,8 +242,8 @@ def u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _stri
 
 
 @private
-def _deposit_l(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_l(
+def _transfer_l(_token: address, _from: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_l(
         _token, _from, _to, _value))
 
 
@@ -490,7 +490,7 @@ def _transfer_balance_mft(_token: address,
 
 
 @public
-def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: address):
+def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: address) -> bool:
     assert self.initialized
     assert msg.sender == self.owner
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
@@ -628,7 +628,7 @@ def open_position(
         _currency_value
     )
     # transfer l_borrow_currency from borrower to self
-    self._deposit_l(
+    self._transfer_l(
         _underlying, _borrower, self, _underlying_value)
     # transfer lend_currency to _borrower
     self._authorized_withdraw_token(

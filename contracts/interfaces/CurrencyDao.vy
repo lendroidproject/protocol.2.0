@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _dao_market: address) -> bool:
+def initialize(_owner: address, _LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _pool_name_registry: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_market: address) -> bool:
     pass
 
 @constant
@@ -17,14 +17,6 @@ def is_token_supported(_token: address) -> bool:
 @constant
 @public
 def mft_addresses(_token: address) -> (address, address, address, address, address):
-    pass
-
-@public
-def deposit_l(_token: address, _from: address, _to: address, _value: uint256) -> bool:
-    pass
-
-@public
-def deposit_erc20(_token: address, _from: address, _to: address, _value: uint256) -> bool:
     pass
 
 @constant
@@ -55,18 +47,6 @@ def mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256
 def burn_as_self_authorized_erc20(_token: address, _to: address, _value: uint256) -> bool:
     pass
 
-@public
-def mint_mft(_token: address, _id: uint256, _to: address, _value: uint256) -> bool:
-    pass
-
-@public
-def burn_mft(_token: address, _id: uint256, _from: address, _value: uint256) -> bool:
-    pass
-
-@public
-def transfer_mft(_from: address, _to: address, _token: address, _id: uint256, _value: uint256) -> bool:
-    pass
-
 @constant
 @public
 def pool_hash(_token: address) -> bytes32:
@@ -94,6 +74,14 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 
 @public
 def set_token_support(_token: address, _is_active: bool) -> bool:
+    pass
+
+@public
+def authorized_transfer_l(_token: address, _from: address, _to: address, _value: uint256) -> bool:
+    pass
+
+@public
+def authorized_transfer_erc20(_token: address, _from: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
@@ -193,12 +181,32 @@ def daos(arg0: uint256) -> address:
 
 @constant
 @public
+def registries(arg0: uint256) -> address:
+    pass
+
+@constant
+@public
 def templates(arg0: uint256) -> address:
     pass
 
 @constant
 @public
-def DAO_TYPE_MARKET() -> uint256:
+def DAO_INTEREST_POOL() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_UNDERWRITER_POOL() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_MARKET() -> uint256:
+    pass
+
+@constant
+@public
+def REGISTRY_POOL_NAME() -> uint256:
     pass
 
 @constant

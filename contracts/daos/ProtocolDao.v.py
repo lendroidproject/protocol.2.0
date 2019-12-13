@@ -264,6 +264,9 @@ def initialize_currency_dao() -> bool:
         self.templates[self.TEMPLATE_TOKEN_POOL],
         self.templates[self.TEMPLATE_ERC20],
         self.templates[self.TEMPLATE_MFT],
+        self.registries[self.REGISTRY_POOL_NAME],
+        self.daos[self.DAO_INTEREST_POOL],
+        self.daos[self.DAO_UNDERWRITER_POOL],
         self.daos[self.DAO_MARKET]
     ))
 

@@ -77,8 +77,8 @@ def initialize(
 
 
 @private
-def _deposit_erc20(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
+def _transfer_erc20(_token: address, _from: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_erc20(
         _token, _from, _to, _value))
 
 
@@ -103,16 +103,12 @@ def _add_name(_name: string[64], _operator: address, _active_pools: uint256):
     })
     self.next_name_id += 1
 
-    self._deposit_erc20(self.LST, _operator, self, _LST_stake)
+    self._transfer_erc20(self.LST, _operator, self, _LST_stake)
 
 
 @private
 def _remove_name(_name: string[64], _name_id: uint256):
 
-    assert_modifiable(ERC20(self.LST).transfer(
-        self.names[_name_id].operator,
-        self.names[_name_id].LST_staked
-    ))
     clear(self.name_to_id[_name])
     if as_unitless_number(_name_id) < as_unitless_number(self.next_name_id - 1):
         self.names[_name_id] = Name({
@@ -127,6 +123,11 @@ def _remove_name(_name: string[64], _name_id: uint256):
 
     clear(self.names[self.next_name_id - 1])
     self.next_name_id -= 1
+
+    assert_modifiable(ERC20(self.LST).transfer(
+        self.names[_name_id].operator,
+        self.names[_name_id].LST_staked
+    ))
 
 
 @public

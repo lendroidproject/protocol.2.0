@@ -37,8 +37,11 @@ i_address: public(address)
 s_address: public(address)
 u_address: public(address)
 pool_share_token: public(address)
+fee_i_token: public(uint256)
 fee_percentage_per_i_token: public(uint256)
+fee_s_token: public(uint256)
 fee_percentage_per_s_token: public(uint256)
+mft_expiry_limit_days: public(uint256)
 operator_earnings: public(uint256)
 markets: public(map(bytes32, Market))
 # market id => _market_hash
@@ -65,10 +68,10 @@ MFT_ACCEPTED: bytes[10]
 @public
 def initialize(
     _dao_protocol: address,
-    _accepts_public_contributions: bool,
-    _operator: address,
-    _fee_percentage_per_i_token: uint256,
-    _fee_percentage_per_s_token: uint256,
+    _accepts_public_contributions: bool, _operator: address,
+    _fee_i_token: uint256, _fee_percentage_per_i_token: uint256,
+    _fee_s_token: uint256, _fee_percentage_per_s_token: uint256,
+    _mft_expiry_limit: uint256,
     _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256,
     _currency: address,
     _l_address: address, _i_address: address,
@@ -83,8 +86,11 @@ def initialize(
     self.name = _name
     self.initial_exchange_rate = _initial_exchange_rate
     self.currency = _currency
+    self.fee_i_token = _fee_i_token
     self.fee_percentage_per_i_token = _fee_percentage_per_i_token
+    self.fee_s_token = _fee_s_token
     self.fee_percentage_per_s_token = _fee_percentage_per_s_token
+    self.mft_expiry_limit_days = _mft_expiry_limit
     # erc20 token
     _pool_share_token: address = create_forwarder_to(_erc20_currency_template_address)
     self.pool_share_token = _pool_share_token
@@ -305,10 +311,55 @@ def set_public_contribution_acceptance(_acceptance: bool) -> bool:
 
 
 @public
+def set_fee_i_token(_value: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.operator
+    # validate _value
+    assert as_unitless_number(_value) > 0
+    # verify _value cannot exceed current price of i_token
+    if as_unitless_number(self.fee_i_token) > 0:
+        assert _value < self.fee_i_token
+    self.fee_i_token = _value
+
+    return True
+
+
+@public
+def set_fee_s_token(_value: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.operator
+    # validate _value
+    assert as_unitless_number(_value) > 0
+    # verify _value cannot exceed current price of i_token
+    if as_unitless_number(self.fee_s_token) > 0:
+        assert _value < self.fee_s_token
+    self.fee_s_token = _value
+
+    return True
+
+
+@public
+def set_mft_expiry_limit(_days: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.operator
+    # verify current limit is zero / not been previously set
+    assert as_unitless_number(self.mft_expiry_limit_days) == 0
+    # validate _days
+    assert as_unitless_number(_days) > 0
+    self.mft_expiry_limit_days = _days
+
+    return True
+
+
+@public
 def support_mft(_expiry: timestamp, _underlying: address, _strike_price: uint256,
     _i_cost_per_day: uint256, _s_cost_per_day: uint256) -> bool:
     assert self.initialized
     assert msg.sender == self.operator
+    # verify mft_expiry_limit_days has been set
+    # verify _expiry is within supported mft_expiry_limit_days
+    _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
+    assert _expiry <= block.timestamp + _rolling_window
     _external_call_successful: bool = False
     _i_id: uint256 = 0
     _s_id: uint256 = 0
@@ -529,16 +580,18 @@ def withdraw_contribution(_expiry: timestamp, _underlying: address, _strike_pric
 
 
 @public
-def purchase_i_tokens(_expiry: timestamp, _underlying: address, _strike_price: uint256, _i_token_value: uint256, _fee_in_l_token: uint256) -> bool:
+def purchase_i_tokens(_expiry: timestamp, _underlying: address, _strike_price: uint256, _fee_in_l_token: uint256) -> bool:
     assert self.initialized
     # validate expiry
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     assert self.markets[_market_hash].is_active == True, "expiry is not offered"
     assert not self.markets[_market_hash].i_id == 0, "expiry does not have a valid i_token id"
     # validate _i_token_value
+    assert as_unitless_number(_fee_in_l_token) > 0
+    assert as_unitless_number(self.fee_i_token) > 0
+    _i_token_value: uint256 = as_unitless_number(_fee_in_l_token) / as_unitless_number(self.fee_i_token)
     assert self._i_token_balance(_expiry, _underlying, _strike_price) >= _i_token_value
     # transfer l_tokens as fee from msg.sender to self
-    assert as_unitless_number(_fee_in_l_token) > 0
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_i_token) / 100
     self.operator_earnings += as_unitless_number(_operator_fee)
     assert_modifiable(ERC20(self.l_address).transferFrom(
@@ -553,16 +606,18 @@ def purchase_i_tokens(_expiry: timestamp, _underlying: address, _strike_price: u
 
 
 @public
-def purchase_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: uint256, _s_token_value: uint256, _fee_in_l_token: uint256) -> bool:
+def purchase_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: uint256, _fee_in_l_token: uint256) -> bool:
     assert self.initialized
     # validate expiry
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     assert self.markets[_market_hash].is_active == True, "expiry is not offered"
     assert not self.markets[_market_hash].s_id == 0, "expiry does not have a valid s_token id"
     # validate _s_token_value
+    assert as_unitless_number(_fee_in_l_token) > 0
+    assert as_unitless_number(self.fee_s_token) > 0
+    _s_token_value: uint256 = as_unitless_number(_fee_in_l_token) / as_unitless_number(self.fee_s_token)
     assert self._s_token_balance(_expiry, _underlying, _strike_price) >= _s_token_value
     # transfer l_tokens as fee from msg.sender to self
-    assert as_unitless_number(_fee_in_l_token) > 0
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_s_token) / 100
     self.operator_earnings += as_unitless_number(_operator_fee)
     assert_modifiable(ERC20(self.l_address).transferFrom(

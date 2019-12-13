@@ -154,14 +154,14 @@ def _validate_pool(_name: string[64], _address: address):
 
 
 @private
-def _deposit_l(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_l(
+def _transfer_l(_token: address, _from: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_l(
         _token, _from, _to, _value))
 
 
 @private
-def _deposit_erc20(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).deposit_erc20(
+def _transfer_erc20(_token: address, _from: address, _to: address, _value: uint256):
+    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_erc20(
         _token, _from, _to, _value))
 
 
@@ -209,7 +209,7 @@ def _stake_LST(_name: string[64], _currency: address, _expiry: timestamp, _under
     self.pools[_name].LST_staked += _LST_value
     self.pools[_name].mft_count += 1
     self.LST_staked_per_mft[_name][_market_hash] = _LST_value
-    self._deposit_erc20(self.LST, self.pools[_name].operator, self, _LST_value)
+    self._transfer_erc20(self.LST, self.pools[_name].operator, self, _LST_value)
 
 
 @private
@@ -349,8 +349,9 @@ def register_pool(
     _accepts_public_contributions: bool,
     _currency: address, _name: string[64], _symbol: string[32],
     _initial_exchange_rate: uint256,
-    _fee_percentage_per_i_token: uint256,
-    _fee_percentage_per_s_token: uint256) -> bool:
+    _fee_i_token: uint256, _fee_percentage_per_i_token: uint256,
+    _fee_s_token: uint256, _fee_percentage_per_s_token: uint256,
+    _mft_expiry_limit: uint256) -> bool:
     assert self.initialized
     assert not self.paused
     # validate currency
@@ -372,8 +373,10 @@ def register_pool(
     _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
     assert_modifiable(UnderwriterPool(_address).initialize(
         self.protocol_dao,
-        _accepts_public_contributions,
-        msg.sender, _fee_percentage_per_i_token, _fee_percentage_per_s_token,
+        _accepts_public_contributions, msg.sender,
+        _fee_i_token, _fee_percentage_per_i_token,
+        _fee_s_token, _fee_percentage_per_s_token,
+        _mft_expiry_limit,
         _name, _symbol, _initial_exchange_rate,
         _currency, _l_address, _i_address, _s_address, _u_address,
         self.daos[self.DAO_TYPE_SHIELD_PAYOUT],
@@ -504,7 +507,7 @@ def deposit_l(_name: string[64], _from: address, _value: uint256) -> bool:
     self._validate_pool(_name, msg.sender)
     # validate currency
     assert self._is_token_supported(self.pools[_name].currency)
-    self._deposit_l(self.pools[_name].currency, _from, msg.sender, _value)
+    self._transfer_l(self.pools[_name].currency, _from, msg.sender, _value)
 
     return True
 

@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _f_address: address, _template_token_erc20: address) -> bool:
+def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_i_token: uint256, _fee_percentage_per_i_token: uint256, _mft_expiry_limit: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _f_address: address, _template_token_erc20: address) -> bool:
     pass
 
 @constant
@@ -67,6 +67,14 @@ def set_public_contribution_acceptance(_acceptance: bool) -> bool:
     pass
 
 @public
+def set_fee_i_token(_value: uint256) -> bool:
+    pass
+
+@public
+def set_mft_expiry_limit(_days: uint256) -> bool:
+    pass
+
+@public
 def support_mft(_expiry: uint256(sec, positional), _i_cost_per_day: uint256) -> bool:
     pass
 
@@ -111,7 +119,7 @@ def withdraw_contribution(_expiry: uint256(sec, positional), _pool_share_token_v
     pass
 
 @public
-def purchase_i_tokens(_expiry: uint256(sec, positional), _i_token_value: uint256, _fee_in_l_token: uint256) -> bool:
+def purchase_i_tokens(_expiry: uint256(sec, positional), _fee_in_l_token: uint256) -> bool:
     pass
 
 @constant
@@ -171,7 +179,17 @@ def pool_share_token() -> address:
 
 @constant
 @public
+def fee_i_token() -> uint256:
+    pass
+
+@constant
+@public
 def fee_percentage_per_i_token() -> uint256:
+    pass
+
+@constant
+@public
+def mft_expiry_limit_days() -> uint256:
     pass
 
 @constant

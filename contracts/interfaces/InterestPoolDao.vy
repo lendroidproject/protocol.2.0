@@ -48,7 +48,7 @@ def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(s
     pass
 
 @public
-def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _fee_percentage_per_i_token: uint256) -> bool:
+def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _fee_i_token: uint256, _fee_percentage_per_i_token: uint256, _mft_expiry_limit: uint256) -> bool:
     pass
 
 @public
