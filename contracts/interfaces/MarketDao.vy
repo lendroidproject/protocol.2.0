@@ -45,6 +45,24 @@ def set_registry(_registry_type: uint256, _address: address) -> bool:
 def set_price_oracle(_currency: address, _underlying: address, _oracle: address) -> bool:
     pass
 
+@constant
+@public
+def maximum_liability_for_currency_market(_currency: address, _expiry: uint256(sec, positional)) -> uint256:
+    pass
+
+@public
+def set_maximum_liability_for_currency_market(_currency: address, _expiry: uint256(sec, positional), _value: uint256) -> bool:
+    pass
+
+@constant
+@public
+def maximum_liability_for_loan_market(_currency: address, _expiry: uint256(sec, positional), _underlying: address) -> uint256:
+    pass
+
+@public
+def set_maximum_liability_for_loan_market(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _value: uint256) -> bool:
+    pass
+
 @public
 def pause() -> bool:
     pass
@@ -277,6 +295,11 @@ def shield_market_id_to_hash(arg0: uint256(sec, positional), arg1: uint256) -> b
 @constant
 @public
 def price_oracles(arg0: bytes32) -> address:
+    pass
+
+@constant
+@public
+def maximum_market_liabilities(arg0: bytes32) -> uint256:
     pass
 
 @constant

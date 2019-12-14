@@ -510,8 +510,8 @@ def _l_to_f_and_i(_currency: address, _expiry: timestamp,
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
     _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
-    _i_id: uint256 = MultiFungibleToken(_i_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
-    _f_id: uint256 = MultiFungibleToken(_f_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
+    _i_id: uint256 = self._get_or_create_mft_id(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
+    _f_id: uint256 = self._get_or_create_mft_id(_f_address, _currency, _expiry, ZERO_ADDRESS, 0)
     assert (not _i_id == 0) and (not _f_id == 0)
     # burn l_token from _from account
     self._burn_as_self_authorized_erc20(_l_address, _from, _value)

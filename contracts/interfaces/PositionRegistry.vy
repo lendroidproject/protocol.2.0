@@ -17,7 +17,7 @@ def avail_loan(_currency_address: address, _expiry: uint256(sec, positional), _u
     pass
 
 @public
-def repay_loan(_position_id: uint256) -> bool:
+def repay_loan(_position_id: uint256, _pay_value: uint256) -> bool:
     pass
 
 @public
@@ -72,6 +72,11 @@ def positions__currency_value(arg0: uint256) -> uint256:
 @constant
 @public
 def positions__underlying_value(arg0: uint256) -> uint256:
+    pass
+
+@constant
+@public
+def positions__repaid_value(arg0: uint256) -> uint256:
     pass
 
 @constant

@@ -542,9 +542,9 @@ def _l_to_i_and_s_and_u(_currency: address, _expiry: timestamp, _underlying: add
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
     _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
-    _i_id: uint256 = MultiFungibleToken(_i_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
-    _s_id: uint256 = MultiFungibleToken(_s_address).id(_currency, _expiry, _underlying, _strike_price)
-    _u_id: uint256 = MultiFungibleToken(_u_address).id(_currency, _expiry, _underlying, _strike_price)
+    _i_id: uint256 = self._get_or_create_mft_id(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
+    _s_id: uint256 = self._get_or_create_mft_id(_s_address, _currency, _expiry, _underlying, _strike_price)
+    _u_id: uint256 = self._get_or_create_mft_id(_u_address, _currency, _expiry, _underlying, _strike_price)
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
     # burn l_token from _from account

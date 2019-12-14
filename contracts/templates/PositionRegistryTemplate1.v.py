@@ -12,6 +12,7 @@ struct Position:
     underlying: address
     currency_value: uint256
     underlying_value: uint256
+    repaid_value: uint256
     status: uint256
     expiry: timestamp
     strike_price: uint256
@@ -119,6 +120,7 @@ def _open_position(_borrower: address, _currency_value: uint256,
         underlying: _underlying_address,
         currency_value: _currency_value,
         underlying_value: as_unitless_number(_currency_value) / as_unitless_number(_strike_price),
+        repaid_value: 0,
         status: self.LOAN_STATUS_ACTIVE,
         expiry: _expiry,
         strike_price: _strike_price,
@@ -144,9 +146,11 @@ def _remove_position(_position_id: uint256):
 
 
 @private
-def _close_position(_position_id: uint256):
-    self.positions[_position_id].status = self.LOAN_STATUS_CLOSED
-    self._remove_position(_position_id)
+def _partial_or_complete_close_position(_position_id: uint256, _pay_value: uint256):
+    self.positions[_position_id].repaid_value += as_unitless_number(_pay_value)
+    if self.positions[_position_id].repaid_value == self.positions[_position_id].currency_value:
+        self.positions[_position_id].status = self.LOAN_STATUS_CLOSED
+        self._remove_position(_position_id)
 
 
 @private
@@ -209,24 +213,25 @@ def avail_loan(
 
 
 @public
-def repay_loan(_position_id: uint256) -> bool:
+def repay_loan(_position_id: uint256, _pay_value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
     assert block.timestamp < self.positions[_position_id].expiry
     # validate borrower
     assert self.positions[_position_id].borrower == msg.sender
+    assert as_unitless_number(self.positions[_position_id].repaid_value) + as_unitless_number(_pay_value) <= as_unitless_number(self.positions[_position_id].currency_value)
     self._lock_position(_position_id)
     # validate position currencies
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_position(
         self.positions[_position_id].borrower,
-        self.positions[_position_id].currency_value,
+        _pay_value,
         self.positions[_position_id].currency,
         self.positions[_position_id].expiry,
         self.positions[_position_id].underlying,
         self.positions[_position_id].strike_price
     ))
     # close position
-    self._close_position(_position_id)
+    self._partial_or_complete_close_position(_position_id, _pay_value)
     self._unlock_position(_position_id)
 
     return True
@@ -239,9 +244,10 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
     assert block.timestamp > self.positions[_position_id].expiry
     self._lock_position(_position_id)
     # validate position currencies
+    _currency_value_remaining: uint256 = as_unitless_number(self.positions[_position_id].currency_value) - as_unitless_number(self.positions[_position_id].repaid_value)
     assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_liquidated_position(
         self.positions[_position_id].borrower,
-        self.positions[_position_id].currency_value,
+        _currency_value_remaining,
         self.positions[_position_id].currency,
         self.positions[_position_id].expiry,
         self.positions[_position_id].underlying,

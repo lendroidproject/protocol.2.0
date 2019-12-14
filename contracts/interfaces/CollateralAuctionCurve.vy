@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def start(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256, _dao_currency: address) -> bool:
+def start(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _f_underlying: address, _f_id_underlying: uint256, _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
     pass
 
 @constant
@@ -20,7 +20,7 @@ def current_price() -> uint256:
     pass
 
 @public
-def escape_hatch_underlying() -> bool:
+def escape_hatch_underlying_f() -> bool:
     pass
 
 @public
@@ -52,6 +52,16 @@ def underlying() -> address:
 
 @constant
 @public
+def f_underlying() -> address:
+    pass
+
+@constant
+@public
+def f_id_underlying() -> uint256:
+    pass
+
+@constant
+@public
 def expiry() -> uint256(sec, positional):
     pass
 
@@ -78,16 +88,6 @@ def end_price() -> uint256:
 @constant
 @public
 def is_active() -> bool:
-    pass
-
-@constant
-@public
-def daos(arg0: uint256) -> address:
-    pass
-
-@constant
-@public
-def DAO_TYPE_CURRENCY() -> uint256:
     pass
 
 @constant

@@ -78,6 +78,7 @@ next_shield_market_id: public(map(timestamp, uint256))
 shield_market_id_to_hash: public(map(timestamp, map(uint256, bytes32)))
 # currency_underlying_pair_hash => price_oracle_address
 price_oracles: public(map(bytes32, address))
+maximum_market_liabilities: public(map(bytes32, uint256))
 
 REGISTRY_TYPE_POSITION: public(uint256)
 
@@ -178,6 +179,12 @@ def _shield_market_hash(_currency: address, _expiry: timestamp, _underlying: add
 
 @private
 @constant
+def _currency_market_hash(_currency: address, _expiry: timestamp) -> bytes32:
+    return self._shield_market_hash(_currency, _expiry, ZERO_ADDRESS, 0)
+
+
+@private
+@constant
 def _loan_market_hash(_currency: address, _expiry: timestamp, _underlying: address) -> bytes32:
     return self._shield_market_hash(_currency, _expiry, _underlying, 0)
 
@@ -269,31 +276,12 @@ def _transfer_mft(_from: address, _to: address, _token: address, _id: uint256, _
 
 
 @private
-def _mint_f(_currency: address, _expiry: timestamp, _to: address, _value: uint256):
-    _token: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
-    assert not _token == ZERO_ADDRESS
-    _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
-    assert not _id == 0
-    self._mint_mft(_token, _id, _to, _value)
-
-
-@private
-def _burn_f(_currency: address, _expiry: timestamp, _from: address, _value: uint256):
-    _token: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
-    assert not _token == ZERO_ADDRESS
-    _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
-    assert not _id == 0
-    self._burn_mft(_token, _id, _from, _value)
-
-
-@private
 def _transfer_f(_currency: address, _expiry: timestamp, _from: address, _to: address, _value: uint256):
     _token: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
     assert not _token == ZERO_ADDRESS
     _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
     assert not _id == 0
     self._transfer_mft(_from, _to, _token, _id, _value)
-
 
 
 # START of MultiFungibleTokenReceiver interface functions
@@ -377,25 +365,27 @@ def _settle_loan_market(_loan_market_hash: bytes32):
         self.loan_markets[_loan_market_hash].auction_curve = _auction
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_SETTLING
         # start collateral auction
+        _f_underlying: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(self.loan_markets[_loan_market_hash].underlying)
+        assert not _f_underlying == ZERO_ADDRESS
+        _f_id_underlying: uint256 = MultiFungibleToken(_f_underlying).id(
+            self.loan_markets[_loan_market_hash].underlying,
+            self.loan_markets[_loan_market_hash].expiry, ZERO_ADDRESS, 0)
+        assert not _f_id_underlying == 0
         assert_modifiable(CollateralAuctionCurve(_auction).start(
             self.loan_markets[_loan_market_hash].currency,
             self.loan_markets[_loan_market_hash].expiry,
             self.loan_markets[_loan_market_hash].underlying,
+            _f_underlying, _f_id_underlying,
             self.loan_markets[_loan_market_hash].settlement_price,
             self.loan_markets[_loan_market_hash].liability,
-            self.loan_markets[_loan_market_hash].collateral,
-            self.daos[self.DAO_TYPE_CURRENCY]
+            self.loan_markets[_loan_market_hash].collateral
         ))
-        # burn outstanding_value of underlying f_tokens
-        self._burn_f(
+
+        # send oustanding_value of f_tokens to auction contract
+        self._transfer_f(
             self.loan_markets[_loan_market_hash].underlying,
             self.loan_markets[_loan_market_hash].expiry,
             self,
-            self.loan_markets[_loan_market_hash].collateral
-        )
-        # send oustanding_value of underlying to auction contract
-        self._authorized_withdraw_token(
-            self.loan_markets[_loan_market_hash].underlying,
             _auction,
             self.loan_markets[_loan_market_hash].collateral
         )
@@ -471,6 +461,37 @@ def set_price_oracle(_currency: address, _underlying: address, _oracle: address)
     return True
 
 
+@public
+@constant
+def maximum_liability_for_currency_market(_currency: address, _expiry: timestamp) -> uint256:
+    return self.maximum_market_liabilities[self._currency_market_hash(_currency, _expiry)]
+
+
+@public
+def set_maximum_liability_for_currency_market(_currency: address, _expiry: timestamp, _value: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self.maximum_market_liabilities[self._currency_market_hash(_currency, _expiry)] = _value
+
+    return True
+
+
+@public
+@constant
+def maximum_liability_for_loan_market(_currency: address, _expiry: timestamp, _underlying: address) -> uint256:
+    return self.maximum_market_liabilities[self._loan_market_hash(_currency, _expiry, _underlying)]
+
+
+@public
+def set_maximum_liability_for_loan_market(_currency: address, _expiry: timestamp, _underlying: address, _value: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self.maximum_market_liabilities[self._loan_market_hash(_currency, _expiry, _underlying)] = _value
+
+    return True
+
+
+
 # Escape-hatches
 
 @private
@@ -519,7 +540,7 @@ def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: ad
     assert self.initialized
     assert msg.sender == self.owner
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
-    assert_modifiable(CollateralAuctionCurve(self.loan_markets[_loan_market_hash].auction_curve).escape_hatch_underlying())
+    assert_modifiable(CollateralAuctionCurve(self.loan_markets[_loan_market_hash].auction_curve).escape_hatch_underlying_f())
     return True
 
 
@@ -627,6 +648,7 @@ def open_position(
         _underlying
     )
     assert self.loan_markets[_loan_market_hash].status == self.LOAN_MARKET_STATUS_OPEN
+    assert as_unitless_number(self.loan_markets[_loan_market_hash].liability) + as_unitless_number(_currency_value) <= as_unitless_number(self.maximum_market_liabilities[_loan_market_hash])
     _underlying_value: uint256 = as_unitless_number(_currency_value) / as_unitless_number(_strike_price)
     self.loan_markets[_loan_market_hash].liability += _currency_value
     self.loan_markets[_loan_market_hash].collateral += _underlying_value
@@ -742,7 +764,7 @@ def close_liquidated_position(
         self,
         _currency_value
     )
-    # transfer l_borrow_currency to _borrower
+    # transfer f_borrow_currency to _borrower
     if as_unitless_number(self.loan_markets[_loan_market_hash].settlement_price) > self.shield_markets[_shield_market_hash].strike_price:
         _underlying_value: uint256 = as_unitless_number(_currency_value) / as_unitless_number(_strike_price)
         _underlying_value_to_transfer: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._s_payoff(
@@ -751,6 +773,7 @@ def close_liquidated_position(
             _underlying,
             _strike_price
         ))
-        self._mint_f(_underlying, _expiry, _borrower, _underlying_value_to_transfer)
+        # transfer f_borrow_currency to _borrower
+        self._transfer_f(_underlying, _expiry, self, _borrower, _underlying_value_to_transfer)
 
     return True
