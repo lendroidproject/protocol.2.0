@@ -2,6 +2,8 @@
 
 PoolRegistered: event({_operator: address, _currency: address, address_: address})
 PoolDeRegistered: event({_operator: address, _currency: address, address_: address})
+MFTSupportRegistered: event({_name: string[64], _pool: address, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _operator: address})
+MFTSupportDeRegistered: event({_name: string[64], _pool: address, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _operator: address})
 
 # Functions
 
@@ -28,6 +30,10 @@ def set_fee_multiplier_per_mft_count(_mft_count: uint256, _value: uint256) -> bo
     pass
 
 @public
+def set_maximum_mft_support_count(_value: uint256) -> bool:
+    pass
+
+@public
 def set_template(_template_type: uint256, _address: address) -> bool:
     pass
 
@@ -48,7 +54,7 @@ def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(s
     pass
 
 @public
-def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _fee_i_token: uint256, _fee_percentage_per_i_token: uint256, _fee_s_token: uint256, _fee_percentage_per_s_token: uint256, _mft_expiry_limit: uint256) -> bool:
+def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _mft_expiry_limit: uint256) -> bool:
     pass
 
 @public
@@ -208,6 +214,11 @@ def minimum_mft_fee() -> uint256:
 @constant
 @public
 def LST_staked_per_mft(arg0: string[64], arg1: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def maximum_mft_support_count() -> uint256:
     pass
 
 @constant

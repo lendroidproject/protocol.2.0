@@ -242,12 +242,6 @@ def u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _stri
 
 
 @private
-def _transfer_l(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_l(
-        _token, _from, _to, _value))
-
-
-@private
 def _authorized_withdraw_token(_token: address, _to: address, _value: uint256):
     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_withdraw_token(
         _token, _to, _value))
@@ -257,11 +251,6 @@ def _authorized_withdraw_token(_token: address, _to: address, _value: uint256):
 def _authorized_deposit_token(_token: address, _from: address, _value: uint256):
     assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_deposit_token(
         _token, _from, _value))
-
-
-@private
-def _transfer_erc20(_token: address, _to: address, _value: uint256):
-    assert_modifiable(ERC20(_token).transfer(_to, _value))
 
 
 @private
@@ -277,6 +266,34 @@ def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
 @private
 def _transfer_mft(_from: address, _to: address, _token: address, _id: uint256, _value: uint256):
     assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
+
+
+@private
+def _mint_f(_currency: address, _expiry: timestamp, _to: address, _value: uint256):
+    _token: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
+    assert not _token == ZERO_ADDRESS
+    _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
+    assert not _id == 0
+    self._mint_mft(_token, _id, _to, _value)
+
+
+@private
+def _burn_f(_currency: address, _expiry: timestamp, _from: address, _value: uint256):
+    _token: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
+    assert not _token == ZERO_ADDRESS
+    _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
+    assert not _id == 0
+    self._burn_mft(_token, _id, _from, _value)
+
+
+@private
+def _transfer_f(_currency: address, _expiry: timestamp, _from: address, _to: address, _value: uint256):
+    _token: address = CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
+    assert not _token == ZERO_ADDRESS
+    _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
+    assert not _id == 0
+    self._transfer_mft(_from, _to, _token, _id, _value)
+
 
 
 # START of MultiFungibleTokenReceiver interface functions
@@ -366,14 +383,22 @@ def _settle_loan_market(_loan_market_hash: bytes32):
             self.loan_markets[_loan_market_hash].underlying,
             self.loan_markets[_loan_market_hash].settlement_price,
             self.loan_markets[_loan_market_hash].liability,
-            self.loan_markets[_loan_market_hash].collateral
+            self.loan_markets[_loan_market_hash].collateral,
+            self.daos[self.DAO_TYPE_CURRENCY]
         ))
-        # send oustanding_value of underlying_currency to collateral auction contract
-        assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_unwrap(
+        # burn outstanding_value of underlying f_tokens
+        self._burn_f(
+            self.loan_markets[_loan_market_hash].underlying,
+            self.loan_markets[_loan_market_hash].expiry,
+            self,
+            self.loan_markets[_loan_market_hash].collateral
+        )
+        # send oustanding_value of underlying to auction contract
+        self._authorized_withdraw_token(
             self.loan_markets[_loan_market_hash].underlying,
             _auction,
             self.loan_markets[_loan_market_hash].collateral
-        ))
+        )
     else:
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_CLOSED
 
@@ -527,7 +552,7 @@ def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp
     return True
 
 
-# Non-admin actions
+# Non-admin functions
 
 
 @public
@@ -548,9 +573,6 @@ def open_shield_market(_currency: address, _expiry: timestamp, _underlying: addr
             _s_address, _s_id, _u_address, _u_id)
 
     return True
-
-
-# Non-admin functions
 
 
 @public
@@ -627,9 +649,8 @@ def open_position(
         self.shield_markets[_shield_market_hash].s_id,
         _currency_value
     )
-    # transfer l_borrow_currency from borrower to self
-    self._transfer_l(
-        _underlying, _borrower, self, _underlying_value)
+    # transfer f_borrow_currency from borrower to self
+    self._transfer_f(_underlying, _expiry, _borrower, self, _underlying_value)
     # transfer lend_currency to _borrower
     self._authorized_withdraw_token(
         _currency, _borrower, _currency_value)
@@ -682,11 +703,8 @@ def close_position(
         self.shield_markets[_shield_market_hash].s_id,
         _currency_value
     )
-    # transfer l_borrow_currency to _borrower
-    self._transfer_erc20(
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__l(_underlying),
-        _borrower,
-        _underlying_value)
+    # transfer f_borrow_currency to _borrower
+    self._transfer_f(_underlying, _expiry, self, _borrower, _underlying_value)
     # transfer lend_currency from _borrower to currency_pool
     self._authorized_deposit_token(
         _currency, _borrower, _currency_value)
@@ -733,9 +751,6 @@ def close_liquidated_position(
             _underlying,
             _strike_price
         ))
-        self._transfer_erc20(
-            CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__l(_underlying),
-            _borrower,
-            _underlying_value_to_transfer)
+        self._mint_f(_underlying, _expiry, _borrower, _underlying_value_to_transfer)
 
     return True

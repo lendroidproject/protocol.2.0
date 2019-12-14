@@ -36,6 +36,9 @@ struct MFT:
 PoolRegistered: event({_operator: indexed(address), _currency: indexed(address), address_: indexed(address)})
 PoolDeRegistered: event({_operator: indexed(address), _currency: indexed(address), address_: indexed(address)})
 
+MFTSupportRegistered: event({_name: indexed(string[64]), _pool: indexed(address), _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256, _operator: address})
+MFTSupportDeRegistered: event({_name: indexed(string[64]), _pool: indexed(address), _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256, _operator: address})
+
 LST: public(address)
 protocol_dao: public(address)
 owner: public(address)
@@ -58,6 +61,7 @@ fee_multiplier_per_mft_count: public(map(uint256, uint256))
 minimum_mft_fee: public(uint256)
 # name => (_market_hash => stake)
 LST_staked_per_mft: public(map(string[64], map(bytes32, uint256)))
+maximum_mft_support_count: public(uint256)
 
 REGISTRY_TYPE_POOL_NAME: public(uint256)
 
@@ -195,10 +199,10 @@ def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
 def _LST_stake_value(_name: string[64]) -> uint256:
     if self.pools[_name].mft_count == 0:
         return self.minimum_mft_fee
-    _multiplier: uint256 = self.fee_multiplier_per_mft_count[self.pools[_name].mft_count+1]
+    _multiplier: uint256 = self.fee_multiplier_per_mft_count[self.pools[_name].mft_count]
     if _multiplier == 0:
         _multiplier = self.fee_multiplier_per_mft_count[0]
-    return as_unitless_number(self.pools[_name].LST_staked) * as_unitless_number(_multiplier)
+    return as_unitless_number(self.minimum_mft_fee) + as_unitless_number(as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier))
 
 
 @private
@@ -256,6 +260,15 @@ def set_fee_multiplier_per_mft_count(
     assert self.initialized
     assert msg.sender == self.owner
     self.fee_multiplier_per_mft_count[_mft_count] = _value
+
+    return True
+
+
+@public
+def set_maximum_mft_support_count(_value: uint256) -> bool:
+    assert self.initialized
+    assert msg.sender == self.owner
+    self.maximum_mft_support_count = _value
 
     return True
 
@@ -349,8 +362,7 @@ def register_pool(
     _accepts_public_contributions: bool,
     _currency: address, _name: string[64], _symbol: string[32],
     _initial_exchange_rate: uint256,
-    _fee_i_token: uint256, _fee_percentage_per_i_token: uint256,
-    _fee_s_token: uint256, _fee_percentage_per_s_token: uint256,
+    _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256,
     _mft_expiry_limit: uint256) -> bool:
     assert self.initialized
     assert not self.paused
@@ -359,7 +371,7 @@ def register_pool(
     # Increment active pool count if pool name is already registered.
     # Otherwise, register pool name and increment active pool count
     if PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).name_exists(_name):
-        assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).increment_pool_count(_name))
+        assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).register_pool(_name, msg.sender))
     else:
         assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).register_name_and_pool(_name, msg.sender))
     # initialize pool
@@ -374,8 +386,7 @@ def register_pool(
     assert_modifiable(UnderwriterPool(_address).initialize(
         self.protocol_dao,
         _accepts_public_contributions, msg.sender,
-        _fee_i_token, _fee_percentage_per_i_token,
-        _fee_s_token, _fee_percentage_per_s_token,
+        _fee_percentage_per_i_token, _fee_percentage_per_s_token,
         _mft_expiry_limit,
         _name, _symbol, _initial_exchange_rate,
         _currency, _l_address, _i_address, _s_address, _u_address,
@@ -414,7 +425,7 @@ def deregister_pool(_name: string[64]) -> bool:
     # deactivate pool
     self.pools[_name].is_active = False
     # Decrement active pool count from name registry
-    assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).decrement_pool_count(_name))
+    assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).deregister_pool(_name, self.pools[_name].operator))
     # log PoolDeRegistered event
     log.PoolDeRegistered(self.pools[_name].operator, self.pools[_name].currency,
         msg.sender)
@@ -487,6 +498,11 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
         _u_address, _u_id
     ))
 
+    # log MFTSupportRegistered event
+    log.MFTSupportRegistered(_name, msg.sender,
+        _currency, _expiry, _underlying, _strike_price,
+        self.pools[_name].operator)
+
     return True, _i_id, _s_id, _u_id
 
 
@@ -496,6 +512,11 @@ def deregister_mft_support(_name: string[64], _currency: address, _expiry: times
     assert not self.paused
     self._validate_pool(_name, msg.sender)
     self._release_staked_LST(_name, _currency, _expiry, _underlying, _strike_price)
+
+    # log MFTSupportDeRegistered event
+    log.MFTSupportDeRegistered(_name, msg.sender,
+        _currency, _expiry, _underlying, _strike_price,
+        self.pools[_name].operator)
 
     return True
 

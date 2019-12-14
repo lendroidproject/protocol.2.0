@@ -54,6 +54,10 @@ def unpause() -> bool:
     pass
 
 @public
+def escape_hatch_auction(_currency: address, _expiry: uint256(sec, positional), _underlying: address) -> bool:
+    pass
+
+@public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     pass
 

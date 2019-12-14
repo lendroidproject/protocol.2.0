@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_i_token: uint256, _fee_percentage_per_i_token: uint256, _fee_s_token: uint256, _fee_percentage_per_s_token: uint256, _mft_expiry_limit: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _s_address: address, _u_address: address, _dao_shield_payout: address, _erc20_currency_template_address: address) -> bool:
+def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _mft_expiry_limit: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _s_address: address, _u_address: address, _dao_shield_payout: address, _erc20_currency_template_address: address) -> bool:
     pass
 
 @constant
@@ -36,7 +36,7 @@ def total_u_token_balance() -> uint256:
 
 @constant
 @public
-def total_l_token_balance() -> uint256:
+def total_active_contributions() -> uint256:
     pass
 
 @constant
@@ -77,14 +77,6 @@ def set_public_contribution_acceptance(_acceptance: bool) -> bool:
     pass
 
 @public
-def set_fee_i_token(_value: uint256) -> bool:
-    pass
-
-@public
-def set_fee_s_token(_value: uint256) -> bool:
-    pass
-
-@public
 def set_mft_expiry_limit(_days: uint256) -> bool:
     pass
 
@@ -105,11 +97,11 @@ def set_s_cost_per_day(_expiry: uint256(sec, positional), _underlying: address, 
     pass
 
 @public
-def set_fee_percentage_per_i_token(_value: uint256) -> bool:
+def decrease_fee_percentage_per_i_token(_value: uint256) -> bool:
     pass
 
 @public
-def set_fee_percentage_per_s_token(_value: uint256) -> bool:
+def decrease_fee_percentage_per_s_token(_value: uint256) -> bool:
     pass
 
 @public
@@ -137,7 +129,7 @@ def contribute(_l_token_value: uint256) -> bool:
     pass
 
 @public
-def withdraw_contribution(_expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _pool_share_token_value: uint256) -> bool:
+def withdraw_contribution(_pool_share_token_value: uint256) -> bool:
     pass
 
 @public
@@ -161,11 +153,6 @@ def owner() -> address:
 @constant
 @public
 def daos(arg0: uint256) -> address:
-    pass
-
-@constant
-@public
-def operator() -> address:
     pass
 
 @constant
@@ -215,17 +202,7 @@ def pool_share_token() -> address:
 
 @constant
 @public
-def fee_i_token() -> uint256:
-    pass
-
-@constant
-@public
 def fee_percentage_per_i_token() -> uint256:
-    pass
-
-@constant
-@public
-def fee_s_token() -> uint256:
     pass
 
 @constant
@@ -240,12 +217,22 @@ def mft_expiry_limit_days() -> uint256:
 
 @constant
 @public
-def operator_earnings() -> uint256:
+def operator_unwithdrawn_earnings() -> uint256:
     pass
 
 @constant
 @public
 def markets__expiry(arg0: bytes32) -> uint256(sec, positional):
+    pass
+
+@constant
+@public
+def markets__underlying(arg0: bytes32) -> address:
+    pass
+
+@constant
+@public
+def markets__strike_price(arg0: bytes32) -> uint256:
     pass
 
 @constant
@@ -280,7 +267,7 @@ def markets__is_active(arg0: bytes32) -> bool:
 
 @constant
 @public
-def markets__id(arg0: bytes32) -> uint256:
+def markets__id(arg0: bytes32) -> int128:
     pass
 
 @constant
@@ -290,17 +277,22 @@ def markets__hash(arg0: bytes32) -> bytes32:
 
 @constant
 @public
-def market_id_to_hash(arg0: uint256) -> bytes32:
+def market_id_to_hash(arg0: int128) -> bytes32:
     pass
 
 @constant
 @public
-def next_market_id() -> uint256:
+def next_market_id() -> int128:
     pass
 
 @constant
 @public
-def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
+def DAO_UNDERWRITER_POOL() -> uint256:
+    pass
+
+@constant
+@public
+def DAO_SHIELD_PAYOUT() -> uint256:
     pass
 
 @constant

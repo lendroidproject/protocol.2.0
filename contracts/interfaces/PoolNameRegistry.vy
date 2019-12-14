@@ -43,11 +43,11 @@ def register_name_and_pool(_name: string[64], _operator: address) -> bool:
     pass
 
 @public
-def increment_pool_count(_name: string[64]) -> bool:
+def register_pool(_name: string[64], _operator: address) -> bool:
     pass
 
 @public
-def decrement_pool_count(_name: string[64]) -> bool:
+def deregister_pool(_name: string[64], _operator: address) -> bool:
     pass
 
 @public
@@ -91,7 +91,12 @@ def names__LST_staked(arg0: uint256) -> uint256:
 
 @constant
 @public
-def names__active_pools(arg0: uint256) -> uint256:
+def names__interest_pool_registered(arg0: uint256) -> bool:
+    pass
+
+@constant
+@public
+def names__underwriter_pool_registered(arg0: uint256) -> bool:
     pass
 
 @constant

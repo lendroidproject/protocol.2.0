@@ -11,7 +11,8 @@ struct Name:
     name: string[64]
     operator: address
     LST_staked: uint256
-    active_pools: uint256
+    interest_pool_registered: bool
+    underwriter_pool_registered: bool
     id: uint256
 
 
@@ -89,7 +90,7 @@ def _name_exists(_name: string[64]) -> bool:
 
 
 @private
-def _add_name(_name: string[64], _operator: address, _active_pools: uint256):
+def _add_name(_name: string[64], _operator: address, _sender: address):
     self.name_to_id[_name] = self.next_name_id
     _LST_stake: uint256 = self.name_registration_stake_lookup[len(_name)].stake
     if as_unitless_number(_LST_stake) == 0:
@@ -98,9 +99,14 @@ def _add_name(_name: string[64], _operator: address, _active_pools: uint256):
         name: _name,
         operator: _operator,
         LST_staked: _LST_stake,
-        active_pools: _active_pools,
+        interest_pool_registered: False,
+        underwriter_pool_registered: False,
         id: self.next_name_id
     })
+    if _sender == self.daos[self.DAO_TYPE_INTEREST_POOL]:
+        self.names[self.next_name_id].interest_pool_registered = True
+    if _sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]:
+        self.names[self.next_name_id].underwriter_pool_registered = True
     self.next_name_id += 1
 
     self._transfer_erc20(self.LST, _operator, self, _LST_stake)
@@ -115,7 +121,8 @@ def _remove_name(_name: string[64], _name_id: uint256):
             name: self.names[self.next_name_id - 1].name,
             operator: self.names[self.next_name_id - 1].operator,
             LST_staked: self.names[self.next_name_id - 1].LST_staked,
-            active_pools: self.names[self.next_name_id - 1].active_pools,
+            interest_pool_registered: self.names[self.next_name_id - 1].interest_pool_registered,
+            underwriter_pool_registered: self.names[self.next_name_id - 1].underwriter_pool_registered,
             id: _name_id
         })
         _last_name: string[64] = self.names[self.next_name_id - 1].name
@@ -210,7 +217,7 @@ def register_name(_name: string[64]) -> bool:
     assert self.initialized
     assert not self.paused
     assert not self._name_exists(_name)
-    self._add_name(_name, msg.sender, 0)
+    self._add_name(_name, msg.sender, self)
 
     return True
 
@@ -222,13 +229,34 @@ def register_name_and_pool(_name: string[64], _operator: address) -> bool:
     assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
            msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
     assert not self._name_exists(_name)
-    self._add_name(_name, _operator, 1)
+    self._add_name(_name, _operator, msg.sender)
 
     return True
 
 
 @public
-def increment_pool_count(_name: string[64]) -> bool:
+def register_pool(_name: string[64], _operator: address) -> bool:
+    assert self.initialized
+    assert not self.paused
+    assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
+           msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
+    assert self._name_exists(_name)
+    _name_id: uint256 = self.name_to_id[_name]
+    assert _operator == self.names[_name_id].operator
+
+    if msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL]:
+        assert not self.names[_name_id].interest_pool_registered
+        self.names[_name_id].interest_pool_registered = True
+
+    if msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]:
+        assert not self.names[_name_id].underwriter_pool_registered
+        self.names[_name_id].underwriter_pool_registered = True
+
+    return True
+
+
+@public
+def deregister_pool(_name: string[64], _operator: address) -> bool:
     assert self.initialized
     assert not self.paused
     assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
@@ -236,23 +264,15 @@ def increment_pool_count(_name: string[64]) -> bool:
     assert self._name_exists(_name)
     _name_id: uint256 = self.name_to_id[_name]
     assert as_unitless_number(self.names[_name_id].LST_staked) > 0
-    assert self.names[_name_id].operator == msg.sender
-    self.names[_name_id].active_pools += 1
+    assert _operator == self.names[_name_id].operator
 
-    return True
+    if msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL]:
+        assert self.names[_name_id].interest_pool_registered
+        self.names[_name_id].interest_pool_registered = False
 
-
-@public
-def decrement_pool_count(_name: string[64]) -> bool:
-    assert self.initialized
-    assert not self.paused
-    assert msg.sender == self.daos[self.DAO_TYPE_INTEREST_POOL] or \
-           msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
-    assert self._name_exists(_name)
-    _name_id: uint256 = self.name_to_id[_name]
-    assert as_unitless_number(self.names[_name_id].LST_staked) > 0
-    assert self.names[_name_id].operator == msg.sender
-    self.names[_name_id].active_pools -= 1
+    if msg.sender == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]:
+        assert self.names[_name_id].underwriter_pool_registered
+        self.names[_name_id].underwriter_pool_registered = False
 
     return True
 
@@ -264,7 +284,6 @@ def deregister_name(_name: string[64]) -> bool:
     assert self._name_exists(_name)
     _name_id: uint256 = self.name_to_id[_name]
     assert self.names[_name_id].operator == msg.sender
-    assert self.names[_name_id].active_pools == 0
     assert _name_id < self.next_name_id
     self._remove_name(_name, _name_id)
 
