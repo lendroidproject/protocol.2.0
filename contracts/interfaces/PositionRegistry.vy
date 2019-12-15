@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _dao_address_market: address) -> bool:
+def initialize(_LST: address, _dao_address_market: address) -> bool:
     pass
 
 @public
@@ -31,12 +31,7 @@ def LST() -> address:
 
 @constant
 @public
-def protocol_dao_address() -> address:
-    pass
-
-@constant
-@public
-def owner() -> address:
+def protocol_dao() -> address:
     pass
 
 @constant
@@ -117,11 +112,6 @@ def borrow_position_index(arg0: address, arg1: uint256) -> uint256:
 @constant
 @public
 def borrow_position(arg0: address, arg1: uint256) -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_MARKET() -> uint256:
     pass
 
 @constant

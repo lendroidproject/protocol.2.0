@@ -21,8 +21,7 @@ struct Position:
 
 
 LST: public(address)
-protocol_dao_address: public(address)
-owner: public(address)
+protocol_dao: public(address)
 # dao_type => dao_address
 daos: public(map(uint256, address))
 # loan_id
@@ -38,7 +37,7 @@ borrow_position: public(map(address, map(uint256, uint256)))
 # nonreentrant locks for positions, inspired from https://github.com/ethereum/vyper/issues/1204
 nonreentrant_position_locks: map(uint256, bool)
 
-DAO_TYPE_MARKET: public(uint256)
+DAO_MARKET: constant(int128) = 4
 
 LOAN_STATUS_ACTIVE: public(uint256)
 LOAN_STATUS_LIQUIDATED: public(uint256)
@@ -50,18 +49,15 @@ paused: public(bool)
 
 @public
 def initialize(
-        _owner: address,
         _LST: address,
         _dao_address_market: address
     ) -> bool:
     assert not self.initialized
     self.initialized = True
-    self.owner = _owner
-    self.protocol_dao_address = msg.sender
+    self.protocol_dao = msg.sender
     self.LST = _LST
 
-    self.DAO_TYPE_MARKET = 1
-    self.daos[self.DAO_TYPE_MARKET] = _dao_address_market
+    self.daos[DAO_MARKET] = _dao_address_market
 
     self.LOAN_STATUS_ACTIVE = 1
     self.LOAN_STATUS_LIQUIDATED = 2
@@ -75,7 +71,7 @@ def initialize(
 def _loan_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address) -> bytes32:
     return keccak256(
         concat(
-            convert(self.protocol_dao_address, bytes32),
+            convert(self.protocol_dao, bytes32),
             convert(_currency_address, bytes32),
             convert(_expiry, bytes32),
             convert(_underlying_address, bytes32)
@@ -88,7 +84,7 @@ def _loan_market_hash(_currency_address: address, _expiry: timestamp, _underlyin
 def _shield_market_hash(_currency_address: address, _expiry: timestamp, _underlying_address: address, _strike_price: uint256) -> bytes32:
     return keccak256(
         concat(
-            convert(self.protocol_dao_address, bytes32),
+            convert(self.protocol_dao, bytes32),
             convert(_currency_address, bytes32),
             convert(_expiry, bytes32),
             convert(_underlying_address, bytes32),
@@ -177,7 +173,7 @@ def _unpause():
 @public
 def pause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._pause()
     return True
 
@@ -185,7 +181,7 @@ def pause() -> bool:
 @public
 def unpause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._unpause()
     return True
 
@@ -204,7 +200,7 @@ def avail_loan(
     # create position
     self._open_position(msg.sender, _currency_value,
         _currency_address, _expiry, _underlying_address, _strike_price)
-    assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).open_position(
+    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).open_position(
         msg.sender, _currency_value,
         _currency_address, _expiry, _underlying_address, _strike_price
     ))
@@ -222,7 +218,7 @@ def repay_loan(_position_id: uint256, _pay_value: uint256) -> bool:
     assert as_unitless_number(self.positions[_position_id].repaid_value) + as_unitless_number(_pay_value) <= as_unitless_number(self.positions[_position_id].currency_value)
     self._lock_position(_position_id)
     # validate position currencies
-    assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_position(
+    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).close_position(
         self.positions[_position_id].borrower,
         _pay_value,
         self.positions[_position_id].currency,
@@ -245,7 +241,7 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
     self._lock_position(_position_id)
     # validate position currencies
     _currency_value_remaining: uint256 = as_unitless_number(self.positions[_position_id].currency_value) - as_unitless_number(self.positions[_position_id].repaid_value)
-    assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).close_liquidated_position(
+    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).close_liquidated_position(
         self.positions[_position_id].borrower,
         _currency_value_remaining,
         self.positions[_position_id].currency,

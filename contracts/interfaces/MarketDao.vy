@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_shield_payout: address, _registry_position: address, _template_auction_erc20: address) -> bool:
+def initialize(_LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_shield_payout: address, _registry_position: address, _template_auction_erc20: address) -> bool:
     pass
 
 @constant
@@ -38,6 +38,10 @@ def currency_underlying_pair_hash(_currency: address, _underlying: address) -> b
     pass
 
 @public
+def set_template(_template_type: int128, _address: address) -> bool:
+    pass
+
+@public
 def set_registry(_registry_type: uint256, _address: address) -> bool:
     pass
 
@@ -64,6 +68,18 @@ def set_maximum_liability_for_loan_market(_currency: address, _expiry: uint256(s
     pass
 
 @public
+def set_auction_slippage_percentage(_value: uint256) -> bool:
+    pass
+
+@public
+def set_auction_maximum_discount_percentage(_value: uint256) -> bool:
+    pass
+
+@public
+def set_auction_discount_duration(_value: uint256(sec)) -> bool:
+    pass
+
+@public
 def pause() -> bool:
     pass
 
@@ -80,7 +96,7 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     pass
 
 @public
-def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
     pass
 
 @public
@@ -115,11 +131,6 @@ def LST() -> address:
 @constant
 @public
 def protocol_dao() -> address:
-    pass
-
-@constant
-@public
-def owner() -> address:
     pass
 
 @constant
@@ -304,32 +315,17 @@ def maximum_market_liabilities(arg0: bytes32) -> uint256:
 
 @constant
 @public
-def REGISTRY_TYPE_POSITION() -> uint256:
+def auction_slippage_percentage() -> uint256:
     pass
 
 @constant
 @public
-def DAO_TYPE_CURRENCY() -> uint256:
+def auction_maximum_discount_percentage() -> uint256:
     pass
 
 @constant
 @public
-def DAO_TYPE_INTEREST_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_UNDERWRITER_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_SHIELD_PAYOUT() -> uint256:
-    pass
-
-@constant
-@public
-def TEMPLATE_TYPE_AUCTION_ERC20() -> uint256:
+def auction_discount_duration() -> uint256(sec):
     pass
 
 @constant

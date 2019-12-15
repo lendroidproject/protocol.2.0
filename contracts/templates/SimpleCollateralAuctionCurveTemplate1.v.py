@@ -5,8 +5,11 @@
 from contracts.interfaces import MultiFungibleToken
 from contracts.interfaces import MarketDao
 
+from contracts.interfaces import ProtocolDao
+
 
 owner: public(address)
+protocol_dao: public(address)
 currency: public(address)
 underlying: public(address)
 f_underlying: public(address)
@@ -17,20 +20,26 @@ currency_remaining: public(uint256)
 start_price: public(uint256)
 end_price: public(uint256)
 is_active: public(bool)
+# auction settings
+slippage_percentage: public(uint256)
+maximum_discount_percentage: public(uint256)
+discount_duration: public(timedelta)
 
-SLIPPAGE_PERCENTAGE: public(uint256)
-MAXIMUM_DISCOUNT_PERCENTAGE: public(uint256)
-AUCTION_DURATION: public(timedelta)
+CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
 
 
 @public
 def start(
+    _protocol_dao: address,
     _currency: address, _expiry: timestamp, _underlying: address,
     _f_underlying: address, _f_id_underlying: uint256,
-    _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256
+    _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256,
+    _slippage_percentage: uint256, _maximum_discount_percentage: uint256,
+    _discount_duration: timedelta
     ) -> bool:
     # verify inputs
     assert msg.sender.is_contract
+    assert _protocol_dao.is_contract
     assert _currency.is_contract
     assert _underlying.is_contract
     assert as_unitless_number(_expiry) > 0
@@ -42,20 +51,23 @@ def start(
     assert not self.is_active
     self.is_active = True
     self.owner = msg.sender
+    self.protocol_dao = _protocol_dao
     self.currency = _currency
     self.underlying = _underlying
     self.expiry = _expiry
     self.f_underlying = _f_underlying
     self.f_id_underlying = _f_id_underlying
-    self.SLIPPAGE_PERCENTAGE = 104
-    self.MAXIMUM_DISCOUNT_PERCENTAGE = 40
-    self.AUCTION_DURATION = 30 * 60
+    self.slippage_percentage = _slippage_percentage
+    self.maximum_discount_percentage = _maximum_discount_percentage
+    self.discount_duration = _discount_duration
 
     self.max_supply = _underlying_value
     self.currency_remaining = _currency_value
     # set start_price
-    self.start_price = (as_unitless_number(_expiry_price) * as_unitless_number(self.SLIPPAGE_PERCENTAGE)) / 100
-    self.end_price = as_unitless_number(self.start_price) * (100 - self.MAXIMUM_DISCOUNT_PERCENTAGE) / 100
+    self.start_price = (as_unitless_number(_expiry_price) * as_unitless_number(self.slippage_percentage)) / 100
+    self.end_price = as_unitless_number(self.start_price) * (100 - self.maximum_discount_percentage) / 100
+
+
 
     return True
 
@@ -63,7 +75,7 @@ def start(
 @private
 @constant
 def _auction_expiry() -> timestamp:
-    return self.expiry + self.AUCTION_DURATION
+    return self.expiry + self.discount_duration
 
 
 @private
@@ -80,7 +92,7 @@ def _current_price() -> uint256:
         if block.timestamp >= self._auction_expiry():
             return self.end_price
         else:
-            return (as_unitless_number(self.start_price) * as_unitless_number(self.AUCTION_DURATION) - (as_unitless_number(self.start_price) - as_unitless_number(self.end_price)) * (as_unitless_number(block.timestamp) - as_unitless_number(self.expiry))) / as_unitless_number(self.AUCTION_DURATION)
+            return (as_unitless_number(self.start_price) * as_unitless_number(self.discount_duration) - (as_unitless_number(self.start_price) - as_unitless_number(self.end_price)) * (as_unitless_number(block.timestamp) - as_unitless_number(self.expiry))) / as_unitless_number(self.discount_duration)
     else:
         return 0
 
@@ -130,7 +142,10 @@ def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: 
 @public
 def escape_hatch_underlying_f() -> bool:
     assert msg.sender == self.owner
-    self._transfer_f_underlying(self.owner, self._lot())
+    self._transfer_f_underlying(
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        self._lot()
+    )
     return True
 
 

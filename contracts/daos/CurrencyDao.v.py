@@ -6,6 +6,8 @@ from contracts.interfaces import ERC20
 from contracts.interfaces import MultiFungibleToken
 from contracts.interfaces import ERC20TokenPool
 
+from contracts.interfaces import ProtocolDao
+
 
 # Structs
 struct TokenAddress:
@@ -27,27 +29,34 @@ struct Pool:
 
 LST: public(address)
 protocol_dao: public(address)
-owner: public(address)
 # eth address of token => TokenAddress
 token_addresses: public(map(address, TokenAddress))
 # pool_hash => Pool
 pools: public(map(bytes32, Pool))
 # dao_type => dao_address
-daos: public(map(uint256, address))
+daos: public(map(int128, address))
 # registry_type => registry_address
-registries: public(map(uint256, address))
+registries: public(map(int128, address))
 # template_name => template_contract_address
-templates: public(map(uint256, address))
+templates: public(map(int128, address))
 
-DAO_INTEREST_POOL: public(uint256)
-DAO_UNDERWRITER_POOL: public(uint256)
-DAO_MARKET: public(uint256)
+DAO_INTEREST_POOL: constant(int128) = 2
+DAO_UNDERWRITER_POOL: constant(int128) = 3
+DAO_MARKET: constant(int128) = 4
+DAO_SHIELD_PAYOUT: constant(int128) = 5
 
-REGISTRY_POOL_NAME: public(uint256)
+REGISTRY_POOL_NAME: constant(int128) = 1
 
-TEMPLATE_TYPE_TOKEN_POOL: public(uint256)
-TEMPLATE_TYPE_TOKEN_ERC20: public(uint256)
-TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE: public(uint256)
+TEMPLATE_TOKEN_POOL: constant(int128) = 1
+TEMPLATE_ERC20: constant(int128) = 6
+TEMPLATE_MFT: constant(int128) = 7
+
+CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
+
+MFT_TYPE_F: constant(int128) = 1
+MFT_TYPE_I: constant(int128) = 2
+MFT_TYPE_S: constant(int128) = 3
+MFT_TYPE_U: constant(int128) = 4
 
 initialized: public(bool)
 paused: public(bool)
@@ -55,7 +64,6 @@ paused: public(bool)
 
 @public
 def initialize(
-        _owner: address,
         _LST: address,
         _template_token_pool: address,
         _template_erc20: address,
@@ -63,31 +71,24 @@ def initialize(
         _pool_name_registry: address,
         _dao_interest_pool: address,
         _dao_underwriter_pool: address,
-        _dao_market: address
+        _dao_market: address,
+        _dao_shield_payout: address
         ) -> bool:
     assert not self.initialized
     self.initialized = True
-    self.owner = _owner
     self.protocol_dao = msg.sender
     self.LST = _LST
 
-    self.DAO_INTEREST_POOL = 1
-    self.daos[self.DAO_INTEREST_POOL] = _dao_interest_pool
-    self.DAO_UNDERWRITER_POOL = 2
-    self.daos[self.DAO_UNDERWRITER_POOL] = _dao_underwriter_pool
-    self.DAO_MARKET = 3
-    self.daos[self.DAO_MARKET] = _dao_market
+    self.daos[DAO_INTEREST_POOL] = _dao_interest_pool
+    self.daos[DAO_UNDERWRITER_POOL] = _dao_underwriter_pool
+    self.daos[DAO_MARKET] = _dao_market
+    self.daos[DAO_SHIELD_PAYOUT] = _dao_shield_payout
 
-    self.REGISTRY_POOL_NAME = 1
-    self.registries[self.REGISTRY_POOL_NAME] = _pool_name_registry
+    self.registries[REGISTRY_POOL_NAME] = _pool_name_registry
 
-    self.TEMPLATE_TYPE_TOKEN_POOL = 1
-    self.TEMPLATE_TYPE_TOKEN_ERC20 = 2
-    self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE = 3
-
-    self.templates[self.TEMPLATE_TYPE_TOKEN_POOL] = _template_token_pool
-    self.templates[self.TEMPLATE_TYPE_TOKEN_ERC20] = _template_erc20
-    self.templates[self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE] = _template_mft
+    self.templates[TEMPLATE_TOKEN_POOL] = _template_token_pool
+    self.templates[TEMPLATE_ERC20] = _template_erc20
+    self.templates[TEMPLATE_MFT] = _template_mft
 
     return True
 
@@ -268,7 +269,7 @@ def _unpause():
 @public
 def pause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._pause()
     return True
 
@@ -276,14 +277,17 @@ def pause() -> bool:
 @public
 def unpause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._unpause()
     return True
 
 
 @private
 def _transfer_balance_erc20(_token: address):
-    assert_modifiable(ERC20(_token).transfer(self.owner, ERC20(_token).balanceOf(self)))
+    assert_modifiable(ERC20(_token).transfer(
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20(_token).balanceOf(self)
+    ))
 
 
 @private
@@ -292,13 +296,17 @@ def _transfer_balance_mft(_token: address,
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
     _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
     _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(self, self.owner, _id, _balance, EMPTY_BYTES32))
+    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+        self,
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        _id, _balance, EMPTY_BYTES32
+    ))
 
 
 @public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     _token: address = _currency
     if _is_l:
         _token = self.token_addresses[_currency].l
@@ -307,17 +315,17 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
 
 
 @public
-def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
-    if _sufi_type == 1:
+    if _mft_type == MFT_TYPE_F:
         _token = self.token_addresses[_currency].f
-    if _sufi_type == 2:
+    if _mft_type == MFT_TYPE_I:
         _token = self.token_addresses[_currency].i
-    if _sufi_type == 3:
+    if _mft_type == MFT_TYPE_S:
         _token = self.token_addresses[_currency].s
-    if _sufi_type == 4:
+    if _mft_type == MFT_TYPE_U:
         _token = self.token_addresses[_currency].u
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
@@ -325,12 +333,12 @@ def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp
 
 
 @public
-def set_template(_template_type: uint256, _address: address) -> bool:
+def set_template(_template_type: int128, _address: address) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
-    assert _template_type == self.TEMPLATE_TYPE_TOKEN_POOL or \
-           _template_type == self.TEMPLATE_TYPE_TOKEN_ERC20 or \
-           _template_type == self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE
+    assert msg.sender == self.protocol_dao
+    assert _template_type == TEMPLATE_TOKEN_POOL or \
+           _template_type == TEMPLATE_ERC20 or \
+           _template_type == TEMPLATE_MFT
     self.templates[_template_type] = _address
     return True
 
@@ -339,7 +347,7 @@ def set_template(_template_type: uint256, _address: address) -> bool:
 def set_token_support(_token: address, _is_active: bool) -> bool:
     assert self.initialized
     assert not _token == self.LST
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     assert _token.is_contract
     _pool_hash: bytes32 = self._pool_hash(_token)
     if _is_active:
@@ -347,36 +355,36 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
         _symbol: string[32] = ERC20(_token).symbol()
         _decimals: uint256 = ERC20(_token).decimals()
         assert self.pools[_pool_hash].address_ == ZERO_ADDRESS, "token pool already exists"
-        _pool_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_TOKEN_POOL])
+        _pool_address: address = create_forwarder_to(self.templates[TEMPLATE_TOKEN_POOL])
         assert_modifiable(ERC20TokenPool(_pool_address).initialize(_token))
         # l token
-        _l_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_TOKEN_ERC20])
+        _l_address: address = create_forwarder_to(self.templates[TEMPLATE_ERC20])
         # _l_currency_name: string[64] = concat("L ", slice(_name, start=0, len=62))
         # _l_currency_symbol: string[32] = concat("L", slice(_symbol, start=0, len=31))
         assert_modifiable(ERC20(_l_address).initialize(
             _name, _symbol, _decimals, 0))
         # i token
-        _i_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE])
+        _i_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_i_address).initialize(self.protocol_dao, [
-            self.daos[self.DAO_MARKET],
-            ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
+            self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
+            self.daos[DAO_MARKET], ZERO_ADDRESS
         ]))
         # f token
-        _f_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE])
+        _f_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_f_address).initialize(self.protocol_dao, [
-            self.daos[self.DAO_MARKET],
+            self.daos[DAO_MARKET],
             ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
         ]))
         # s token
-        _s_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE])
+        _s_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_s_address).initialize(self.protocol_dao, [
-            self.daos[self.DAO_MARKET],
+            self.daos[DAO_MARKET],
             ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
         ]))
         # u token
-        _u_address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE])
+        _u_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_u_address).initialize(self.protocol_dao, [
-            self.daos[self.DAO_MARKET],
+            self.daos[DAO_MARKET],
             ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
         ]))
 
@@ -428,7 +436,7 @@ def unwrap(_token: address, _value: uint256) -> bool:
 def authorized_unwrap(_token: address, _to: address, _value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
-    assert msg.sender == self.daos[self.DAO_MARKET]
+    assert msg.sender == self.daos[DAO_MARKET]
     self._unwrap(_token, msg.sender, _to, _value)
 
     return True
@@ -439,7 +447,7 @@ def authorized_transfer_l(_token: address, _from: address, _to: address, _value:
     assert self.initialized
     assert not self.paused
     assert msg.sender in [
-        self.daos[self.DAO_INTEREST_POOL], self.daos[self.DAO_UNDERWRITER_POOL]
+        self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL]
     ]
     self._transfer_erc20(self.token_addresses[_token].l, _from, _to, _value)
     return True
@@ -450,8 +458,8 @@ def authorized_transfer_erc20(_token: address, _from: address, _to: address, _va
     assert self.initialized
     assert not self.paused
     assert msg.sender in [
-        self.daos[self.DAO_INTEREST_POOL], self.daos[self.DAO_UNDERWRITER_POOL],
-        self.registries[self.REGISTRY_POOL_NAME]
+        self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
+        self.registries[REGISTRY_POOL_NAME]
     ]
     self._transfer_erc20(_token, _from, _to, _value)
     return True
@@ -461,7 +469,7 @@ def authorized_transfer_erc20(_token: address, _from: address, _to: address, _va
 def authorized_deposit_token(_token: address, _from: address, _value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
-    assert msg.sender == self.daos[self.DAO_MARKET]
+    assert msg.sender == self.daos[DAO_MARKET]
     self._deposit_token_to_pool(_token, _from, _value)
 
     return True
@@ -471,6 +479,6 @@ def authorized_deposit_token(_token: address, _from: address, _value: uint256) -
 def authorized_withdraw_token(_token: address, _to: address, _value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
-    assert msg.sender == self.daos[self.DAO_MARKET]
+    assert msg.sender == self.daos[DAO_MARKET]
     self._withdraw_token_from_pool(_token, _to, _value)
     return True

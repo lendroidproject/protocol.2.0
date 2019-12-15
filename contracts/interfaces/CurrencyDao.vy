@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _pool_name_registry: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_market: address) -> bool:
+def initialize(_LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _pool_name_registry: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_market: address, _dao_shield_payout: address) -> bool:
     pass
 
 @constant
@@ -65,23 +65,15 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     pass
 
 @public
-def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
     pass
 
 @public
-def set_template(_template_type: uint256, _address: address) -> bool:
+def set_template(_template_type: int128, _address: address) -> bool:
     pass
 
 @public
 def set_token_support(_token: address, _is_active: bool) -> bool:
-    pass
-
-@public
-def authorized_transfer_l(_token: address, _from: address, _to: address, _value: uint256) -> bool:
-    pass
-
-@public
-def authorized_transfer_erc20(_token: address, _from: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
@@ -94,6 +86,14 @@ def unwrap(_token: address, _value: uint256) -> bool:
 
 @public
 def authorized_unwrap(_token: address, _to: address, _value: uint256) -> bool:
+    pass
+
+@public
+def authorized_transfer_l(_token: address, _from: address, _to: address, _value: uint256) -> bool:
+    pass
+
+@public
+def authorized_transfer_erc20(_token: address, _from: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
@@ -112,11 +112,6 @@ def LST() -> address:
 @constant
 @public
 def protocol_dao() -> address:
-    pass
-
-@constant
-@public
-def owner() -> address:
     pass
 
 @constant
@@ -187,41 +182,6 @@ def registries(arg0: uint256) -> address:
 @constant
 @public
 def templates(arg0: uint256) -> address:
-    pass
-
-@constant
-@public
-def DAO_INTEREST_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_UNDERWRITER_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_MARKET() -> uint256:
-    pass
-
-@constant
-@public
-def REGISTRY_POOL_NAME() -> uint256:
-    pass
-
-@constant
-@public
-def TEMPLATE_TYPE_TOKEN_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def TEMPLATE_TYPE_TOKEN_ERC20() -> uint256:
-    pass
-
-@constant
-@public
-def TEMPLATE_TYPE_TOKEN_MULTI_FUNGIBLE() -> uint256:
     pass
 
 @constant

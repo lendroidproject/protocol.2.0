@@ -9,6 +9,9 @@ from contracts.interfaces import UnderwriterPool
 from contracts.interfaces import MarketDao
 from contracts.interfaces import PoolNameRegistry
 
+from contracts.interfaces import ProtocolDao
+
+
 # structs
 struct Pool:
     currency: address
@@ -41,13 +44,12 @@ MFTSupportDeRegistered: event({_name: indexed(string[64]), _pool: indexed(addres
 
 LST: public(address)
 protocol_dao: public(address)
-owner: public(address)
 # dao_type => dao_address
-daos: public(map(uint256, address))
+daos: public(map(int128, address))
 # registry_type => registry_address
-registries: public(map(uint256, address))
+registries: public(map(int128, address))
 # template_name => template_contract_address
-templates: public(map(uint256, address))
+templates: public(map(int128, address))
 # name => Pool
 pools: public(map(string[64], Pool))
 # pool id => pool name
@@ -63,14 +65,21 @@ minimum_mft_fee: public(uint256)
 LST_staked_per_mft: public(map(string[64], map(bytes32, uint256)))
 maximum_mft_support_count: public(uint256)
 
-REGISTRY_TYPE_POOL_NAME: public(uint256)
+REGISTRY_POOL_NAME: constant(int128) = 1
 
-DAO_TYPE_CURRENCY: public(uint256)
-DAO_TYPE_MARKET: public(uint256)
-DAO_TYPE_SHIELD_PAYOUT: public(uint256)
+DAO_CURRENCY: constant(int128) = 1
+DAO_MARKET: constant(int128) = 4
+DAO_SHIELD_PAYOUT: constant(int128) = 5
 
-TEMPLATE_TYPE_UNDERWRITER_POOL: public(uint256)
-TEMPLATE_TYPE_TOKEN_ERC20: public(uint256)
+TEMPLATE_UNDERWRITER_POOL: constant(int128) = 3
+TEMPLATE_ERC20: constant(int128) = 6
+
+CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
+
+MFT_TYPE_F: constant(int128) = 1
+MFT_TYPE_I: constant(int128) = 2
+MFT_TYPE_S: constant(int128) = 3
+MFT_TYPE_U: constant(int128) = 4
 
 initialized: public(bool)
 paused: public(bool)
@@ -78,7 +87,6 @@ paused: public(bool)
 
 @public
 def initialize(
-        _owner: address,
         _LST: address,
         _registry_address_pool_name: address,
         _dao_currency: address,
@@ -89,24 +97,17 @@ def initialize(
         ) -> bool:
     assert not self.initialized
     self.initialized = True
-    self.owner = _owner
     self.protocol_dao = msg.sender
     self.LST = _LST
 
-    self.REGISTRY_TYPE_POOL_NAME = 1
-    self.registries[self.REGISTRY_TYPE_POOL_NAME] = _registry_address_pool_name
+    self.registries[REGISTRY_POOL_NAME] = _registry_address_pool_name
 
-    self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_currency
-    self.DAO_TYPE_MARKET = 2
-    self.daos[self.DAO_TYPE_MARKET] = _dao_market
-    self.DAO_TYPE_SHIELD_PAYOUT = 3
-    self.daos[self.DAO_TYPE_SHIELD_PAYOUT] = _dao_shield_payout
+    self.daos[DAO_CURRENCY] = _dao_currency
+    self.daos[DAO_MARKET] = _dao_market
+    self.daos[DAO_SHIELD_PAYOUT] = _dao_shield_payout
 
-    self.TEMPLATE_TYPE_UNDERWRITER_POOL = 1
-    self.TEMPLATE_TYPE_TOKEN_ERC20 = 2
-    self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL] = _template_underwriter_pool
-    self.templates[self.TEMPLATE_TYPE_TOKEN_ERC20] = _template_token_erc20
+    self.templates[TEMPLATE_UNDERWRITER_POOL] = _template_underwriter_pool
+    self.templates[TEMPLATE_ERC20] = _template_token_erc20
 
     return True
 
@@ -143,13 +144,13 @@ def _market_hash(_currency: address, _expiry: timestamp, _underlying: address, _
 @private
 @constant
 def _is_token_supported(_token: address) -> bool:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_token_supported(_token)
+    return CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_token)
 
 
 @private
 @constant
 def _mft_addresses(_token: address) -> (address, address, address, address, address):
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mft_addresses(_token)
+    return CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_token)
 
 
 @private
@@ -159,13 +160,13 @@ def _validate_pool(_name: string[64], _address: address):
 
 @private
 def _transfer_l(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_l(
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_l(
         _token, _from, _to, _value))
 
 
 @private
 def _transfer_erc20(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).authorized_transfer_erc20(
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
         _token, _from, _to, _value))
 
 
@@ -176,12 +177,12 @@ def _get_or_create_mft_id(_token: address, _currency: address, _expiry: timestam
 
 @private
 def _mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
 
 
 @private
 def _burn_as_self_authorized_erc20(_token: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).burn_as_self_authorized_erc20(_token, _to, _value))
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_token, _to, _value))
 
 
 @private
@@ -233,7 +234,7 @@ def _release_staked_LST(_name: string[64], _currency: address, _expiry: timestam
 @public
 @constant
 def currency_dao() -> address:
-    return self.daos[self.DAO_TYPE_CURRENCY]
+    return self.daos[DAO_CURRENCY]
 
 
 @public
@@ -246,9 +247,18 @@ def LST_stake_value(_name: string[64]) -> uint256:
 
 
 @public
+def set_template(_template_type: int128, _address: address) -> bool:
+    assert self.initialized
+    assert msg.sender == self.protocol_dao
+    assert _template_type == TEMPLATE_UNDERWRITER_POOL
+    self.templates[_template_type] = _address
+    return True
+
+
+@public
 def set_minimum_mft_fee(_value: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self.minimum_mft_fee = _value
 
     return True
@@ -258,7 +268,7 @@ def set_minimum_mft_fee(_value: uint256) -> bool:
 def set_fee_multiplier_per_mft_count(
     _mft_count: uint256, _value: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self.fee_multiplier_per_mft_count[_mft_count] = _value
 
     return True
@@ -267,18 +277,9 @@ def set_fee_multiplier_per_mft_count(
 @public
 def set_maximum_mft_support_count(_value: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self.maximum_mft_support_count = _value
 
-    return True
-
-
-@public
-def set_template(_template_type: uint256, _address: address) -> bool:
-    assert self.initialized
-    assert msg.sender == self.owner
-    assert _template_type == self.TEMPLATE_TYPE_UNDERWRITER_POOL
-    self.templates[_template_type] = _address
     return True
 
 
@@ -298,7 +299,7 @@ def _unpause():
 @public
 def pause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._pause()
     return True
 
@@ -306,14 +307,17 @@ def pause() -> bool:
 @public
 def unpause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._unpause()
     return True
 
 
 @private
 def _transfer_balance_erc20(_token: address):
-    assert_modifiable(ERC20(_token).transfer(self.owner, ERC20(_token).balanceOf(self)))
+    assert_modifiable(ERC20(_token).transfer(
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20(_token).balanceOf(self)
+    ))
 
 
 @private
@@ -322,33 +326,37 @@ def _transfer_balance_mft(_token: address,
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
     _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
     _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(self, self.owner, _id, _balance, EMPTY_BYTES32))
+    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+        self,
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        _id, _balance, EMPTY_BYTES32
+    ))
 
 
 @public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     _token: address = _currency
     if _is_l:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__l(_currency)
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__l(_currency)
     self._transfer_balance_erc20(_currency)
     return True
 
 
 @public
-def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
-    if _sufi_type == 1:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
-    if _sufi_type == 2:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__i(_currency)
-    if _sufi_type == 3:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__s(_currency)
-    if _sufi_type == 4:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__u(_currency)
+    if _mft_type == MFT_TYPE_F:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+    if _mft_type == MFT_TYPE_I:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
+    if _mft_type == MFT_TYPE_S:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
+    if _mft_type == MFT_TYPE_U:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True
@@ -370,17 +378,17 @@ def register_pool(
     assert self._is_token_supported(_currency)
     # Increment active pool count if pool name is already registered.
     # Otherwise, register pool name and increment active pool count
-    if PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).name_exists(_name):
-        assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).register_pool(_name, msg.sender))
+    if PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).name_exists(_name):
+        assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).register_pool(_name, msg.sender))
     else:
-        assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).register_name_and_pool(_name, msg.sender))
+        assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).register_name_and_pool(_name, msg.sender))
     # initialize pool
     _l_address: address = ZERO_ADDRESS
     _i_address: address = ZERO_ADDRESS
     _f_address: address = ZERO_ADDRESS
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
-    _address: address = create_forwarder_to(self.templates[self.TEMPLATE_TYPE_UNDERWRITER_POOL])
+    _address: address = create_forwarder_to(self.templates[TEMPLATE_UNDERWRITER_POOL])
     assert _address.is_contract
     _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
     assert_modifiable(UnderwriterPool(_address).initialize(
@@ -390,8 +398,8 @@ def register_pool(
         _mft_expiry_limit,
         _name, _symbol, _initial_exchange_rate,
         _currency, _l_address, _i_address, _s_address, _u_address,
-        self.daos[self.DAO_TYPE_SHIELD_PAYOUT],
-        self.templates[self.TEMPLATE_TYPE_TOKEN_ERC20]))
+        self.daos[DAO_SHIELD_PAYOUT],
+        self.templates[TEMPLATE_ERC20]))
 
     # save pool metadata
     self.pools[_name] = Pool({
@@ -425,7 +433,7 @@ def deregister_pool(_name: string[64]) -> bool:
     # deactivate pool
     self.pools[_name].is_active = False
     # Decrement active pool count from name registry
-    assert_modifiable(PoolNameRegistry(self.registries[self.REGISTRY_TYPE_POOL_NAME]).deregister_pool(_name, self.pools[_name].operator))
+    assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).deregister_pool(_name, self.pools[_name].operator))
     # log PoolDeRegistered event
     log.PoolDeRegistered(self.pools[_name].operator, self.pools[_name].currency,
         msg.sender)
@@ -492,7 +500,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
     # create market on MarketDao
     # deploy and initialize shield payout graph via MarketDao
     # deploy and initialize collateral auction graph via MarketDao
-    assert_modifiable(MarketDao(self.daos[self.DAO_TYPE_MARKET]).open_shield_market(
+    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).open_shield_market(
         _currency, _expiry, _underlying, _strike_price,
         _s_address, _s_id,
         _u_address, _u_id

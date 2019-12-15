@@ -4,23 +4,28 @@
 
 from contracts.interfaces import ERC20
 from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import UnderwriterPool
 from contracts.interfaces import CurrencyDao
-from contracts.interfaces import UnderwriterPoolDao
 from contracts.interfaces import MarketDao
+
+from contracts.interfaces import ProtocolDao
 
 
 LST: public(address)
 protocol_dao: public(address)
-owner: public(address)
 # dao_type => dao_address
-daos: public(map(uint256, address))
+daos: public(map(int128, address))
 # shield_market_hash => graph_address
 registered_shield_markets: public(map(bytes32, bool))
 
-DAO_TYPE_CURRENCY: public(uint256)
-DAO_TYPE_UNDERWRITER_POOL: public(uint256)
-DAO_TYPE_MARKET: public(uint256)
+DAO_CURRENCY: constant(int128) = 1
+DAO_MARKET: constant(int128) = 4
+
+CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
+
+MFT_TYPE_F: constant(int128) = 1
+MFT_TYPE_I: constant(int128) = 2
+MFT_TYPE_S: constant(int128) = 3
+MFT_TYPE_U: constant(int128) = 4
 
 initialized: public(bool)
 paused: public(bool)
@@ -28,24 +33,17 @@ paused: public(bool)
 
 @public
 def initialize(
-        _owner: address,
         _LST: address,
         _dao_currency: address,
-        _dao_underwriter_pool: address,
         _dao_market: address
         ) -> bool:
     assert not self.initialized
     self.initialized = True
-    self.owner = _owner
     self.protocol_dao = msg.sender
     self.LST = _LST
 
-    self.DAO_TYPE_CURRENCY = 1
-    self.daos[self.DAO_TYPE_CURRENCY] = _dao_currency
-    self.DAO_TYPE_UNDERWRITER_POOL = 2
-    self.daos[self.DAO_TYPE_UNDERWRITER_POOL] = _dao_underwriter_pool
-    self.DAO_TYPE_MARKET = 3
-    self.daos[self.DAO_TYPE_MARKET] = _dao_market
+    self.daos[DAO_CURRENCY] = _dao_currency
+    self.daos[DAO_MARKET] = _dao_market
 
     return True
 
@@ -88,24 +86,18 @@ def _loan_market_hash(_currency: address, _expiry: timestamp, _underlying: addre
 @private
 @constant
 def _is_token_supported(_token: address) -> bool:
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).is_token_supported(_token)
+    return CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_token)
 
 
 @private
 @constant
 def _mft_addresses(_token: address) -> (address, address, address, address, address):
-    return CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mft_addresses(_token)
-
-
-@private
-def _validate_underwriter_pool(_name: string[64], _address: address):
-    assert UnderwriterPool(_address).owner() == self.daos[self.DAO_TYPE_UNDERWRITER_POOL]
-    assert UnderwriterPoolDao(self.daos[self.DAO_TYPE_UNDERWRITER_POOL]).pools__address_(_name) == _address
+    return CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_token)
 
 
 @private
 def _mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
 
 
 @private
@@ -116,13 +108,13 @@ def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
 @private
 @constant
 def _s_payoff(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
-    return MarketDao(self.daos[self.DAO_TYPE_MARKET]).s_payoff(_currency, _expiry, _underlying, _strike_price)
+    return MarketDao(self.daos[DAO_MARKET]).s_payoff(_currency, _expiry, _underlying, _strike_price)
 
 
 @private
 @constant
 def _u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
-    return MarketDao(self.daos[self.DAO_TYPE_MARKET]).u_payoff(_currency, _expiry, _underlying, _strike_price)
+    return MarketDao(self.daos[DAO_MARKET]).u_payoff(_currency, _expiry, _underlying, _strike_price)
 
 
 @private
@@ -134,7 +126,7 @@ def _settle_s(
     # validate underlying
     assert self._is_token_supported(_underlying)
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
-    assert MarketDao(self.daos[self.DAO_TYPE_MARKET]).loan_markets__status(_loan_market_hash) == MarketDao(self.daos[self.DAO_TYPE_MARKET]).LOAN_MARKET_STATUS_CLOSED()
+    assert MarketDao(self.daos[DAO_MARKET]).loan_markets__status(_loan_market_hash) == MarketDao(self.daos[DAO_MARKET]).LOAN_MARKET_STATUS_CLOSED()
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     assert self.registered_shield_markets[_shield_market_hash]
     _l_address: address = ZERO_ADDRESS
@@ -148,8 +140,8 @@ def _settle_s(
     assert as_unitless_number(_payout) > 0
     # burn s_token from _from account
     self._burn_mft(
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__s_address(_shield_market_hash),
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__s_id(_shield_market_hash),
+        MarketDao(self.daos[DAO_MARKET]).shield_markets__s_address(_shield_market_hash),
+        MarketDao(self.daos[DAO_MARKET]).shield_markets__s_id(_shield_market_hash),
         _from,
         as_unitless_number(_currency_quantity) * (10 ** 18)
     )
@@ -166,7 +158,7 @@ def _settle_u(_currency: address, _expiry: timestamp, _underlying: address, _str
     # validate underlying
     assert self._is_token_supported(_underlying)
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
-    assert MarketDao(self.daos[self.DAO_TYPE_MARKET]).loan_markets__status(_loan_market_hash) == MarketDao(self.daos[self.DAO_TYPE_MARKET]).LOAN_MARKET_STATUS_CLOSED()
+    assert MarketDao(self.daos[DAO_MARKET]).loan_markets__status(_loan_market_hash) == MarketDao(self.daos[DAO_MARKET]).LOAN_MARKET_STATUS_CLOSED()
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     assert self.registered_shield_markets[_shield_market_hash]
     _l_address: address = ZERO_ADDRESS
@@ -178,10 +170,10 @@ def _settle_u(_currency: address, _expiry: timestamp, _underlying: address, _str
     # mint _payout in l_currency
     _payout: uint256 = self._u_payoff(_currency, _expiry, _underlying, _strike_price)
     assert as_unitless_number(_payout) > 0
-    # burn s_token from _from account
+    # burn u_token from _from account
     self._burn_mft(
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_address(_shield_market_hash),
-        MarketDao(self.daos[self.DAO_TYPE_MARKET]).shield_markets__u_id(_shield_market_hash),
+        MarketDao(self.daos[DAO_MARKET]).shield_markets__u_address(_shield_market_hash),
+        MarketDao(self.daos[DAO_MARKET]).shield_markets__u_id(_shield_market_hash),
         _from,
         as_unitless_number(_currency_quantity) * (10 ** 18)
     )
@@ -212,7 +204,7 @@ def u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _stri
 # Admin functions
 @public
 def register_shield_market(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
-    assert msg.sender == self.daos[self.DAO_TYPE_MARKET]
+    assert msg.sender == self.daos[DAO_MARKET]
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     self.registered_shield_markets[_shield_market_hash] = True
 
@@ -235,7 +227,7 @@ def _unpause():
 @public
 def pause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._pause()
     return True
 
@@ -243,14 +235,17 @@ def pause() -> bool:
 @public
 def unpause() -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     self._unpause()
     return True
 
 
 @private
 def _transfer_balance_erc20(_token: address):
-    assert_modifiable(ERC20(_token).transfer(self.owner, ERC20(_token).balanceOf(self)))
+    assert_modifiable(ERC20(_token).transfer(
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20(_token).balanceOf(self)
+    ))
 
 
 @private
@@ -259,33 +254,37 @@ def _transfer_balance_mft(_token: address,
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
     _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
     _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(self, self.owner, _id, _balance, EMPTY_BYTES32))
+    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+        self,
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        _id, _balance, EMPTY_BYTES32
+    ))
 
 
 @public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     _token: address = _currency
     if _is_l:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__l(_currency)
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__l(_currency)
     self._transfer_balance_erc20(_currency)
     return True
 
 
 @public
-def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.owner
+    assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
-    if _sufi_type == 1:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__f(_currency)
-    if _sufi_type == 2:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__i(_currency)
-    if _sufi_type == 3:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__s(_currency)
-    if _sufi_type == 4:
-        CurrencyDao(self.daos[self.DAO_TYPE_CURRENCY]).token_addresses__u(_currency)
+    if _mft_type == MFT_TYPE_F:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+    if _mft_type == MFT_TYPE_I:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
+    if _mft_type == MFT_TYPE_S:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
+    if _mft_type == MFT_TYPE_U:
+        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True

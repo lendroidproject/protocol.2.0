@@ -6,7 +6,7 @@ StakeLookupUpdated: event({_setter: address, _name_length: int128, _value: uint2
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _name_registration_minimum_stake: uint256) -> bool:
+def initialize(_LST: address, _dao_currency: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _name_registration_minimum_stake: uint256) -> bool:
     pass
 
 @constant
@@ -61,12 +61,7 @@ def LST() -> address:
 
 @constant
 @public
-def protocol_dao_address() -> address:
-    pass
-
-@constant
-@public
-def owner() -> address:
+def protocol_dao() -> address:
     pass
 
 @constant
@@ -137,19 +132,4 @@ def initialized() -> bool:
 @constant
 @public
 def paused() -> bool:
-    pass
-
-@constant
-@public
-def DAO_TYPE_CURRENCY() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_INTEREST_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_UNDERWRITER_POOL() -> uint256:
     pass

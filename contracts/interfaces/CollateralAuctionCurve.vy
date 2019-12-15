@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def start(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _f_underlying: address, _f_id_underlying: uint256, _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256) -> bool:
+def start(_protocol_dao: address, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _f_underlying: address, _f_id_underlying: uint256, _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256, _slippage_percentage: uint256, _maximum_discount_percentage: uint256, _discount_duration: uint256(sec)) -> bool:
     pass
 
 @constant
@@ -38,6 +38,11 @@ def purchase_remaining_underlying() -> bool:
 @constant
 @public
 def owner() -> address:
+    pass
+
+@constant
+@public
+def protocol_dao() -> address:
     pass
 
 @constant
@@ -92,15 +97,15 @@ def is_active() -> bool:
 
 @constant
 @public
-def SLIPPAGE_PERCENTAGE() -> uint256:
+def slippage_percentage() -> uint256:
     pass
 
 @constant
 @public
-def MAXIMUM_DISCOUNT_PERCENTAGE() -> uint256:
+def maximum_discount_percentage() -> uint256:
     pass
 
 @constant
 @public
-def AUCTION_DURATION() -> uint256(sec):
+def discount_duration() -> uint256(sec):
     pass

@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_owner: address, _LST: address, _dao_currency: address, _dao_underwriter_pool: address, _dao_market: address) -> bool:
+def initialize(_LST: address, _dao_currency: address, _dao_market: address) -> bool:
     pass
 
 @constant
@@ -36,7 +36,7 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     pass
 
 @public
-def escape_hatch_sufi(_sufi_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
     pass
 
 @public
@@ -59,32 +59,12 @@ def protocol_dao() -> address:
 
 @constant
 @public
-def owner() -> address:
-    pass
-
-@constant
-@public
 def daos(arg0: uint256) -> address:
     pass
 
 @constant
 @public
 def registered_shield_markets(arg0: bytes32) -> bool:
-    pass
-
-@constant
-@public
-def DAO_TYPE_CURRENCY() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_UNDERWRITER_POOL() -> uint256:
-    pass
-
-@constant
-@public
-def DAO_TYPE_MARKET() -> uint256:
     pass
 
 @constant
