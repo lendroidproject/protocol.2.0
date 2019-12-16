@@ -155,6 +155,15 @@ def initialize(
 @private
 @constant
 def _mft_hash(_address: address, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    """
+        @dev Function to get the hash of a MFT, given its address and indicators.
+        @param _address The address of the MFT.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A unique bytes32 representing the MFT at the given address and indicators.
+    """
     return keccak256(
         concat(
             convert(self.protocol_dao, bytes32),
@@ -170,6 +179,15 @@ def _mft_hash(_address: address, _currency: address, _expiry: timestamp, _underl
 @private
 @constant
 def _shield_market_hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    """
+        @dev Function to get the hash of a shield market, given the currency,
+             expiry, underlying, and strike price.
+        @param _currency The address of the currency.
+        @param _expiry The timestamp when the shield market expires.
+        @param _underlying The address of the underlying.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A unique bytes32 representing the shield market.
+    """
     return keccak256(
         concat(
             convert(self.protocol_dao, bytes32),
@@ -184,18 +202,40 @@ def _shield_market_hash(_currency: address, _expiry: timestamp, _underlying: add
 @private
 @constant
 def _currency_market_hash(_currency: address, _expiry: timestamp) -> bytes32:
+    """
+        @dev Function to get the hash of a currency market, given the currency
+             and expiry.
+        @param _currency The address of the currency.
+        @param _expiry The timestamp when the currency market expires.
+        @return A unique bytes32 representing the currency market.
+    """
     return self._shield_market_hash(_currency, _expiry, ZERO_ADDRESS, 0)
 
 
 @private
 @constant
 def _loan_market_hash(_currency: address, _expiry: timestamp, _underlying: address) -> bytes32:
+    """
+        @dev Function to get the hash of a loan market, given the currency,
+             expiry, and underlying.
+        @param _currency The address of the currency.
+        @param _expiry The timestamp when the loan market expires.
+        @param _underlying The address of the underlying.
+        @return A unique bytes32 representing the loan market.
+    """
     return self._shield_market_hash(_currency, _expiry, _underlying, 0)
 
 
 @private
 @constant
 def _currency_underlying_pair_hash(_currency: address, _underlying: address) -> bytes32:
+    """
+        @dev Function to get the hash of a currency-underlying pair, given the
+             currency and the underlying.
+        @param _currency The address of the currency.
+        @param _underlying The address of the underlying.
+        @return A unique bytes32 representing the currency underlying pair.
+    """
     return keccak256(
         concat(
             convert(self.protocol_dao, bytes32),
@@ -203,12 +243,6 @@ def _currency_underlying_pair_hash(_currency: address, _underlying: address) -> 
             convert(_underlying, bytes32)
         )
     )
-
-
-@private
-@constant
-def _is_token_supported(_token: address) -> bool:
-    return CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_token)
 
 
 @private
@@ -253,39 +287,12 @@ def u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _stri
 
 
 @private
-def _authorized_withdraw_token(_token: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_withdraw_token(
-        _token, _to, _value))
-
-
-@private
-def _authorized_deposit_token(_token: address, _from: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_deposit_token(
-        _token, _from, _value))
-
-
-@private
-def _mint_mft(_token: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(MultiFungibleToken(_token).mint(_id, _to, _value))
-
-
-@private
-def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
-    assert_modifiable(MultiFungibleToken(_token).burn(_id, _from, _value))
-
-
-@private
-def _transfer_mft(_from: address, _to: address, _token: address, _id: uint256, _value: uint256):
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
-
-
-@private
-def _transfer_f(_currency: address, _expiry: timestamp, _from: address, _to: address, _value: uint256):
+def _transfer_f_underlying(_currency: address, _expiry: timestamp, _from: address, _to: address, _value: uint256):
     _token: address = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
     assert not _token == ZERO_ADDRESS
     _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
     assert not _id == 0
-    self._transfer_mft(_from, _to, _token, _id, _value)
+    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
 
 
 # START of MultiFungibleTokenReceiver interface functions
@@ -390,7 +397,7 @@ def _settle_loan_market(_loan_market_hash: bytes32):
         ))
 
         # send oustanding_value of f_tokens to auction contract
-        self._transfer_f(
+        self._transfer_f_underlying(
             self.loan_markets[_loan_market_hash].underlying,
             self.loan_markets[_loan_market_hash].expiry,
             self,
@@ -449,6 +456,14 @@ def currency_underlying_pair_hash(_currency: address, _underlying: address) -> b
 
 @public
 def set_template(_template_type: int128, _address: address) -> bool:
+    """
+        @dev Function to set / change the Template address. Only the Protocol
+             DAO can call this function.
+        @param _template_type The type of the Template that has to be changed.
+        @param _address The address of the new Template contract.
+        @return A bool with a value of "True" indicating the template change
+            has been made.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _template_type == TEMPLATE_COLLATERAL_AUCTION
@@ -458,6 +473,14 @@ def set_template(_template_type: int128, _address: address) -> bool:
 
 @public
 def set_registry(_registry_type: int128, _address: address) -> bool:
+    """
+        @dev Function to set / change a Registry address. Only the Protocol DAO
+             can call this function.
+        @param _registry_type The type of the Registry that has to be changed.
+        @param _address The address of the new Registry contract.
+        @return A bool with a value of "True" indicating the registry change
+             has been made.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _registry_type == REGISTRY_POSITION
@@ -467,6 +490,16 @@ def set_registry(_registry_type: int128, _address: address) -> bool:
 
 @public
 def set_price_oracle(_currency: address, _underlying: address, _oracle: address) -> bool:
+    """
+        @dev Function to set the address of the Price Oracle contract for a
+             given currency-underlying pair. Only the Protocol DAO can call this
+             function.
+        @param _currency The currency token in the currency-underlying pair.
+        @param _underlying The underlying token in the currency-underlying pair.
+        @param _oracle The address of the Price Oracle.
+        @return A bool with a value of "True" indicating the Price Oracle address
+             has been set for the currency-underlying pair.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _currency.is_contract
@@ -486,6 +519,17 @@ def maximum_liability_for_currency_market(_currency: address, _expiry: timestamp
 
 @public
 def set_maximum_liability_for_currency_market(_currency: address, _expiry: timestamp, _value: uint256) -> bool:
+    """
+        @dev Function to set the maximum currency liability that the system can
+             accommodate until a certain expiry. Only the Protocol DAO can call
+             this function.
+        @param _currency The currency token.
+        @param _expiry The expiry until which the maximum liability can be
+             accommodated.
+        @param _value The maximum liability value
+        @return A bool with a value of "True" indicating the maximum currency
+             liability until the given expiry has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.maximum_market_liabilities[self._currency_market_hash(_currency, _expiry)] = _value
@@ -501,6 +545,19 @@ def maximum_liability_for_loan_market(_currency: address, _expiry: timestamp, _u
 
 @public
 def set_maximum_liability_for_loan_market(_currency: address, _expiry: timestamp, _underlying: address, _value: uint256) -> bool:
+    """
+        @dev Function to set the maximum currency liability that the system can
+             accommodate until a certain expiry for a specific underlying. Only
+             the Protocol DAO can call this function.
+        @param _currency The currency token.
+        @param _expiry The expiry until which the maximum liability can be
+             accommodated.
+        @param _underlying The underlying token.
+        @param _value The maximum liability value
+        @return A bool with a value of "True" indicating the maximum currency
+             liability until the given expiry for the given underlying has been
+             set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.maximum_market_liabilities[self._loan_market_hash(_currency, _expiry, _underlying)] = _value
@@ -510,6 +567,14 @@ def set_maximum_liability_for_loan_market(_currency: address, _expiry: timestamp
 
 @public
 def set_auction_slippage_percentage(_value: uint256) -> bool:
+    """
+        @dev Function to set the slippage percentage when calculating the start
+             prices in all upcoming collateral auctions. Only the Protocol DAO
+             can call this function.
+        @param _value The slippage percentage
+        @return A bool with a value of "True" indicating the slippage percentage
+             has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.auction_slippage_percentage = _value
@@ -519,6 +584,14 @@ def set_auction_slippage_percentage(_value: uint256) -> bool:
 
 @public
 def set_auction_maximum_discount_percentage(_value: uint256) -> bool:
+    """
+        @dev Function to set the maximum discount percentage when calculating
+             the final discounted prices in all upcoming collateral auctions.
+             Only the Protocol DAO can call this function.
+        @param _value The maximum discount percentage
+        @return A bool with a value of "True" indicating the maximum discount
+             percentage has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.auction_maximum_discount_percentage = _value
@@ -528,6 +601,14 @@ def set_auction_maximum_discount_percentage(_value: uint256) -> bool:
 
 @public
 def set_auction_discount_duration(_value: timedelta) -> bool:
+    """
+        @dev Function to set the duration in seconds when the underlying is
+             sold at a discount in all upcoming collateral auctions. Only the
+             Protocol DAO can call this function.
+        @param _value The duration in seconds
+        @return A bool with a value of "True" indicating the discount duration
+             has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.auction_discount_duration = _value
@@ -539,17 +620,29 @@ def set_auction_discount_duration(_value: timedelta) -> bool:
 
 @private
 def _pause():
+    """
+        @dev Internal function to pause this contract.
+    """
     assert not self.paused
     self.paused = True
 
 
 @private
 def _unpause():
+    """
+        @dev Internal function to unpause this contract.
+    """
     assert self.paused
     self.paused = False
 
 @public
 def pause() -> bool:
+    """
+        @dev Escape hatch function to pause this contract. Only the Protocol DAO
+             can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             paused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._pause()
@@ -558,6 +651,12 @@ def pause() -> bool:
 
 @public
 def unpause() -> bool:
+    """
+        @dev Escape hatch function to unpause this contract. Only the Protocol
+             DAO can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             unpaused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._unpause()
@@ -566,6 +665,11 @@ def unpause() -> bool:
 
 @private
 def _transfer_balance_erc20(_token: address):
+    """
+        @dev Internal function to transfer this contract's balance of the given
+             ERC20 token to the Escape Hatch Token Holder.
+        @param _token The address of the ERC20 token.
+    """
     assert_modifiable(ERC20(_token).transfer(
         ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         ERC20(_token).balanceOf(self)
@@ -575,6 +679,15 @@ def _transfer_balance_erc20(_token: address):
 @private
 def _transfer_balance_mft(_token: address,
     _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256):
+    """
+        @dev Internal function to transfer this contract's balance of MFT based
+             on the given indicators to the Escape Hatch Token Holder.
+        @param _token The address of the MFT.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+    """
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
     _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
     _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
@@ -587,6 +700,17 @@ def _transfer_balance_mft(_token: address,
 
 @public
 def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: address) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of the underlying MFT
+             type F from the auction contract for the given loan market
+             indicators, to the Escape Hatch Token Holder.
+             Only the Protocol DAO can call this function.
+        @param _currency The currency token in the loan market.
+        @param _expiry The timstamp of loan market expiry.
+        @param _underlying TThe underlying token in the loan market.
+        @return A bool with a value of "True" indicating the MFT transfer has
+             been made from the corresponding auction contract.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
@@ -596,6 +720,15 @@ def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: ad
 
 @public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of an ERC20 address
+             from this contract to the Escape Hatch Token Holder. Only the
+             Protocol DAO can call this function.
+        @param _currency The address of the ERC20 token
+        @param _is_l A bool indicating if the ERC20 token is an L Token
+        @return A bool with a value of "True" indicating the ERC20 transfer has
+             been made to the Escape Hatch Token Holder.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     _token: address = _currency
@@ -607,6 +740,19 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
 
 @public
 def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of a MFT with given
+             parameters from this contract to the Escape Hatch Token Holder.
+             Only the Protocol DAO can call this function.
+        @param _mft_type The MFT type (L, I, S, or U) from which the MFT address
+             could be deduced.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A bool with a value of "True" indicating the MFT transfer has
+             been made to the Escape Hatch Token Holder.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
@@ -665,7 +811,8 @@ def process_auction_purchase(
     assert not self.paused
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
     assert msg.sender == self.loan_markets[_loan_market_hash].auction_curve
-    self._authorized_deposit_token(_currency, _purchaser, _currency_value)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_deposit_token(
+        _currency, _purchaser, _currency_value))
     self.loan_markets[_loan_market_hash].auction_currency_raised += _currency_value
     self.loan_markets[_loan_market_hash].auction_underlying_sold += _underlying_value
     if not _is_auction_active:
@@ -690,8 +837,9 @@ def open_position(
     assert self.shield_markets[_shield_market_hash].expiry == _expiry
     assert self.shield_markets[_shield_market_hash].strike_price == _strike_price
     # validate tokens
-    assert self._is_token_supported(_currency)
-    assert self._is_token_supported(_underlying)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
+
     _loan_market_hash: bytes32 = self._loan_market_hash(
         _currency,
         _expiry,
@@ -706,26 +854,16 @@ def open_position(
     _i_address: address = ZERO_ADDRESS
     _i_id: uint256 = 0
     _i_address, _i_id = CurrencyDao(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
-    self._transfer_mft(
-        _borrower,
-        self,
-        _i_address,
-        _i_id,
-        _currency_value
-    )
+    assert_modifiable(MultiFungibleToken(_i_address).safeTransferFrom(_borrower, self, _i_id, _currency_value, EMPTY_BYTES32))
     # transfer s_lend_currency from _borrower to self
-    self._transfer_mft(
-        _borrower,
-        self,
-        self.shield_markets[_shield_market_hash].s_address,
-        self.shield_markets[_shield_market_hash].s_id,
-        _currency_value
-    )
+    assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(
+        _borrower, self, self.shield_markets[_shield_market_hash].s_id, _currency_value, EMPTY_BYTES32
+    ))
     # transfer f_borrow_currency from borrower to self
-    self._transfer_f(_underlying, _expiry, _borrower, self, _underlying_value)
+    self._transfer_f_underlying(_underlying, _expiry, _borrower, self, _underlying_value)
     # transfer lend_currency to _borrower
-    self._authorized_withdraw_token(
-        _currency, _borrower, _currency_value)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_withdraw_token(
+        _currency, _borrower, _currency_value))
 
     return True
 
@@ -745,8 +883,8 @@ def close_position(
     assert self.shield_markets[_shield_market_hash].expiry == _expiry
     assert self.shield_markets[_shield_market_hash].strike_price == _strike_price
     # validate tokens
-    assert self._is_token_supported(_currency)
-    assert self._is_token_supported(_underlying)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     _loan_market_hash: bytes32 = self._loan_market_hash(
         _currency,
         _expiry,
@@ -760,26 +898,16 @@ def close_position(
     _i_address: address = ZERO_ADDRESS
     _i_id: uint256 = 0
     _i_address, _i_id = CurrencyDao(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
-    self._transfer_mft(
-        self,
-        _borrower,
-        _i_address,
-        _i_id,
-        _currency_value
-    )
+    assert_modifiable(MultiFungibleToken(_i_address).safeTransferFrom(self, _borrower, _i_id, _currency_value, EMPTY_BYTES32))
     # transfer s_lend_currency from self to _borrower
-    self._transfer_mft(
-        self,
-        _borrower,
-        self.shield_markets[_shield_market_hash].s_address,
-        self.shield_markets[_shield_market_hash].s_id,
-        _currency_value
-    )
+    assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(
+        self, _borrower, self.shield_markets[_shield_market_hash].s_id, _currency_value, EMPTY_BYTES32
+    ))
     # transfer f_borrow_currency to _borrower
-    self._transfer_f(_underlying, _expiry, self, _borrower, _underlying_value)
+    self._transfer_f_underlying(_underlying, _expiry, self, _borrower, _underlying_value)
     # transfer lend_currency from _borrower to currency_pool
-    self._authorized_deposit_token(
-        _currency, _borrower, _currency_value)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_deposit_token(
+        _currency, _borrower, _currency_value))
 
     return True
 
@@ -799,8 +927,8 @@ def close_liquidated_position(
     assert self.shield_markets[_shield_market_hash].underlying == _underlying
     assert self.shield_markets[_shield_market_hash].expiry == _expiry
     assert self.shield_markets[_shield_market_hash].strike_price == _strike_price
-    assert self._is_token_supported(_currency)
-    assert self._is_token_supported(self.shield_markets[_shield_market_hash].underlying)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(self.shield_markets[_shield_market_hash].underlying)
     _loan_market_hash: bytes32 = self._loan_market_hash(
         _currency,
         _expiry,
@@ -808,12 +936,10 @@ def close_liquidated_position(
     )
     assert self.loan_markets[_loan_market_hash].status == self.LOAN_MARKET_STATUS_CLOSED
     # burn s_lend_currency from self
-    self._burn_mft(
-        self.shield_markets[_shield_market_hash].s_address,
+    assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).burn(
         self.shield_markets[_shield_market_hash].s_id,
-        self,
-        _currency_value
-    )
+        self, _currency_value
+    ))
     # transfer f_borrow_currency to _borrower
     if as_unitless_number(self.loan_markets[_loan_market_hash].settlement_price) > self.shield_markets[_shield_market_hash].strike_price:
         _underlying_value: uint256 = as_unitless_number(_currency_value) / as_unitless_number(_strike_price)
@@ -824,6 +950,6 @@ def close_liquidated_position(
             _strike_price
         ))
         # transfer f_borrow_currency to _borrower
-        self._transfer_f(_underlying, _expiry, self, _borrower, _underlying_value_to_transfer)
+        self._transfer_f_underlying(_underlying, _expiry, self, _borrower, _underlying_value_to_transfer)
 
     return True

@@ -76,12 +76,6 @@ def initialize(
 
 
 @private
-def _transfer_erc20(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
-        _token, _from, _to, _value))
-
-
-@private
 @constant
 def _name_exists(_name: string[64]) -> bool:
     return self.names[self.name_to_id[_name]].name == _name
@@ -106,8 +100,8 @@ def _add_name(_name: string[64], _operator: address, _sender: address):
     if _sender == self.daos[DAO_UNDERWRITER_POOL]:
         self.names[self.next_name_id].underwriter_pool_registered = True
     self.next_name_id += 1
-
-    self._transfer_erc20(self.LST, _operator, self, _LST_stake)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
+        self.LST, _operator, self, _LST_stake))
 
 
 @private
@@ -144,6 +138,13 @@ def name_exists(_name: string[64]) -> bool:
 # Admin functions
 @public
 def set_name_registration_minimum_stake(_value: uint256) -> bool:
+    """
+        @dev Function to set the minimum stake required to register a pool name.
+             Only the Protocol DAO can call this function.
+        @param _value The minimum stake value.
+        @return A bool with a value of "True" indicating the minimum stake
+            has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.name_registration_minimum_stake = _value
@@ -155,6 +156,17 @@ def set_name_registration_minimum_stake(_value: uint256) -> bool:
 
 @public
 def set_name_registration_stake_lookup(_name_length: int128, _stake: uint256) -> bool:
+    """
+        @dev Function to set the stake required for a pool name with a specified
+             character length. For eg, 3-character Pool names need a higher
+             stake than 4-character, which in turn need a higher stake than a
+             5-character name, and so on. Only the Protocol DAO can call this
+             function.
+        @param _name_length The character length of a pool name.
+        @param _value The stake required for the given pool name character length.
+        @return A bool with a value of "True" indicating the minimum stake
+            has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.name_registration_stake_lookup[_name_length] = NameRegistrationStakeLookup({
@@ -170,17 +182,29 @@ def set_name_registration_stake_lookup(_name_length: int128, _stake: uint256) ->
 # Escape-hatches
 @private
 def _pause():
+    """
+        @dev Internal function to pause this contract.
+    """
     assert not self.paused
     self.paused = True
 
 
 @private
 def _unpause():
+    """
+        @dev Internal function to unpause this contract.
+    """
     assert self.paused
     self.paused = False
 
 @public
 def pause() -> bool:
+    """
+        @dev Escape hatch function to pause this contract. Only the Protocol DAO
+             can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             paused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._pause()
@@ -189,6 +213,12 @@ def pause() -> bool:
 
 @public
 def unpause() -> bool:
+    """
+        @dev Escape hatch function to unpause this contract. Only the Protocol
+             DAO can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             unpaused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._unpause()
@@ -197,6 +227,11 @@ def unpause() -> bool:
 
 @private
 def _transfer_balance_erc20(_token: address):
+    """
+        @dev Internal function to transfer this contract's balance of the given
+             ERC20 token to the Escape Hatch Token Holder.
+        @param _token The address of the ERC20 token.
+    """
     assert_modifiable(ERC20(_token).transfer(
         ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         ERC20(_token).balanceOf(self)
@@ -205,6 +240,14 @@ def _transfer_balance_erc20(_token: address):
 
 @public
 def escape_hatch_erc20(_currency: address) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of an ERC20 address
+             from this contract to the Escape Hatch Token Holder. Only the
+             Protocol DAO can call this function.
+        @param _currency The address of the ERC20 token
+        @return A bool with a value of "True" indicating the ERC20 transfer has
+             been made to the Escape Hatch Token Holder.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._transfer_balance_erc20(_currency)

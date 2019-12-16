@@ -53,7 +53,7 @@ def initialize(_name: string[64], _symbol: string[32], _decimals: uint256, _supp
 @constant
 def totalSupply() -> uint256:
     """
-    @dev Total number of tokens in existence.
+        @dev Total number of tokens in existence.
     """
     return self.total_supply
 

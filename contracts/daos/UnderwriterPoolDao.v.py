@@ -115,6 +115,15 @@ def initialize(
 @private
 @constant
 def _mft_hash(_address: address, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    """
+        @dev Function to get the hash of a MFT, given its address and indicators.
+        @param _address The address of the MFT.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A unique bytes32 representing the MFT at the given address and indicators.
+    """
     return keccak256(
         concat(
             convert(self.protocol_dao, bytes32),
@@ -130,6 +139,15 @@ def _mft_hash(_address: address, _currency: address, _expiry: timestamp, _underl
 @private
 @constant
 def _market_hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    """
+        @dev Function to get the hash of a shield market, given the currency,
+             expiry, underlying, and strike price.
+        @param _currency The address of the currency.
+        @param _expiry The timestamp when the shield market expires.
+        @param _underlying The address of the underlying.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A unique bytes32 representing the shield market.
+    """
     return keccak256(
         concat(
             convert(self.protocol_dao, bytes32),
@@ -142,57 +160,8 @@ def _market_hash(_currency: address, _expiry: timestamp, _underlying: address, _
 
 
 @private
-@constant
-def _is_token_supported(_token: address) -> bool:
-    return CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_token)
-
-
-@private
-@constant
-def _mft_addresses(_token: address) -> (address, address, address, address, address):
-    return CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_token)
-
-
-@private
 def _validate_pool(_name: string[64], _address: address):
     assert self.pools[_name].address_ == _address
-
-
-@private
-def _transfer_l(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_l(
-        _token, _from, _to, _value))
-
-
-@private
-def _transfer_erc20(_token: address, _from: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
-        _token, _from, _to, _value))
-
-
-@private
-def _get_or_create_mft_id(_token: address, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
-    return MultiFungibleToken(_token).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
-
-
-@private
-def _mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_token, _to, _value))
-
-
-@private
-def _burn_as_self_authorized_erc20(_token: address, _to: address, _value: uint256):
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_token, _to, _value))
-
-
-@private
-def _mint_mft(_token: address, _id: uint256, _to: address, _value: uint256):
-    assert_modifiable(MultiFungibleToken(_token).mint(_id, _to, _value))
-
-
-@private
-def _burn_mft(_token: address, _id: uint256, _from: address, _value: uint256):
-    assert_modifiable(MultiFungibleToken(_token).burn(_id, _from, _value))
 
 
 @private
@@ -214,7 +183,8 @@ def _stake_LST(_name: string[64], _currency: address, _expiry: timestamp, _under
     self.pools[_name].LST_staked += _LST_value
     self.pools[_name].mft_count += 1
     self.LST_staked_per_mft[_name][_market_hash] = _LST_value
-    self._transfer_erc20(self.LST, self.pools[_name].operator, self, _LST_value)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
+        self.LST, self.pools[_name].operator, self, _LST_value))
 
 
 @private
@@ -248,6 +218,14 @@ def LST_stake_value(_name: string[64]) -> uint256:
 
 @public
 def set_template(_template_type: int128, _address: address) -> bool:
+    """
+        @dev Function to set / change the Template address. Only the Protocol
+             DAO can call this function.
+        @param _template_type The type of the Template that has to be changed.
+        @param _address The address of the new Template contract.
+        @return A bool with a value of "True" indicating the template change
+            has been made.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _template_type == TEMPLATE_UNDERWRITER_POOL
@@ -257,6 +235,13 @@ def set_template(_template_type: int128, _address: address) -> bool:
 
 @public
 def set_minimum_mft_fee(_value: uint256) -> bool:
+    """
+        @dev Function to set the minimum stake required to support a MFT by an
+             Interest Pool. Only the Protocol DAO can call this function.
+        @param _value The stake value.
+        @return A bool with a value of "True" indicating the stake for MFT support
+            has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.minimum_mft_fee = _value
@@ -267,6 +252,15 @@ def set_minimum_mft_fee(_value: uint256) -> bool:
 @public
 def set_fee_multiplier_per_mft_count(
     _mft_count: uint256, _value: uint256) -> bool:
+    """
+        @dev Function to set the multiplier for every time an Underwriter Pool
+             increases the MFTs it supports. Only the Protocol DAO can call this
+             function.
+        @param _mft_count The number of MFTs the Underwriter Pool supports.
+        @param _value The multplier for the MFT count of the Underwriter Pool.
+        @return A bool with a value of "True" indicating the multiplier for MFT
+             support has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.fee_multiplier_per_mft_count[_mft_count] = _value
@@ -276,6 +270,13 @@ def set_fee_multiplier_per_mft_count(
 
 @public
 def set_maximum_mft_support_count(_value: uint256) -> bool:
+    """
+        @dev Function to set the maximum number of MFTs an Underwriter Pool can
+             support. Only the Protocol DAO can call this function.
+        @param _value The maximum value.
+        @return A bool with a value of "True" indicating the maxmimum number for
+             MFT support has been set.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.maximum_mft_support_count = _value
@@ -287,17 +288,29 @@ def set_maximum_mft_support_count(_value: uint256) -> bool:
 
 @private
 def _pause():
+    """
+        @dev Internal function to pause this contract.
+    """
     assert not self.paused
     self.paused = True
 
 
 @private
 def _unpause():
+    """
+        @dev Internal function to unpause this contract.
+    """
     assert self.paused
     self.paused = False
 
 @public
 def pause() -> bool:
+    """
+        @dev Escape hatch function to pause this contract. Only the Protocol DAO
+             can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             paused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._pause()
@@ -306,6 +319,12 @@ def pause() -> bool:
 
 @public
 def unpause() -> bool:
+    """
+        @dev Escape hatch function to unpause this contract. Only the Protocol
+             DAO can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             unpaused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._unpause()
@@ -314,6 +333,11 @@ def unpause() -> bool:
 
 @private
 def _transfer_balance_erc20(_token: address):
+    """
+        @dev Internal function to transfer this contract's balance of the given
+             ERC20 token to the Escape Hatch Token Holder.
+        @param _token The address of the ERC20 token.
+    """
     assert_modifiable(ERC20(_token).transfer(
         ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         ERC20(_token).balanceOf(self)
@@ -323,6 +347,15 @@ def _transfer_balance_erc20(_token: address):
 @private
 def _transfer_balance_mft(_token: address,
     _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256):
+    """
+        @dev Internal function to transfer this contract's balance of MFT based
+             on the given indicators to the Escape Hatch Token Holder.
+        @param _token The address of the MFT.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+    """
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
     _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
     _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
@@ -335,6 +368,15 @@ def _transfer_balance_mft(_token: address,
 
 @public
 def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of an ERC20 address
+             from this contract to the Escape Hatch Token Holder. Only the
+             Protocol DAO can call this function.
+        @param _currency The address of the ERC20 token
+        @param _is_l A bool indicating if the ERC20 token is an L Token
+        @return A bool with a value of "True" indicating the ERC20 transfer has
+             been made to the Escape Hatch Token Holder.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     _token: address = _currency
@@ -346,6 +388,19 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
 
 @public
 def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of a MFT with given
+             parameters from this contract to the Escape Hatch Token Holder.
+             Only the Protocol DAO can call this function.
+        @param _mft_type The MFT type (L, I, S, or U) from which the MFT address
+             could be deduced.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A bool with a value of "True" indicating the MFT transfer has
+             been made to the Escape Hatch Token Holder.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
@@ -375,7 +430,7 @@ def register_pool(
     assert self.initialized
     assert not self.paused
     # validate currency
-    assert self._is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
     # Increment active pool count if pool name is already registered.
     # Otherwise, register pool name and increment active pool count
     if PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).name_exists(_name):
@@ -390,7 +445,7 @@ def register_pool(
     _u_address: address = ZERO_ADDRESS
     _address: address = create_forwarder_to(self.templates[TEMPLATE_UNDERWRITER_POOL])
     assert _address.is_contract
-    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
     assert_modifiable(UnderwriterPool(_address).initialize(
         self.protocol_dao,
         _accepts_public_contributions, msg.sender,
@@ -449,8 +504,8 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
     assert not self.paused
     self._validate_pool(_name, msg.sender)
     _currency: address = self.pools[_name].currency
-    assert self._is_token_supported(_currency)
-    assert self._is_token_supported(_underlying)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     _i_hash: bytes32 = self._mft_hash(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
     _s_hash: bytes32 = self._mft_hash(_s_address, _currency, _expiry, _underlying, _strike_price)
     _u_hash: bytes32 = self._mft_hash(_u_address, _currency, _expiry, _underlying, _strike_price)
@@ -461,7 +516,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
     self._stake_LST(_name, _currency, _expiry, _underlying, _strike_price)
 
     if not self.mfts[_i_hash].has_id:
-        _i_id = self._get_or_create_mft_id(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
+        _i_id = MultiFungibleToken(_i_address).get_or_create_id(_currency, _expiry, ZERO_ADDRESS, 0, "")
         self.mfts[_i_hash] = MFT({
             address_: _i_address,
             currency: _currency,
@@ -473,7 +528,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
             hash: _i_hash
         })
     if not self.mfts[_s_hash].has_id:
-        _s_id = self._get_or_create_mft_id(_s_address, _currency, _expiry, _underlying, _strike_price)
+        _s_id = MultiFungibleToken(_s_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
         self.mfts[_s_hash] = MFT({
             address_: _s_address,
             currency: _currency,
@@ -485,7 +540,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
             hash: _s_hash
         })
     if not self.mfts[_u_hash].has_id:
-        _u_id = self._get_or_create_mft_id(_u_address, _currency, _expiry, _underlying, _strike_price)
+        _u_id = MultiFungibleToken(_u_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
         self.mfts[_u_hash] = MFT({
             address_: _u_address,
             currency: _currency,
@@ -535,8 +590,9 @@ def deposit_l(_name: string[64], _from: address, _value: uint256) -> bool:
     assert not self.paused
     self._validate_pool(_name, msg.sender)
     # validate currency
-    assert self._is_token_supported(self.pools[_name].currency)
-    self._transfer_l(self.pools[_name].currency, _from, msg.sender, _value)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(self.pools[_name].currency)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_l(
+        self.pools[_name].currency, _from, msg.sender, _value))
 
     return True
 
@@ -549,18 +605,18 @@ def _l_to_i_and_s_and_u(_currency: address, _expiry: timestamp, _underlying: add
     _f_address: address = ZERO_ADDRESS
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
-    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
-    _i_id: uint256 = self._get_or_create_mft_id(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
-    _s_id: uint256 = self._get_or_create_mft_id(_s_address, _currency, _expiry, _underlying, _strike_price)
-    _u_id: uint256 = self._get_or_create_mft_id(_u_address, _currency, _expiry, _underlying, _strike_price)
+    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
+    _i_id: uint256 = MultiFungibleToken(_i_address).get_or_create_id(_currency, _expiry, ZERO_ADDRESS, 0, "")
+    _s_id: uint256 = MultiFungibleToken(_s_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
+    _u_id: uint256 = MultiFungibleToken(_u_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
     # burn l_token from _from account
-    self._burn_as_self_authorized_erc20(_l_address, _from, _value)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_l_address, _from, _value))
     # mint i_token into _to account
-    self._mint_mft(_i_address, _i_id, _to, _value)
-    self._mint_mft(_s_address, _s_id, _to, _value)
-    self._mint_mft(_u_address, _u_id, _to, _value)
+    assert_modifiable(MultiFungibleToken(_i_address).mint(_i_id, _to, _value))
+    assert_modifiable(MultiFungibleToken(_s_address).mint(_s_id, _to, _value))
+    assert_modifiable(MultiFungibleToken(_u_address).mint(_u_id, _to, _value))
 
 
 @public
@@ -570,8 +626,8 @@ def split(
     assert self.initialized
     assert not self.paused
     assert _expiry < block.timestamp
-    assert self._is_token_supported(_currency)
-    assert self._is_token_supported(_underlying)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     self._l_to_i_and_s_and_u(_currency, _expiry, _underlying, _strike_price,
         _value, msg.sender, msg.sender)
 
@@ -586,7 +642,7 @@ def _i_and_s_and_u_to_l(_currency: address, _expiry: timestamp, _underlying: add
     _f_address: address = ZERO_ADDRESS
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
-    _l_address, _i_address, _f_address, _s_address, _u_address = self._mft_addresses(_currency)
+    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
     _i_id: uint256 = MultiFungibleToken(_i_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
     _s_id: uint256 = MultiFungibleToken(_s_address).id(_currency, _expiry, _underlying, _strike_price)
     _u_id: uint256 = MultiFungibleToken(_u_address).id(_currency, _expiry, _underlying, _strike_price)
@@ -596,13 +652,13 @@ def _i_and_s_and_u_to_l(_currency: address, _expiry: timestamp, _underlying: add
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
     # burn i_tokens from _from account
-    self._burn_mft(_i_address, _i_id, _from, _value)
+    assert_modifiable(MultiFungibleToken(_i_address).burn(_i_id, _from, _value))
     # burn s_tokens from _from account
-    self._burn_mft(_s_address, _s_id, _from, _value)
+    assert_modifiable(MultiFungibleToken(_s_address).burn(_s_id, _from, _value))
     # burn u_tokens from _from account
-    self._burn_mft(_u_address, _u_id, _from, _value)
+    assert_modifiable(MultiFungibleToken(_u_address).burn(_u_id, _from, _value))
     # mint l_tokens to _to account
-    self._mint_and_self_authorize_erc20(_l_address, _to, _value)
+    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_l_address, _to, _value))
 
 
 @public
@@ -612,8 +668,8 @@ def fuse(
     assert self.initialized
     assert not self.paused
     assert _expiry < block.timestamp
-    assert self._is_token_supported(_currency)
-    assert self._is_token_supported(_underlying)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     self._i_and_s_and_u_to_l(_currency, _expiry, _underlying, _strike_price,
         _value, msg.sender, msg.sender)
 

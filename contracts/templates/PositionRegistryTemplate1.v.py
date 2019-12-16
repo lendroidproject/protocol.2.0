@@ -161,17 +161,29 @@ def _liquidate_position(_position_id: uint256):
 
 @private
 def _pause():
+    """
+        @dev Internal function to pause this contract.
+    """
     assert not self.paused
     self.paused = True
 
 
 @private
 def _unpause():
+    """
+        @dev Internal function to unpause this contract.
+    """
     assert self.paused
     self.paused = False
 
 @public
 def pause() -> bool:
+    """
+        @dev Escape hatch function to pause this contract. Only the Protocol DAO
+             can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             paused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._pause()
@@ -180,6 +192,12 @@ def pause() -> bool:
 
 @public
 def unpause() -> bool:
+    """
+        @dev Escape hatch function to unpause this contract. Only the Protocol
+             DAO can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             unpaused.
+    """
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self._unpause()
