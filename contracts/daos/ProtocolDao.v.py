@@ -28,8 +28,9 @@ struct Expiry:
 # Events
 
 DAOInitialized: event({_setter: indexed(address), _dao_type: indexed(int128), _dao_address: address})
-RegistryInitialized: event({_setter: indexed(address), _template_type: indexed(int128), _registry_address: address})
+RegistryInitialized: event({_setter: indexed(address), _template_type: indexed(int128), _registry_address: indexed(address)})
 TemplateSettingsUpdated: event({_setter: indexed(address), _template_type: indexed(int128), _template_address: address})
+AuthorizedCallerUpdated: event({_caller_type: indexed(int128), _caller: indexed(address), _authorized_caller: indexed(address)})
 SystemSettingsUpdated: event({_setter: indexed(address)})
 
 
@@ -93,10 +94,10 @@ def __init__(
         _template_dao_market: address,
         _template_dao_shield_payout: address,
         _template_pool_name_registry: address,
+        _template_position_registry: address,
         _template_token_pool: address,
         _template_interest_pool: address,
         _template_underwriter_pool: address,
-        _template_position_registry: address,
         _template_price_oracle: address,
         _template_collateral_auction: address,
         _template_erc20: address,
@@ -241,6 +242,8 @@ def change_governor(_address: address) -> bool:
     # MAKE THAT CHANGE!
     self.authorized_callers[CALLER_GOVERNOR] = _address
 
+    log.AuthorizedCallerUpdated(CALLER_GOVERNOR, msg.sender, _address)
+
     return True
 
 
@@ -256,6 +259,8 @@ def change_escape_hatch_manager(_address: address) -> bool:
     # MAKE THAT CHANGE!
     self.authorized_callers[CALLER_ESCAPE_HATCH_MANAGER] = _address
 
+    log.AuthorizedCallerUpdated(CALLER_ESCAPE_HATCH_MANAGER, msg.sender, _address)
+
     return True
 
 
@@ -270,6 +275,8 @@ def change_escape_hatch_token_holder(_address: address) -> bool:
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     # MAKE THAT CHANGE!
     self.authorized_callers[CALLER_ESCAPE_HATCH_TOKEN_HOLDER] = _address
+
+    log.AuthorizedCallerUpdated(CALLER_ESCAPE_HATCH_TOKEN_HOLDER, msg.sender, _address)
 
     return True
 

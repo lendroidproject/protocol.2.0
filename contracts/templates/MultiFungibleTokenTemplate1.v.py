@@ -1,6 +1,5 @@
-# @dev Implementation of ERC-1155 token standard.
+# @dev Implementation of Multi Fungible Token.
 # @author Vignesh Meenakshi Sundaram (@vignesh-msundaram)
-# https://github.com/ethereum/eips/issues/1155
 
 
 from contracts.interfaces import MultiFungibleTokenReceiver

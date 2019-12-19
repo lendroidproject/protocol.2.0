@@ -167,8 +167,7 @@ def _deposit_token_to_pool(_token: address, _from: address, _value: uint256):
     _pool_hash: bytes32 = self._pool_hash(_token)
     assert self.pools[_pool_hash].address_.is_contract, "token is not supported"
     # transfer currency to currency pool
-    assert_modifiable(ERC20(_token).transferFrom(_from,
-        self.pools[_pool_hash].address_, _value))
+    assert_modifiable(ERC20(_token).transferFrom(_from, self.pools[_pool_hash].address_, _value))
 
 
 @private
