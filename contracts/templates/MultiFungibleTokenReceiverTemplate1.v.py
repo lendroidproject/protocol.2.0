@@ -14,7 +14,8 @@ MFT_ACCEPTED: bytes[10]
 
 @public
 def __init__():
-    self.MFT_ACCEPTED = "0xf23a6e61"# bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes)"))
+    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes32)"))
+    self.MFT_ACCEPTED = "0x0a8f896b"
 
 
 @public
@@ -27,7 +28,7 @@ def setShouldReject(_value: bool):
 @constant
 def supportsInterface(interfaceID: bytes[10]) -> bool:
     # ERC165 or MFT_ACCEPTED
-    return interfaceID == "0x01ffc9a7" or interfaceID == "0xf23a6e61"
+    return interfaceID == "0xa69f31f6" or interfaceID == "0x0a8f896b"
 
 
 @public

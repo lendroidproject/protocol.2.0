@@ -1,3 +1,6 @@
+# Vyper version of the Lendroid protocol v2
+# THIS CONTRACT HAS NOT BEEN AUDITED!
+
 # @dev Implementation of Multi Fungible Token.
 # @author Vignesh Meenakshi Sundaram (@vignesh-msundaram)
 
@@ -39,8 +42,6 @@ nonce: public(uint256)
 
 # Interface IDs
 MFT_ACCEPTED: bytes[10]
-MFT_BATCH_ACCEPTED: bytes[10]
-INTERFACE_SIGNATURE_URI: bytes[10]
 INTERFACE_SIGNATURE_ERC165: bytes[10]
 INTERFACE_SIGNATURE_MFT: bytes[10]
 
@@ -54,13 +55,25 @@ def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = _protocol_dao
-    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes)"))
-    self.MFT_ACCEPTED = "0xf23a6e61"
-    # bytes4(keccak256("onMFTBatchReceived(address,address,uint256[],uint256[],bytes)"))
-    self.MFT_BATCH_ACCEPTED = "0xbc197c81"
-    self.INTERFACE_SIGNATURE_URI = "0x0e89341c"
-    self.INTERFACE_SIGNATURE_ERC165 = "0x01ffc9a7"
+    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes32)"))
+    self.MFT_ACCEPTED = "0x0a8f896b"
+    # bytes4(keccak256("supportsInterface(bytes[10])"))
+    self.INTERFACE_SIGNATURE_ERC165 = "0xa69f31f6"
+    # bytes4(keccak256("initialize(address,address[5])")) ^
+    # bytes4(keccak256("hash(address,timestamp,address,uint256)")) ^
+    # bytes4(keccak256("get_or_create_id(address,timestamp,address,uint256,string[64])")) ^
+    # bytes4(keccak256("supportsInterface(bytes[10])")) ^
+    # bytes4(keccak256("id(address,timestamp,address,uint256)")) ^
+    # bytes4(keccak256("is_valid_id(uint256)")) ^
+    # bytes4(keccak256("setURI(string[64],uint256)")) ^
+    # bytes4(keccak256("mint(uint256,address,uint256)")) ^
+    # bytes4(keccak256("burn(uint256,address,uint256)")) ^
+    # bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes32)")) ^
+    # bytes4(keccak256("balanceOf(address,uint256)")) ^
+    # bytes4(keccak256("burn(uint256,address,uint256)")) ^
+    # bytes4(keccak256("balanceOfBatch(address,uint256[5])"));
     self.INTERFACE_SIGNATURE_MFT = "0xd9b67a26"
+    self.authorized_daos[_protocol_dao] = True
     for _dao in _authorized_daos:
         self.authorized_daos[_dao] = True
 
@@ -70,6 +83,16 @@ def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
 @private
 @constant
 def _hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    """
+        @dev Function to get the hash of a MFT, given its indicators.
+             This is an internal function and is used only within the context of
+             this contract.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A unique bytes32 representing the MFT with the given indicators.
+    """
     return keccak256(
         concat(
             convert(self.protocol_dao, bytes32),
@@ -84,43 +107,79 @@ def _hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_
 
 @private
 def _doSafeTransferAcceptanceCheck(_operator: address, _from: address, _to: address, _id: uint256, _value: uint256, _data: bytes32):
-    # If this was a hybrid standards solution you would have to check ERC165(_to).supportsInterface(0x4e2312e0) here but as this is a pure implementation of an ERC-1155 token set as recommended by
-    # the standard, it is not necessary. The below should revert in all failure cases i.e. _to isn't a receiver, or it is and either returns an unknown value or it reverts in the call to indicate non-acceptance.
-    # Note: if the below reverts in the onMFTReceived function of the _to address you will have an undefined revert reason returned rather than the one in the require test.
-    # If you want predictable revert reasons consider using low level _to.call() style instead so the revert does not bubble up and you can revert yourself on the MFT_ACCEPTED test.
+    """
+        @dev Function to check receipt of MFT Transfer. Recommended to be used on Contracts that accept MFT transfers.
+        @param _operator Address that initiated the transfer.
+        @param _from Address from which to transfer.
+        @param _to The address to transfer MFT to.
+        @param _id The MFT ID with a specific combination of currency, expiry, underlying, and strike price.
+        @param _value MFT value to transfer.
+        @param _data Data sent with the transfer.
+    """
     _interface_id: bytes[10] = MultiFungibleTokenReceiver(_to).onMFTReceived(_operator, _from, _id, _value, _data)
-    # assert _interface_id == self.MFT_ACCEPTED, "contract returned an unknown value from onMFTReceived"
-    assert True
+    assert _interface_id == self.MFT_ACCEPTED, "contract returned an unknown value from onMFTReceived"
 
 
 @private
 @constant
 def hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    """
+        @dev Function to get the hash of a MFT, given its indicators.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return The result of the internal function _hash()
+    """
     return self._hash(_currency, _expiry, _underlying, _strike_price)
 
 
 @public
 @constant
 def supportsInterface(_interfaceId: bytes[10]) -> bool:
-    return _interfaceId == self.INTERFACE_SIGNATURE_URI or \
-           _interfaceId == self.INTERFACE_SIGNATURE_ERC165 or \
+    """
+        @dev Function to check if the given interface ID is supported.
+        @param _interfaceId The interface ID.
+        @return Bool indicating the support.
+    """
+    return _interfaceId == self.INTERFACE_SIGNATURE_ERC165 or \
            _interfaceId == self.INTERFACE_SIGNATURE_MFT
 
 
 @public
 @constant
 def id(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
+    """
+        @dev Function to get the id of a MFT, given its indicators.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return Non-zero Id of the MFT hash if the MFT has been created. Zero otherwise.
+    """
     return self.hash_to_id[self._hash(_currency, _expiry, _underlying, _strike_price)]
 
 
 @public
 @constant
 def is_valid_id(_id: uint256) -> bool:
+    """
+        @dev Function to check if a given MFT hash is valid.
+        @param _id The MFT id.
+        @return Bool indicating if the id is registered to a hash.
+    """
     return self.hash_to_id[self.id_to_hash[_id]] == _id
 
 
 @public
 def setURI(_uri: string[64], _id: uint256):
+    """
+        @dev Function to add a URI to a MFT metadata
+        @param _id The MFT id.
+        @return Bool indicating if the id is registered to a hash.
+    """
+    assert self.authorized_daos[msg.sender]
+    self.metadata[_id].uri = _uri
     log.URI(_uri, _id)
 
 
@@ -270,7 +329,7 @@ def balanceOf(_owner: address, _id: uint256) -> uint256:
         @notice Get the balance of an account's Tokens.
         @param _owner  The address of the token holder
         @param _id     ID of the Token
-        @return        The _owner's balance of the Token type requested
+        @return        The _owner's balance of the Token id requested
     """
     # The balance of any account can be calculated from the Transfer events history.
     # However, since we need to keep the balances to validate transfer request,

@@ -145,8 +145,8 @@ def initialize(
     self.LOAN_MARKET_STATUS_SETTLING = 2
     self.LOAN_MARKET_STATUS_CLOSED = 3
 
-    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes)"))
-    self.MFT_ACCEPTED = "0xf23a6e61"
+    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes32)"))
+    self.MFT_ACCEPTED = "0x0a8f896b"
     self.shouldReject = False
 
     return True
@@ -306,7 +306,7 @@ def setShouldReject(_value: bool):
 @constant
 def supportsInterface(interfaceID: bytes[10]) -> bool:
     # ERC165 or MFT_ACCEPTED
-    return interfaceID == "0x01ffc9a7" or interfaceID == "0x4e2312e0"
+    return interfaceID == "0xa69f31f6" or interfaceID == "0x0a8f896b"
 
 
 @public
