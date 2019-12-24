@@ -18,8 +18,9 @@ const ProtocolDao = artifacts.require('ProtocolDao.vyper')
 
 module.exports = function(deployer, network, accounts) {
   console.log('Network : ', network)
-  const [Test1, Test2, Governor, EscapeHatchManager, EscapeHatchTokenHolder] = accounts
+  const [Deployer, Test1, Test2, Governor, EscapeHatchManager, EscapeHatchTokenHolder] = accounts
   const contracts = {
+    Deployer,
     Test1,
     Test2,
     Governor,
@@ -43,8 +44,6 @@ module.exports = function(deployer, network, accounts) {
       contracts.Lend_token = instance
       instance.transfer(Test1, '100000000000000000000')
       instance.transfer(Test2, '100000000000000000000')
-      instance.approve(Test1, '100000000000000000000')
-      instance.approve(Test2, '100000000000000000000')
       return deployer.deploy(ERC20, 'Test Borrow Token', 'WETH', 18, 1000000)
     })
     .then(function(instance) {
@@ -52,8 +51,6 @@ module.exports = function(deployer, network, accounts) {
       contracts.Borrow_token = instance
       instance.transfer(Test1, '100000000000000000000')
       instance.transfer(Test2, '100000000000000000000')
-      instance.approve(Test1, '100000000000000000000')
-      instance.approve(Test2, '100000000000000000000')
       return deployer.deploy(PriceFeed)
     })
     .then(function(instance) {
@@ -156,8 +153,11 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('ProtocolDao deployed at: ', instance.address)
       contracts.ProtocolDao = instance
-      instance.set_token_support(contracts.Lend_token.address)
-      instance.set_token_support(contracts.Borrow_token.address)
+    //   return contracts.ProtocolDao.set_token_support(contracts.Lend_token.address, true, { from: Governor })
+    // })
+    // .then(function(result) {
+    //   console.log('Lend_token support: ', result)
+
       const addresses = {}
       Object.keys(contracts).forEach(
         token => (addresses[token] = typeof contracts[token] === 'string' ? contracts[token] : contracts[token].address)
