@@ -33,22 +33,22 @@ module.exports = function(deployer, network, accounts) {
   deployer
     .deploy(ERC20, 'Lendroid Support Token', 'LST', 18, 12000000000)
     .then(function(instance) {
-      console.log('LST_token deployed at: ', instance.address)
-      contracts.LST_token = instance
+      console.log('LST deployed at: ', instance.address)
+      contracts.LST = instance
       instance.transfer(Test1, '100000000000000000000')
       instance.transfer(Test2, '100000000000000000000')
       return deployer.deploy(ERC20, 'Test Lend Token', 'DAI', 18, 1000000)
     })
     .then(function(instance) {
-      console.log('Lend_token deployed at: ', instance.address)
-      contracts.Lend_token = instance
+      console.log('DAI deployed at: ', instance.address)
+      contracts.DAI = instance
       instance.transfer(Test1, '100000000000000000000')
       instance.transfer(Test2, '100000000000000000000')
       return deployer.deploy(ERC20, 'Test Borrow Token', 'WETH', 18, 1000000)
     })
     .then(function(instance) {
-      console.log('Borrow_token deployed at: ', instance.address)
-      contracts.Borrow_token = instance
+      console.log('WETH deployed at: ', instance.address)
+      contracts.WETH = instance
       instance.transfer(Test1, '100000000000000000000')
       instance.transfer(Test2, '100000000000000000000')
       return deployer.deploy(PriceFeed)
@@ -106,7 +106,7 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('UnderwriterPool deployed at: ', instance.address)
       contracts.UnderwriterPool = instance
-      return deployer.deploy(PriceOracle, ...getAddr('Lend_token', 'Borrow_token', 'PriceFeed'))
+      return deployer.deploy(PriceOracle, ...getAddr('DAI', 'WETH', 'PriceFeed'))
     })
     .then(function(instance) {
       console.log('PriceOracle deployed at: ', instance.address)
@@ -129,7 +129,7 @@ module.exports = function(deployer, network, accounts) {
       return deployer.deploy(
         ProtocolDao,
         ...getAddr(
-          'LST_token',
+          'LST',
           'Governor',
           'EscapeHatchManager',
           'EscapeHatchTokenHolder',
@@ -153,10 +153,14 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('ProtocolDao deployed at: ', instance.address)
       contracts.ProtocolDao = instance
-    //   return contracts.ProtocolDao.set_token_support(contracts.Lend_token.address, true, { from: Governor })
-    // })
-    // .then(function(result) {
-    //   console.log('Lend_token support: ', result)
+      return instance.initialize_currency_dao()
+    })
+    .then(function(result) {
+      console.log('initialize_currency_dao result: ', result)
+      return contracts.ProtocolDao.set_token_support(contracts.DAI.address, true, { from: Governor })
+    })
+    .then(function(result) {
+      console.log('DAI token support: ', result)
 
       const addresses = {}
       Object.keys(contracts).forEach(
