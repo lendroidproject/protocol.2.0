@@ -64,6 +64,7 @@ minimum_mft_fee: public(uint256)
 # name => (_market_hash => stake)
 LST_staked_per_mft: public(map(string[64], map(bytes32, uint256)))
 maximum_mft_support_count: public(uint256)
+FEE_MULTIPLIER_DECIMALS: constant(uint256) = 100
 
 REGISTRY_POOL_NAME: constant(int128) = 1
 
@@ -172,7 +173,7 @@ def _LST_stake_value(_name: string[64]) -> uint256:
     _multiplier: uint256 = self.fee_multiplier_per_mft_count[self.pools[_name].mft_count]
     if _multiplier == 0:
         _multiplier = self.fee_multiplier_per_mft_count[0]
-    return as_unitless_number(self.minimum_mft_fee) + as_unitless_number(as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier))
+    return as_unitless_number(self.minimum_mft_fee) + as_unitless_number(as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier) / as_unitless_number(FEE_MULTIPLIER_DECIMALS))
 
 
 @private
@@ -625,7 +626,7 @@ def split(
     _value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
-    assert _expiry < block.timestamp
+    assert _expiry > block.timestamp
     assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
     assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     self._l_to_i_and_s_and_u(_currency, _expiry, _underlying, _strike_price,
@@ -667,7 +668,7 @@ def fuse(
     _value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
-    assert _expiry < block.timestamp
+    assert _expiry > block.timestamp
     assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
     assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     self._i_and_s_and_u_to_l(_currency, _expiry, _underlying, _strike_price,

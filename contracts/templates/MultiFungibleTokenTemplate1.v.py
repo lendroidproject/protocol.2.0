@@ -120,20 +120,6 @@ def _doSafeTransferAcceptanceCheck(_operator: address, _from: address, _to: addr
     assert _interface_id == self.MFT_ACCEPTED, "contract returned an unknown value from onMFTReceived"
 
 
-@private
-@constant
-def hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
-    """
-        @dev Function to get the hash of a MFT, given its indicators.
-        @param _currency The address of the currency token in the MFT.
-        @param _expiry The timestamp when the MFT expires.
-        @param _underlying The address of the underlying token in the MFT.
-        @param _strike_price The price of the underlying per currency at _expiry.
-        @return The result of the internal function _hash()
-    """
-    return self._hash(_currency, _expiry, _underlying, _strike_price)
-
-
 @public
 @constant
 def supportsInterface(_interfaceId: bytes[10]) -> bool:
@@ -257,7 +243,7 @@ def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
 @public
 def burn(_id: uint256, _from: address, _quantity: uint256) -> bool:
     assert self.initialized
-    assert self.authorized_daos[msg.sender]
+    assert (_from == msg.sender) or self.authorized_daos[msg.sender], "Need dao approval for 3rd party burns."
 
     # Remove the items to the caller
     self.balances[_id][_from] -= _quantity
@@ -288,7 +274,7 @@ def safeTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256
     """
     assert self.initialized
     assert _to != ZERO_ADDRESS, "_to must be non-zero."
-    assert (_from == msg.sender) or self.authorized_daos[msg.sender], "Need operator approval for 3rd party transfers."
+    assert (_from == msg.sender) or self.authorized_daos[msg.sender], "Need dao approval for 3rd party transfers."
 
     # SafeMath will throw with insuficient funds _from
     # or if _id is not valid (balance will be 0)
