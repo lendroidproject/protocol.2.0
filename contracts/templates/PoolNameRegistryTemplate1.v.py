@@ -75,6 +75,9 @@ def initialize(
     return True
 
 
+### Internal functions ###
+
+
 @private
 @constant
 def _name_exists(_name: string[64]) -> bool:
@@ -129,6 +132,40 @@ def _remove_name(_name: string[64], _name_id: uint256):
     ))
 
 
+@private
+def _pause():
+    """
+        @dev Internal function to pause this contract.
+    """
+    assert not self.paused
+    self.paused = True
+
+
+@private
+def _unpause():
+    """
+        @dev Internal function to unpause this contract.
+    """
+    assert self.paused
+    self.paused = False
+
+
+@private
+def _transfer_balance_erc20(_token: address):
+    """
+        @dev Internal function to transfer this contract's balance of the given
+             ERC20 token to the Escape Hatch Token Holder.
+        @param _token The address of the ERC20 token.
+    """
+    assert_modifiable(ERC20(_token).transfer(
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20(_token).balanceOf(self)
+    ))
+
+
+### External functions ###
+
+
 @public
 @constant
 def name_exists(_name: string[64]) -> bool:
@@ -136,6 +173,7 @@ def name_exists(_name: string[64]) -> bool:
 
 
 # Admin functions
+
 @public
 def set_name_registration_minimum_stake(_value: uint256) -> bool:
     """
@@ -180,22 +218,6 @@ def set_name_registration_stake_lookup(_name_length: int128, _stake: uint256) ->
 
 
 # Escape-hatches
-@private
-def _pause():
-    """
-        @dev Internal function to pause this contract.
-    """
-    assert not self.paused
-    self.paused = True
-
-
-@private
-def _unpause():
-    """
-        @dev Internal function to unpause this contract.
-    """
-    assert self.paused
-    self.paused = False
 
 @public
 def pause() -> bool:
@@ -223,19 +245,6 @@ def unpause() -> bool:
     assert msg.sender == self.protocol_dao
     self._unpause()
     return True
-
-
-@private
-def _transfer_balance_erc20(_token: address):
-    """
-        @dev Internal function to transfer this contract's balance of the given
-             ERC20 token to the Escape Hatch Token Holder.
-        @param _token The address of the ERC20 token.
-    """
-    assert_modifiable(ERC20(_token).transfer(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        ERC20(_token).balanceOf(self)
-    ))
 
 
 @public

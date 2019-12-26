@@ -189,6 +189,9 @@ def __init__(
     self.templates[TEMPLATE_MFT] = _template_mft
 
 
+### Internal functions ###
+
+
 @private
 @constant
 def _mft_hash(_address: address, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
@@ -226,6 +229,9 @@ def _validate_caller(_caller: address, _caller_type: int128):
     """
     assert self.initialized
     assert _caller == self.authorized_callers[_caller_type]
+
+
+### External functions ###
 
 
 # Admin functions
@@ -281,7 +287,7 @@ def change_escape_hatch_token_holder(_address: address) -> bool:
     return True
 
 
-### Initialization - Performed by only Deployer ###
+## Initialization - Performed by only Deployer ##
 
 #. Registries - Pool Name
 @public
@@ -450,7 +456,7 @@ def initialize_shield_payout_dao() -> bool:
     return True
 
 
-### SETTINGS - Performed by only Governor ###
+## SETTINGS - Performed by only Governor ##
 
 
 @public
@@ -785,7 +791,7 @@ def set_auction_discount_duration(_value: timedelta) -> bool:
     return True
 
 
-### ESCAPE HATCHES - Performed by only Escape Hatch Manager ###
+## ESCAPE HATCHES - Performed by only Escape Hatch Manager ##
 
 # DAOS - Pause / Unpause
 @public

@@ -93,6 +93,9 @@ def initialize(
     return True
 
 
+### Internal functions ###
+
+
 @private
 @constant
 def _pool_hash(_currency: address) -> bytes32:
@@ -136,6 +139,19 @@ def _mft_hash(_address: address, _currency: address, _expiry: timestamp, _underl
             convert(_strike_price, bytes32)
         )
     )
+
+
+@private
+@constant
+def _mft_addresses(_token: address) -> (address, address, address, address, address):
+    """
+        @dev Function to get the L, F, I, S, and U addresses for a given ERC20
+             token. This is an internal function and is used only within the
+             context of this contract.
+        @param _token The address of the ERC20 token.
+        @return A list of 5 addresses, aka, L, F, I, S, and U addresses.
+    """
+    return self.token_addresses[_token].l, self.token_addresses[_token].i, self.token_addresses[_token].f, self.token_addresses[_token].s, self.token_addresses[_token].u
 
 
 @private
@@ -189,19 +205,6 @@ def _withdraw_token_from_pool(_token: address, _to: address, _value: uint256):
 
 
 @private
-@constant
-def _mft_addresses(_token: address) -> (address, address, address, address, address):
-    """
-        @dev Function to get the L, F, I, S, and U addresses for a given ERC20
-             token. This is an internal function and is used only within the
-             context of this contract.
-        @param _token The address of the ERC20 token.
-        @return A list of 5 addresses, aka, L, F, I, S, and U addresses.
-    """
-    return self.token_addresses[_token].l, self.token_addresses[_token].i, self.token_addresses[_token].f, self.token_addresses[_token].s, self.token_addresses[_token].u
-
-
-@private
 def _wrap(_token: address, _from: address, _to: address, _value: uint256):
     """
         @dev Function to deposit an original ERC20 token to its corrresponding
@@ -239,6 +242,62 @@ def _unwrap(_token: address, _from: address, _to: address, _value: uint256):
     assert_modifiable(ERC20(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
     # release currency to _to address
     self._withdraw_token_from_pool(_token, _to, _value)
+
+
+@private
+def _pause():
+    """
+        @dev Internal function to pause this contract.
+    """
+    assert not self.paused
+    self.paused = True
+
+
+@private
+def _unpause():
+    """
+        @dev Internal function to unpause this contract.
+    """
+    assert self.paused
+    self.paused = False
+
+
+@private
+def _transfer_balance_erc20(_token: address):
+    """
+        @dev Internal function to transfer this contract's balance of the given
+             ERC20 token to the Escape Hatch Token Holder.
+        @param _token The address of the ERC20 token.
+    """
+    assert_modifiable(ERC20(_token).transfer(
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20(_token).balanceOf(self)
+    ))
+
+
+@private
+def _transfer_balance_mft(_token: address,
+    _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256):
+    """
+        @dev Internal function to transfer this contract's balance of MFT based
+             on the given indicators to the Escape Hatch Token Holder.
+        @param _token The address of the MFT.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+    """
+    _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
+    _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
+    _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
+    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+        self,
+        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        _id, _balance, EMPTY_BYTES32
+    ))
+
+
+### External functions ###
 
 
 @public
@@ -316,20 +375,6 @@ def u_token(_currency: address, _expiry: timestamp, _underlying: address, _strik
 
 
 @public
-def mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256) -> bool:
-    assert self.initialized
-    assert_modifiable(ERC20(_token).mintAndAuthorizeMinter(_to, _value))
-    return True
-
-
-@public
-def burn_as_self_authorized_erc20(_token: address, _from: address, _value: uint256) -> bool:
-    assert self.initialized
-    assert_modifiable(ERC20(_token).burnAsAuthorizedMinter(_from, _value))
-    return True
-
-
-@public
 @constant
 def pool_hash(_token: address) -> bytes32:
     """
@@ -341,135 +386,20 @@ def pool_hash(_token: address) -> bytes32:
     return self._pool_hash(_token)
 
 
-# Escape-hatches
-@private
-def _pause():
-    """
-        @dev Internal function to pause this contract.
-    """
-    assert not self.paused
-    self.paused = True
+# Admin functions
 
-
-@private
-def _unpause():
-    """
-        @dev Internal function to unpause this contract.
-    """
-    assert self.paused
-    self.paused = False
 
 @public
-def pause() -> bool:
-    """
-        @dev Escape hatch function to pause this contract. Only the Protocol DAO
-             can call this function.
-        @return A bool with a value of "True" indicating this contract has been
-             paused.
-    """
+def mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.protocol_dao
-    self._pause()
+    assert_modifiable(ERC20(_token).mintAndAuthorizeMinter(_to, _value))
     return True
 
 
 @public
-def unpause() -> bool:
-    """
-        @dev Escape hatch function to unpause this contract. Only the Protocol
-             DAO can call this function.
-        @return A bool with a value of "True" indicating this contract has been
-             unpaused.
-    """
+def burn_as_self_authorized_erc20(_token: address, _from: address, _value: uint256) -> bool:
     assert self.initialized
-    assert msg.sender == self.protocol_dao
-    self._unpause()
-    return True
-
-
-@private
-def _transfer_balance_erc20(_token: address):
-    """
-        @dev Internal function to transfer this contract's balance of the given
-             ERC20 token to the Escape Hatch Token Holder.
-        @param _token The address of the ERC20 token.
-    """
-    assert_modifiable(ERC20(_token).transfer(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        ERC20(_token).balanceOf(self)
-    ))
-
-
-@private
-def _transfer_balance_mft(_token: address,
-    _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256):
-    """
-        @dev Internal function to transfer this contract's balance of MFT based
-             on the given indicators to the Escape Hatch Token Holder.
-        @param _token The address of the MFT.
-        @param _currency The address of the currency token in the MFT.
-        @param _expiry The timestamp when the MFT expires.
-        @param _underlying The address of the underlying token in the MFT.
-        @param _strike_price The price of the underlying per currency at _expiry.
-    """
-    _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
-    _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
-    _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
-        self,
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        _id, _balance, EMPTY_BYTES32
-    ))
-
-
-@public
-def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
-    """
-        @dev Escape hatch function to transfer all tokens of an ERC20 address
-             from this contract to the Escape Hatch Token Holder. Only the
-             Protocol DAO can call this function.
-        @param _currency The address of the ERC20 token
-        @param _is_l A bool indicating if the ERC20 token is an L Token
-        @return A bool with a value of "True" indicating the ERC20 transfer has
-             been made to the Escape Hatch Token Holder.
-    """
-    assert self.initialized
-    assert msg.sender == self.protocol_dao
-    _token: address = _currency
-    if _is_l:
-        _token = self.token_addresses[_currency].l
-    self._transfer_balance_erc20(_currency)
-    return True
-
-
-@public
-def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
-    """
-        @dev Escape hatch function to transfer all tokens of a MFT with given
-             parameters from this contract to the Escape Hatch Token Holder.
-             Only the Protocol DAO can call this function.
-        @param _mft_type The MFT type (L, I, S, or U) from which the MFT address
-             could be deduced.
-        @param _currency The address of the currency token in the MFT.
-        @param _expiry The timestamp when the MFT expires.
-        @param _underlying The address of the underlying token in the MFT.
-        @param _strike_price The price of the underlying per currency at _expiry.
-        @return A bool with a value of "True" indicating the MFT transfer has
-             been made to the Escape Hatch Token Holder.
-    """
-    assert self.initialized
-    assert msg.sender == self.protocol_dao
-    _token: address = ZERO_ADDRESS
-    if _mft_type == MFT_TYPE_F:
-        _token = self.token_addresses[_currency].f
-    if _mft_type == MFT_TYPE_I:
-        _token = self.token_addresses[_currency].i
-    if _mft_type == MFT_TYPE_S:
-        _token = self.token_addresses[_currency].s
-    if _mft_type == MFT_TYPE_U:
-        _token = self.token_addresses[_currency].u
-    assert not _token == ZERO_ADDRESS
-    self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
+    assert_modifiable(ERC20(_token).burnAsAuthorizedMinter(_from, _value))
     return True
 
 
@@ -525,25 +455,25 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
         _i_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_i_address).initialize(self.protocol_dao, [
             self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
-            self.daos[DAO_MARKET], ZERO_ADDRESS
+            self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
         # f token
         _f_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_f_address).initialize(self.protocol_dao, [
-            self.daos[DAO_MARKET],
-            ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
+            self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
+            self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
         # s token
         _s_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_s_address).initialize(self.protocol_dao, [
-            self.daos[DAO_MARKET],
-            ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
+            self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
+            self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
         # u token
         _u_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_u_address).initialize(self.protocol_dao, [
-            self.daos[DAO_MARKET],
-            ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS
+            self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
+            self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
 
         self.pools[_pool_hash] = Pool({
@@ -570,6 +500,90 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
         assert_modifiable(ERC20TokenPool(self.pools[_pool_hash].address_).destroy())
 
     return True
+
+
+# Escape-hatches
+
+@public
+def pause() -> bool:
+    """
+        @dev Escape hatch function to pause this contract. Only the Protocol DAO
+             can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             paused.
+    """
+    assert self.initialized
+    assert msg.sender == self.protocol_dao
+    self._pause()
+    return True
+
+
+@public
+def unpause() -> bool:
+    """
+        @dev Escape hatch function to unpause this contract. Only the Protocol
+             DAO can call this function.
+        @return A bool with a value of "True" indicating this contract has been
+             unpaused.
+    """
+    assert self.initialized
+    assert msg.sender == self.protocol_dao
+    self._unpause()
+    return True
+
+
+@public
+def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of an ERC20 address
+             from this contract to the Escape Hatch Token Holder. Only the
+             Protocol DAO can call this function.
+        @param _currency The address of the ERC20 token
+        @param _is_l A bool indicating if the ERC20 token is an L Token
+        @return A bool with a value of "True" indicating the ERC20 transfer has
+             been made to the Escape Hatch Token Holder.
+    """
+    assert self.initialized
+    assert msg.sender == self.protocol_dao
+    _token: address = _currency
+    if _is_l:
+        _token = self.token_addresses[_currency].l
+    self._transfer_balance_erc20(_currency)
+    return True
+
+
+@public
+def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+    """
+        @dev Escape hatch function to transfer all tokens of a MFT with given
+             parameters from this contract to the Escape Hatch Token Holder.
+             Only the Protocol DAO can call this function.
+        @param _mft_type The MFT type (L, I, S, or U) from which the MFT address
+             could be deduced.
+        @param _currency The address of the currency token in the MFT.
+        @param _expiry The timestamp when the MFT expires.
+        @param _underlying The address of the underlying token in the MFT.
+        @param _strike_price The price of the underlying per currency at _expiry.
+        @return A bool with a value of "True" indicating the MFT transfer has
+             been made to the Escape Hatch Token Holder.
+    """
+    assert self.initialized
+    assert msg.sender == self.protocol_dao
+    _token: address = ZERO_ADDRESS
+    if _mft_type == MFT_TYPE_F:
+        _token = self.token_addresses[_currency].f
+    if _mft_type == MFT_TYPE_I:
+        _token = self.token_addresses[_currency].i
+    if _mft_type == MFT_TYPE_S:
+        _token = self.token_addresses[_currency].s
+    if _mft_type == MFT_TYPE_U:
+        _token = self.token_addresses[_currency].u
+    assert not _token == ZERO_ADDRESS
+    self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
+    return True
+
+
+# Non=admin functions
 
 
 @public

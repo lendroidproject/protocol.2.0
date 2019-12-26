@@ -63,6 +63,7 @@ minimum_mft_fee: public(uint256)
 # pool name => (_market_hash => stake)
 LST_staked_per_mft: public(map(string[64], map(bytes32, uint256)))
 maximum_mft_support_count: public(uint256)
+FEE_MULTIPLIER_DECIMALS: constant(uint256) = 100
 
 REGISTRY_POOL_NAME: constant(int128) = 1
 
@@ -163,7 +164,7 @@ def _LST_stake_value(_name: string[64]) -> uint256:
     _multiplier: uint256 = self.fee_multiplier_per_mft_count[self.pools[_name].mft_count]
     if _multiplier == 0:
         _multiplier = self.fee_multiplier_per_mft_count[0]
-    return as_unitless_number(self.minimum_mft_fee) + as_unitless_number(as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier))
+    return as_unitless_number(self.minimum_mft_fee) + as_unitless_number(as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier) / as_unitless_number(FEE_MULTIPLIER_DECIMALS))
 
 
 @private
@@ -566,7 +567,6 @@ def deposit_l(_name: string[64], _from: address, _value: uint256) -> bool:
 @private
 def _l_to_f_and_i(_currency: address, _expiry: timestamp,
     _value: uint256, _from: address, _to: address):
-    assert _expiry < block.timestamp
     _l_address: address = ZERO_ADDRESS
     _i_address: address = ZERO_ADDRESS
     _f_address: address = ZERO_ADDRESS
@@ -578,8 +578,9 @@ def _l_to_f_and_i(_currency: address, _expiry: timestamp,
     assert (not _i_id == 0) and (not _f_id == 0)
     # burn l_token from _from account
     assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_l_address, _from, _value))
-    # mint i_token into _to account
-    assert_modifiable(MultiFungibleToken(_i_address).mint(_i_id, _to, _value))
+    if _expiry > block.timestamp:
+        # mint i_token into _to account
+        assert_modifiable(MultiFungibleToken(_i_address).mint(_i_id, _to, _value))
     # mint f_token into _to account
     assert_modifiable(MultiFungibleToken(_f_address).mint(_f_id, _to, _value))
 
@@ -606,7 +607,7 @@ def _i_and_f_to_l(_currency: address, _expiry: timestamp,
     _i_id: uint256 = MultiFungibleToken(_i_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
     _f_id: uint256 = MultiFungibleToken(_f_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
     assert (not _i_id == 0) and (not _f_id == 0)
-    if _expiry < block.timestamp:
+    if _expiry > block.timestamp:
         # mint i_token into _to account
         assert_modifiable(MultiFungibleToken(_i_address).burn(_i_id, _from, _value))
     # mint f_token into _to account
