@@ -153,31 +153,31 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('ProtocolDao deployed at: ', instance.address)
       contracts.ProtocolDao = instance
-      return contracts.ProtocolDao.initialize_currency_dao()
+      return contracts.ProtocolDao.initialize_currency_dao({ from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_currency_dao result: ', result)
-      return contracts.ProtocolDao.initialize_interest_pool_dao()
+      return contracts.ProtocolDao.initialize_interest_pool_dao({ from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_interest_pool_dao result: ', result)
-      return contracts.ProtocolDao.initialize_underwriter_pool_dao()
+      return contracts.ProtocolDao.initialize_underwriter_pool_dao({ from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_underwriter_pool_dao result: ', result)
-      return contracts.ProtocolDao.initialize_pool_name_registry(100000000)
+      return contracts.ProtocolDao.initialize_pool_name_registry(100000000, { from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_pool_name_registry result: ', result)
-      return contracts.ProtocolDao.initialize_position_registry()
+      return contracts.ProtocolDao.initialize_position_registry({ from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_position_registry result: ', result)
-      return contracts.ProtocolDao.initialize_market_dao()
+      return contracts.ProtocolDao.initialize_market_dao({ from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_market_dao result: ', result)
-      return contracts.ProtocolDao.initialize_shield_payout_dao()
+      return contracts.ProtocolDao.initialize_shield_payout_dao({ from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_shield_payout_dao result: ', result)
