@@ -153,10 +153,34 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('ProtocolDao deployed at: ', instance.address)
       contracts.ProtocolDao = instance
-      return instance.initialize_currency_dao()
+      return contracts.ProtocolDao.initialize_currency_dao()
     })
     .then(function(result) {
       console.log('initialize_currency_dao result: ', result)
+      return contracts.ProtocolDao.initialize_interest_pool_dao()
+    })
+    .then(function(result) {
+      console.log('initialize_interest_pool_dao result: ', result)
+      return contracts.ProtocolDao.initialize_underwriter_pool_dao()
+    })
+    .then(function(result) {
+      console.log('initialize_underwriter_pool_dao result: ', result)
+      return contracts.ProtocolDao.initialize_pool_name_registry(100000000)
+    })
+    .then(function(result) {
+      console.log('initialize_pool_name_registry result: ', result)
+      return contracts.ProtocolDao.initialize_position_registry()
+    })
+    .then(function(result) {
+      console.log('initialize_position_registry result: ', result)
+      return contracts.ProtocolDao.initialize_market_dao()
+    })
+    .then(function(result) {
+      console.log('initialize_market_dao result: ', result)
+      return contracts.ProtocolDao.initialize_shield_payout_dao()
+    })
+    .then(function(result) {
+      console.log('initialize_shield_payout_dao result: ', result)
       return contracts.ProtocolDao.set_token_support(contracts.DAI.address, true, { from: Governor })
     })
     .then(function(result) {
