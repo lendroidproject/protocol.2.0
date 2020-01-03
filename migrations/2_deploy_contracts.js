@@ -13,6 +13,8 @@ const UnderwriterPool = artifacts.require('UnderwriterPoolTemplate1.vyper')
 const PriceOracle = artifacts.require('SimplePriceOracleTemplate1.vyper')
 const CollateralAuctionCurve = artifacts.require('SimpleCollateralAuctionCurveTemplate1.vyper')
 const MultiFungibleToken = artifacts.require('MultiFungibleTokenTemplate1.vyper')
+const LERC20 = artifacts.require('LERC20Template1.vyper')
+const ERC20PoolToken = artifacts.require('ERC20PoolTokenTemplate1.vyper')
 
 const ProtocolDao = artifacts.require('ProtocolDao.vyper')
 
@@ -121,6 +123,16 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('ERC20 deployed at: ', instance.address)
       contracts.ERC20 = instance
+      return deployer.deploy(LERC20)
+    })
+    .then(function(instance) {
+      console.log('LERC20 deployed at: ', instance.address)
+      contracts.LERC20 = instance
+      return deployer.deploy(ERC20PoolToken)
+    })
+    .then(function(instance) {
+      console.log('ERC20PoolToken deployed at: ', instance.address)
+      contracts.ERC20PoolToken = instance
       return deployer.deploy(MultiFungibleToken)
     })
     .then(function(instance) {
@@ -146,6 +158,8 @@ module.exports = function(deployer, network, accounts) {
           'PriceOracle',
           'CollateralAuctionCurve',
           'ERC20',
+          'LERC20',
+          'ERC20PoolToken',
           'MultiFungibleToken'
         )
       )
