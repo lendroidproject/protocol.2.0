@@ -158,9 +158,9 @@ module.exports = function(deployer, network, accounts) {
           'PriceOracle',
           'CollateralAuctionCurve',
           'ERC20',
+          'MultiFungibleToken',
           'LERC20',
-          'ERC20PoolToken',
-          'MultiFungibleToken'
+          'ERC20PoolToken'
         )
       )
     })
