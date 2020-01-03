@@ -5,6 +5,10 @@ Approval: event({_owner: address, _spender: address, _value: uint256})
 
 # Functions
 
+@public
+def initialize(_name: string[64], _symbol: string[100], _decimals: uint256, _supply: uint256) -> bool:
+    pass
+
 @constant
 @public
 def totalSupply() -> uint256:
@@ -54,7 +58,7 @@ def name() -> string[64]:
 
 @constant
 @public
-def symbol() -> string[32]:
+def symbol() -> string[100]:
     pass
 
 @constant

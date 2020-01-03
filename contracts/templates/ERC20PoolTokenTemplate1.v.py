@@ -10,7 +10,7 @@ Transfer: event({_from: indexed(address), _to: indexed(address), _value: uint256
 Approval: event({_owner: indexed(address), _spender: indexed(address), _value: uint256})
 
 name: public(string[64])
-symbol: public(string[32])
+symbol: public(string[100])
 decimals: public(uint256)
 
 # NOTE: By declaring `balanceOf` as public, vyper automatically generates a 'balanceOf()' getter
@@ -22,9 +22,13 @@ allowances: map(address, map(address, uint256))
 total_supply: uint256
 minter: address
 
+initialized: bool
+
 
 @public
-def __init__(_name: string[64], _symbol: string[32], _decimals: uint256, _supply: uint256):
+def initialize(_name: string[64], _symbol: string[100], _decimals: uint256, _supply: uint256) -> bool:
+    assert not self.initialized
+    self.initialized = True
     init_supply: uint256 = _supply * 10 ** _decimals
     self.name = _name
     self.symbol = _symbol
@@ -33,6 +37,8 @@ def __init__(_name: string[64], _symbol: string[32], _decimals: uint256, _supply
     self.total_supply = init_supply
     self.minter = msg.sender
     log.Transfer(ZERO_ADDRESS, msg.sender, init_supply)
+
+    return True
 
 
 @public

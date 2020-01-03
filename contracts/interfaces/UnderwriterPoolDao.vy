@@ -8,7 +8,7 @@ MFTSupportDeRegistered: event({_name: string[64], _pool: address, _currency: add
 # Functions
 
 @public
-def initialize(_LST: address, _registry_address_pool_name: address, _dao_currency: address, _dao_market: address, _dao_shield_payout: address, _template_underwriter_pool: address, _template_token_erc20: address) -> bool:
+def initialize(_LST: address, _registry_address_pool_name: address, _dao_currency: address, _dao_market: address, _dao_shield_payout: address, _template_underwriter_pool: address, _template_token_erc20: address, _template_erc20_pool_token: address) -> bool:
     pass
 
 @constant
@@ -54,7 +54,7 @@ def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: uint256(sec
     pass
 
 @public
-def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _mft_expiry_limit: uint256) -> bool:
+def register_pool(_accepts_public_contributions: bool, _currency: address, _name: string[64], _initial_exchange_rate: uint256, _fee_percentage_per_i_token: uint256, _fee_percentage_per_s_token: uint256, _mft_expiry_limit: uint256) -> bool:
     pass
 
 @public
@@ -93,17 +93,17 @@ def protocol_dao() -> address:
 
 @constant
 @public
-def daos(arg0: uint256) -> address:
+def daos(arg0: int128) -> address:
     pass
 
 @constant
 @public
-def registries(arg0: uint256) -> address:
+def registries(arg0: int128) -> address:
     pass
 
 @constant
 @public
-def templates(arg0: uint256) -> address:
+def templates(arg0: int128) -> address:
     pass
 
 @constant

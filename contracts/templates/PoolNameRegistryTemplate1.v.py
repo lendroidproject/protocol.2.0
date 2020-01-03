@@ -42,6 +42,8 @@ next_name_id: public(uint256)
 # name_length => NameRegistrationStakeLookup
 name_registration_stake_lookup: public(map(int128, NameRegistrationStakeLookup))
 name_registration_minimum_stake: public(uint256)
+# nonreentrant locks for pool_names, inspired from https://github.com/ethereum/vyper/issues/1204
+nonreentrant_pool_name_locks: map(string[64], bool)
 
 DAO_CURRENCY: constant(int128) = 1
 DAO_INTEREST_POOL: constant(int128) = 2
@@ -85,11 +87,24 @@ def _name_exists(_name: string[64]) -> bool:
 
 
 @private
+def _lock_name(_name: string[64]):
+    assert self.nonreentrant_pool_name_locks[_name] == False
+    self.nonreentrant_pool_name_locks[_name] = True
+
+
+@private
+def _unlock_name(_name: string[64]):
+    assert self.nonreentrant_pool_name_locks[_name] == True
+    self.nonreentrant_pool_name_locks[_name] = False
+
+
+@private
 def _add_name(_name: string[64], _operator: address, _sender: address):
     self.name_to_id[_name] = self.next_name_id
     _LST_stake: uint256 = self.name_registration_stake_lookup[len(_name)].stake
     if as_unitless_number(_LST_stake) == 0:
         _LST_stake = self.name_registration_minimum_stake
+    assert not as_unitless_number(_LST_stake) == 0
     self.names[self.next_name_id] = Name({
         name: _name,
         operator: _operator,
@@ -110,6 +125,12 @@ def _add_name(_name: string[64], _operator: address, _sender: address):
 @private
 def _remove_name(_name: string[64], _name_id: uint256):
 
+    # transfer staked LST back to operator
+    assert_modifiable(ERC20(self.LST).transfer(
+        self.names[_name_id].operator,
+        self.names[_name_id].LST_staked
+    ))
+
     clear(self.name_to_id[_name])
     if as_unitless_number(_name_id) < as_unitless_number(self.next_name_id - 1):
         self.names[_name_id] = Name({
@@ -125,11 +146,6 @@ def _remove_name(_name: string[64], _name_id: uint256):
 
     clear(self.names[self.next_name_id - 1])
     self.next_name_id -= 1
-
-    assert_modifiable(ERC20(self.LST).transfer(
-        self.names[_name_id].operator,
-        self.names[_name_id].LST_staked
-    ))
 
 
 @private
@@ -270,7 +286,9 @@ def register_name(_name: string[64]) -> bool:
     assert self.initialized
     assert not self.paused
     assert not self._name_exists(_name)
+    self._lock_name(_name)
     self._add_name(_name, msg.sender, self)
+    self._unlock_name(_name)
 
     return True
 
@@ -282,7 +300,9 @@ def register_name_and_pool(_name: string[64], _operator: address) -> bool:
     assert msg.sender == self.daos[DAO_INTEREST_POOL] or \
            msg.sender == self.daos[DAO_UNDERWRITER_POOL]
     assert not self._name_exists(_name)
+    self._lock_name(_name)
     self._add_name(_name, _operator, msg.sender)
+    self._unlock_name(_name)
 
     return True
 
@@ -338,6 +358,8 @@ def deregister_name(_name: string[64]) -> bool:
     _name_id: uint256 = self.name_to_id[_name]
     assert self.names[_name_id].operator == msg.sender
     assert _name_id < self.next_name_id
+    self._lock_name(_name)
     self._remove_name(_name, _name_id)
+    self._unlock_name(_name)
 
     return True

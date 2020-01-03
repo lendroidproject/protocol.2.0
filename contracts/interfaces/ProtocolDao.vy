@@ -3,6 +3,7 @@
 DAOInitialized: event({_setter: address, _dao_type: int128, _dao_address: address})
 RegistryInitialized: event({_setter: address, _template_type: int128, _registry_address: address})
 TemplateSettingsUpdated: event({_setter: address, _template_type: int128, _template_address: address})
+AuthorizedCallerUpdated: event({_caller_type: int128, _caller: address, _authorized_caller: address})
 SystemSettingsUpdated: event({_setter: address})
 
 # Functions
@@ -45,6 +46,14 @@ def initialize_market_dao() -> bool:
 
 @public
 def initialize_shield_payout_dao() -> bool:
+    pass
+
+@public
+def activate_public_contributions() -> bool:
+    pass
+
+@public
+def activate_non_standard_expiries() -> bool:
     pass
 
 @public
@@ -169,6 +178,16 @@ def expiries__is_active(arg0: uint256(sec, positional)) -> bool:
 @constant
 @public
 def templates(arg0: int128) -> address:
+    pass
+
+@constant
+@public
+def public_contributions_activated() -> bool:
+    pass
+
+@constant
+@public
+def non_standard_expiries_activated() -> bool:
     pass
 
 @constant

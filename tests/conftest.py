@@ -29,18 +29,37 @@ from vyper import (
 # Constants
 
 ZERO_ADDRESS = Web3.toChecksumAddress('0x0000000000000000000000000000000000000000')
-EMPTY_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
+EMPTY_BYTES32 = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 POOL_NAME_REGISTRATION_MIN_STAKE_LST = 250000
+POOL_NAME_REGISTRATION_LST_STAKE_PER_NAME_LENGTH = {
+    '4': 500000,
+    '3': 1000000,
+    '2': 5000000,
+    '1': 10000000
+}
 INTEREST_POOL_DAO_MIN_MFT_FEE = 250000
 INTEREST_POOL_DAO_FEE_MULTIPLIER_PER_MFT_COUNT = 250
 
+# POOL_NAMES
+POOL_NAME_A = "A"
+POOL_NAME_AB = "AB"
+POOL_NAME_ABC = "ABC"
+POOL_NAME_ABCD = "ABCD"
+POOL_NAME_LIONFURY = "Lion Fury"
+
+# Liability limits
+MAX_LIABILITY_CURENCY_MARKET = 1000000
+
 # STRIKE_PRICES
+STRIKE_125 = 125
+STRIKE_150 = 150
 STRIKE_200 = 200
 
 # EXPIRIES
 # Last Thursday of December 2019, i.e., December 26th, 2019, i.e., Z19
 Z19 = 1577404799
-
+# Last Thursday of March 2020, i.e., March 26th, 2020, i.e., H20
+H20 = 1585267199
 
 PROTOCOL_CONSTANTS = {
     'DAO_CURRENCY': 1,
@@ -327,11 +346,39 @@ def ERC20_library(get_ERC20_contract):
 
 
 @pytest.fixture
+def get_LERC20_contract(w3, Whale):
+    def get_LERC20_contract(*args, **kwargs):
+        source_code_path = 'contracts/templates/LERC20Template1.v.py'
+        return _get_contract(w3, Whale, source_code_path, *args, **kwargs)
+
+    return get_LERC20_contract
+
+
+@pytest.fixture
+def LERC20_library(get_LERC20_contract):
+    contract = get_LERC20_contract()
+    return contract
+
+
+@pytest.fixture
+def get_ERC20_Pool_Token_contract(w3, Whale):
+    def get_ERC20_Pool_Token_contract(*args, **kwargs):
+        source_code_path = 'contracts/templates/ERC20PoolTokenTemplate1.v.py'
+        return _get_contract(w3, Whale, source_code_path, *args, **kwargs)
+
+    return get_ERC20_Pool_Token_contract
+
+
+@pytest.fixture
+def ERC20_Pool_Token_library(get_ERC20_Pool_Token_contract):
+    contract = get_ERC20_Pool_Token_contract()
+    return contract
+
+
+@pytest.fixture
 def get_MFT_contract(w3, Deployer):
     def get_MFT_contract(*args, **kwargs):
         source_code_path = 'contracts/templates/MultiFungibleTokenTemplate1.v.py'
-        interfaces=['MultiFungibleTokenReceiver']
-        kwargs.update({'interfaces': interfaces})
         return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
 
     return get_MFT_contract
@@ -381,7 +428,7 @@ def CurrencyPool_library(get_CurrencyPool_contract):
 def get_CurrencyDao_contract(w3, Deployer):
     def get_CurrencyDao_contract(*args, **kwargs):
         source_code_path = 'contracts/daos/CurrencyDao.v.py'
-        interfaces=['ERC20', 'MultiFungibleToken', 'ERC20TokenPool', 'ProtocolDao']
+        interfaces=['ERC20', 'LERC20', 'MultiFungibleToken', 'ERC20TokenPool', 'ProtocolDao']
         kwargs.update({'interfaces': interfaces})
         return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
 
@@ -399,7 +446,7 @@ def get_InterestPool_contract(w3, Deployer):
     def get_InterestPool_contract(*args, **kwargs):
         source_code_path = 'contracts/templates/InterestPoolTemplate1.v.py'
         interfaces=[
-            'ERC20', 'MultiFungibleToken', 'MultiFungibleTokenReceiver', 'InterestPoolDao'
+            'ERC20', 'ERC20PoolToken', 'MultiFungibleToken', 'InterestPoolDao'
         ]
         kwargs.update({'interfaces': interfaces})
         return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
@@ -435,7 +482,7 @@ def get_UnderwriterPool_contract(w3, Deployer):
     def get_UnderwriterPool_contract(*args, **kwargs):
         source_code_path = 'contracts/templates/UnderwriterPoolTemplate1.v.py'
         interfaces=[
-            'ERC20', 'MultiFungibleToken', 'MultiFungibleTokenReceiver',
+            'ERC20', 'ERC20PoolToken', 'MultiFungibleToken',
             'UnderwriterPoolDao', 'ShieldPayoutDao'
         ]
         kwargs.update({'interfaces': interfaces})
@@ -540,7 +587,7 @@ def get_MarketDao_contract(w3, Deployer):
     def get_MarketDao_contract(*args, **kwargs):
         source_code_path = 'contracts/daos/MarketDao.v.py'
         interfaces=[
-            'ERC20', 'MultiFungibleToken', 'MultiFungibleTokenReceiver',
+            'ERC20', 'MultiFungibleToken',
             'CurrencyDao', 'ShieldPayoutDao', 'CollateralAuctionCurve',
             'SimplePriceOracle', 'ProtocolDao'
         ]
@@ -565,7 +612,8 @@ def ProtocolDao(get_contract,
         PoolNameRegistry_library, PositionRegistry_library,
         CurrencyPool_library, InterestPool_library, UnderwriterPool_library,
         PriceOracle, CollateralAuctionCurve_Library,
-        ERC20_library, MultiFungibleToken_library
+        ERC20_library, LERC20_library, ERC20_Pool_Token_library,
+        MultiFungibleToken_library
     ):
     contract = get_contract(
         'contracts/daos/ProtocolDao.v.py',
@@ -577,8 +625,8 @@ def ProtocolDao(get_contract,
         CurrencyPool_library.address, InterestPool_library.address, UnderwriterPool_library.address,
         PriceOracle.address, CollateralAuctionCurve_Library.address,
         ERC20_library.address, MultiFungibleToken_library.address,
+        LERC20_library.address, ERC20_Pool_Token_library.address,
         interfaces=[
-            'ERC20', 'MultiFungibleToken',
             'CurrencyDao', 'InterestPoolDao', 'UnderwriterPoolDao',
             'MarketDao', 'ShieldPayoutDao',
             'PoolNameRegistry', 'PositionRegistry'

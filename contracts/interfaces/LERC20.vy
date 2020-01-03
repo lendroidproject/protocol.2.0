@@ -5,6 +5,10 @@ Approval: event({_owner: address, _spender: address, _value: uint256})
 
 # Functions
 
+@public
+def initialize(_name: string[64], _symbol: string[32], _decimals: uint256, _supply: uint256) -> bool:
+    pass
+
 @constant
 @public
 def totalSupply() -> uint256:
@@ -49,12 +53,12 @@ def burnAsAuthorizedMinter(_to: address, _value: uint256) -> bool:
 
 @constant
 @public
-def name() -> string[64]:
+def name() -> string[72]:
     pass
 
 @constant
 @public
-def symbol() -> string[32]:
+def symbol() -> string[33]:
     pass
 
 @constant

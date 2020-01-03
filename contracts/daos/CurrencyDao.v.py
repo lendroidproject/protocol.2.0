@@ -3,6 +3,7 @@
 
 
 from contracts.interfaces import ERC20
+from contracts.interfaces import LERC20
 from contracts.interfaces import MultiFungibleToken
 from contracts.interfaces import ERC20TokenPool
 
@@ -50,6 +51,7 @@ REGISTRY_POOL_NAME: constant(int128) = 1
 TEMPLATE_TOKEN_POOL: constant(int128) = 1
 TEMPLATE_ERC20: constant(int128) = 6
 TEMPLATE_MFT: constant(int128) = 7
+TEMPLATE_LERC20: constant(int128) = 8
 
 CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
 
@@ -68,6 +70,7 @@ def initialize(
         _template_token_pool: address,
         _template_erc20: address,
         _template_mft: address,
+        _template_lerc20: address,
         _pool_name_registry: address,
         _dao_interest_pool: address,
         _dao_underwriter_pool: address,
@@ -89,6 +92,7 @@ def initialize(
     self.templates[TEMPLATE_TOKEN_POOL] = _template_token_pool
     self.templates[TEMPLATE_ERC20] = _template_erc20
     self.templates[TEMPLATE_MFT] = _template_mft
+    self.templates[TEMPLATE_LERC20] = _template_lerc20
 
     return True
 
@@ -417,7 +421,8 @@ def set_template(_template_type: int128, _address: address) -> bool:
     assert msg.sender == self.protocol_dao
     assert _template_type == TEMPLATE_TOKEN_POOL or \
            _template_type == TEMPLATE_ERC20 or \
-           _template_type == TEMPLATE_MFT
+           _template_type == TEMPLATE_MFT or \
+           _template_type == TEMPLATE_LERC20
     self.templates[_template_type] = _address
     return True
 
@@ -446,11 +451,8 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
         _pool_address: address = create_forwarder_to(self.templates[TEMPLATE_TOKEN_POOL])
         assert_modifiable(ERC20TokenPool(_pool_address).initialize(_token))
         # l token
-        _l_address: address = create_forwarder_to(self.templates[TEMPLATE_ERC20])
-        # _l_currency_name: string[64] = concat("L ", slice(_name, start=0, len=62))
-        # _l_currency_symbol: string[32] = concat("L", slice(_symbol, start=0, len=31))
-        assert_modifiable(ERC20(_l_address).initialize(
-            _name, _symbol, _decimals, 0))
+        _l_address: address = create_forwarder_to(self.templates[TEMPLATE_LERC20])
+        assert_modifiable(LERC20(_l_address).initialize(_name, _symbol, _decimals, 0))
         # i token
         _i_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
         assert_modifiable(MultiFungibleToken(_i_address).initialize(self.protocol_dao, [

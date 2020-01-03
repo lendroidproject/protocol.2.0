@@ -71,6 +71,7 @@ DAO_CURRENCY: constant(int128) = 1
 
 TEMPLATE_INTEREST_POOL: constant(int128) = 2
 TEMPLATE_ERC20: constant(int128) = 6
+TEMPLATE_ERC20_POOL_TOKEN: constant(int128) = 9
 
 CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
 
@@ -89,7 +90,8 @@ def initialize(
         _registry_pool_name: address,
         _dao_currency: address,
         _template_interest_pool: address,
-        _template_token_erc20: address
+        _template_token_erc20: address,
+        _template_erc20_pool_token: address
         ) -> bool:
     assert not self.initialized
     self.initialized = True
@@ -102,6 +104,7 @@ def initialize(
 
     self.templates[TEMPLATE_INTEREST_POOL] = _template_interest_pool
     self.templates[TEMPLATE_ERC20] = _template_token_erc20
+    self.templates[TEMPLATE_ERC20_POOL_TOKEN] = _template_erc20_pool_token
 
     return True
 
@@ -415,7 +418,7 @@ def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, 
 @public
 def register_pool(
     _accepts_public_contributions: bool,
-    _currency: address, _name: string[64], _symbol: string[32],
+    _currency: address, _name: string[64],
     _initial_exchange_rate: uint256,
     _fee_percentage_per_i_token: uint256,
     _mft_expiry_limit: uint256
@@ -439,14 +442,17 @@ def register_pool(
     _address: address = create_forwarder_to(self.templates[TEMPLATE_INTEREST_POOL])
     assert _address.is_contract
     _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
+    _allow_public_contribution: bool = _accepts_public_contributions
+    if not ProtocolDao(self.protocol_dao).public_contributions_activated():
+        _allow_public_contribution = False
     assert_modifiable(InterestPool(_address).initialize(
         self.protocol_dao,
-        _accepts_public_contributions, msg.sender,
+        _allow_public_contribution, msg.sender,
         _fee_percentage_per_i_token,
         _mft_expiry_limit,
-        _name, _symbol, _initial_exchange_rate,
+        _name, _initial_exchange_rate,
         _currency, _l_address, _i_address, _f_address,
-        self.templates[TEMPLATE_ERC20]))
+        self.templates[TEMPLATE_ERC20_POOL_TOKEN]))
 
     # save pool metadata
     self.pools[_name] = Pool({

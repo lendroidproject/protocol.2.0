@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _mft_expiry_limit: uint256, _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _f_address: address, _template_token_erc20: address) -> bool:
+def initialize(_dao_protocol: address, _accepts_public_contributions: bool, _operator: address, _fee_percentage_per_i_token: uint256, _mft_expiry_limit: uint256, _name: string[64], _initial_exchange_rate: uint256, _currency: address, _l_address: address, _i_address: address, _f_address: address, _erc20_pool_token_template_address: address) -> bool:
     pass
 
 @constant

@@ -3,10 +3,6 @@
 # @dev Implementation Lendroid v2 Protocol DAO
 # @author Lendroid (developers@lendroid.com)
 
-
-from contracts.interfaces import ERC20
-from contracts.interfaces import MultiFungibleToken
-
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import InterestPoolDao
 from contracts.interfaces import UnderwriterPoolDao
@@ -47,10 +43,11 @@ registries: public(map(int128, address))
 expiries: public(map(timestamp, Expiry))
 # template_name => template_contract_address
 templates: public(map(int128, address))
-
+# initial settings
+public_contributions_activated: public(bool)
+non_standard_expiries_activated: public(bool)
 
 initialized: public(bool)
-
 
 # Constants used throughout the System
 
@@ -70,6 +67,8 @@ TEMPLATE_PRICE_ORACLE: constant(int128) = 4
 TEMPLATE_COLLATERAL_AUCTION: constant(int128) = 5
 TEMPLATE_ERC20: constant(int128) = 6
 TEMPLATE_MFT: constant(int128) = 7
+TEMPLATE_LERC20: constant(int128) = 8
+TEMPLATE_ERC20_POOL_TOKEN: constant(int128) = 9
 
 CALLER_GOVERNOR: constant(int128) = 1
 CALLER_ESCAPE_HATCH_MANAGER: constant(int128) = 2
@@ -102,6 +101,8 @@ def __init__(
         _template_collateral_auction: address,
         _template_erc20: address,
         _template_mft: address,
+        _template_lerc20: address,
+        _template_erc20_pool_token: address
     ):
     # Before init, need to deploy the following contracts as libraries:
     #. CurrencyDao
@@ -122,6 +123,9 @@ def __init__(
     self.initialized = True
 
     self.LST = _LST
+
+    # initial settings
+    self.public_contributions_activated = False
 
     # set authorized callers
     # governor
@@ -187,6 +191,12 @@ def __init__(
     # MFT
     assert _template_mft.is_contract
     self.templates[TEMPLATE_MFT] = _template_mft
+    # LERC20
+    assert _template_lerc20.is_contract
+    self.templates[TEMPLATE_LERC20] = _template_lerc20
+    # ERC20PoolToken
+    assert _template_erc20_pool_token.is_contract
+    self.templates[TEMPLATE_ERC20_POOL_TOKEN] = _template_erc20_pool_token
 
 
 ### Internal functions ###
@@ -350,6 +360,7 @@ def initialize_currency_dao() -> bool:
         self.templates[TEMPLATE_TOKEN_POOL],
         self.templates[TEMPLATE_ERC20],
         self.templates[TEMPLATE_MFT],
+        self.templates[TEMPLATE_LERC20],
         self.registries[REGISTRY_POOL_NAME],
         self.daos[DAO_INTEREST_POOL],
         self.daos[DAO_UNDERWRITER_POOL],
@@ -377,7 +388,8 @@ def initialize_interest_pool_dao() -> bool:
         self.registries[REGISTRY_POOL_NAME],
         self.daos[DAO_CURRENCY],
         self.templates[TEMPLATE_INTEREST_POOL],
-        self.templates[TEMPLATE_ERC20]
+        self.templates[TEMPLATE_ERC20],
+        self.templates[TEMPLATE_ERC20_POOL_TOKEN]
     ))
 
     log.DAOInitialized(msg.sender, DAO_INTEREST_POOL, self.daos[DAO_INTEREST_POOL])
@@ -402,7 +414,8 @@ def initialize_underwriter_pool_dao() -> bool:
         self.daos[DAO_MARKET],
         self.daos[DAO_SHIELD_PAYOUT],
         self.templates[TEMPLATE_UNDERWRITER_POOL],
-        self.templates[TEMPLATE_ERC20]
+        self.templates[TEMPLATE_ERC20],
+        self.templates[TEMPLATE_ERC20_POOL_TOKEN]
     ))
 
     log.DAOInitialized(msg.sender, DAO_UNDERWRITER_POOL, self.daos[DAO_UNDERWRITER_POOL])
@@ -457,6 +470,22 @@ def initialize_shield_payout_dao() -> bool:
 
 
 ## SETTINGS - Performed by only Governor ##
+
+
+@public
+def activate_public_contributions() -> bool:
+    self._validate_caller(msg.sender, CALLER_GOVERNOR)
+    self.public_contributions_activated = True
+
+    return True
+
+
+@public
+def activate_non_standard_expiries() -> bool:
+    self._validate_caller(msg.sender, CALLER_GOVERNOR)
+    self.non_standard_expiries_activated = True
+
+    return True
 
 
 @public

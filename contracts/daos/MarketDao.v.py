@@ -4,17 +4,12 @@
 
 from contracts.interfaces import ERC20
 from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import MultiFungibleTokenReceiver
 from contracts.interfaces import CurrencyDao
 from contracts.interfaces import ShieldPayoutDao
 from contracts.interfaces import CollateralAuctionCurve
 from contracts.interfaces import SimplePriceOracle
 
 from contracts.interfaces import ProtocolDao
-
-
-implements: MultiFungibleTokenReceiver
-
 
 # Structs
 struct ExpiryMarket:
@@ -98,15 +93,6 @@ LOAN_MARKET_STATUS_OPEN: public(uint256)
 LOAN_MARKET_STATUS_SETTLING: public(uint256)
 LOAN_MARKET_STATUS_CLOSED: public(uint256)
 
-# MultiFungibleTokenReceiver interface variables
-shouldReject: public(bool)
-lastData: public(bytes32)
-lastOperator: public(address)
-lastFrom: public(address)
-lastId: public(uint256)
-lastValue: public(uint256)
-MFT_ACCEPTED: bytes[10]
-
 CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
 
 MFT_TYPE_F: constant(int128) = 1
@@ -144,10 +130,6 @@ def initialize(
     self.LOAN_MARKET_STATUS_OPEN = 1
     self.LOAN_MARKET_STATUS_SETTLING = 2
     self.LOAN_MARKET_STATUS_CLOSED = 3
-
-    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes32)"))
-    self.MFT_ACCEPTED = "0x0a8f896b"
-    self.shouldReject = False
 
     return True
 
@@ -295,36 +277,6 @@ def _transfer_f_underlying(_currency: address, _expiry: timestamp, _from: addres
     assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
 
 
-# START of MultiFungibleTokenReceiver interface functions
-@public
-def setShouldReject(_value: bool):
-    assert msg.sender == self.protocol_dao
-    self.shouldReject = _value
-
-
-@public
-@constant
-def supportsInterface(interfaceID: bytes[10]) -> bool:
-    # ERC165 or MFT_ACCEPTED
-    return interfaceID == "0xa69f31f6" or interfaceID == "0x0a8f896b"
-
-
-@public
-def onMFTReceived(_operator: address, _from: address, _id: uint256, _value: uint256, _data: bytes32) -> bytes[10]:
-    self.lastOperator = _operator
-    self.lastFrom = _from
-    self.lastId = _id
-    self.lastValue = _value
-    self.lastData = _data
-    if self.shouldReject:
-        raise("onMFTReceived: transfer not accepted")
-    else:
-        return self.MFT_ACCEPTED
-
-
-# END of MultiFungibleTokenReceiver interface functions
-
-
 @private
 def _open_expiry_market(_expiry: timestamp):
     assert _expiry > block.timestamp
@@ -437,6 +389,12 @@ def _open_shield_market(_currency: address, _expiry: timestamp, _underlying: add
     # update loan market
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
     self.loan_markets[_loan_market_hash].shield_market_count += 1
+
+
+@public
+@constant
+def shield_market_hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
+    return self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
 
 
 @public
@@ -854,6 +812,7 @@ def open_position(
     _i_address: address = ZERO_ADDRESS
     _i_id: uint256 = 0
     _i_address, _i_id = CurrencyDao(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
+    # transfer i_lend_currency from _borrower to self
     assert_modifiable(MultiFungibleToken(_i_address).safeTransferFrom(_borrower, self, _i_id, _currency_value, EMPTY_BYTES32))
     # transfer s_lend_currency from _borrower to self
     assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(

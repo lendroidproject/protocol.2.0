@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def initialize(_LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _pool_name_registry: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_market: address, _dao_shield_payout: address) -> bool:
+def initialize(_LST: address, _template_token_pool: address, _template_erc20: address, _template_mft: address, _template_lerc20: address, _pool_name_registry: address, _dao_interest_pool: address, _dao_underwriter_pool: address, _dao_market: address, _dao_shield_payout: address) -> bool:
     pass
 
 @constant
@@ -39,17 +39,25 @@ def s_token(_currency: address, _expiry: uint256(sec, positional), _underlying: 
 def u_token(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> (address, uint256):
     pass
 
+@constant
+@public
+def pool_hash(_token: address) -> bytes32:
+    pass
+
 @public
 def mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256) -> bool:
     pass
 
 @public
-def burn_as_self_authorized_erc20(_token: address, _to: address, _value: uint256) -> bool:
+def burn_as_self_authorized_erc20(_token: address, _from: address, _value: uint256) -> bool:
     pass
 
-@constant
 @public
-def pool_hash(_token: address) -> bytes32:
+def set_template(_template_type: int128, _address: address) -> bool:
+    pass
+
+@public
+def set_token_support(_token: address, _is_active: bool) -> bool:
     pass
 
 @public
@@ -66,14 +74,6 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
 
 @public
 def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bool:
-    pass
-
-@public
-def set_template(_template_type: int128, _address: address) -> bool:
-    pass
-
-@public
-def set_token_support(_token: address, _is_active: bool) -> bool:
     pass
 
 @public
@@ -171,17 +171,17 @@ def pools__hash(arg0: bytes32) -> bytes32:
 
 @constant
 @public
-def daos(arg0: uint256) -> address:
+def daos(arg0: int128) -> address:
     pass
 
 @constant
 @public
-def registries(arg0: uint256) -> address:
+def registries(arg0: int128) -> address:
     pass
 
 @constant
 @public
-def templates(arg0: uint256) -> address:
+def templates(arg0: int128) -> address:
     pass
 
 @constant

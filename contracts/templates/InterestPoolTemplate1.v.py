@@ -3,12 +3,9 @@
 
 
 from contracts.interfaces import ERC20
+from contracts.interfaces import ERC20PoolToken
 from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import MultiFungibleTokenReceiver
 from contracts.interfaces import InterestPoolDao
-
-
-implements: MultiFungibleTokenReceiver
 
 
 struct Market:
@@ -47,16 +44,6 @@ accepts_public_contributions: public(bool)
 
 DAO_INTEREST_POOL: public(uint256)
 
-# MultiFungibleTokenReceiver interface variables
-shouldReject: public(bool)
-lastData: public(bytes32)
-lastOperator: public(address)
-lastFrom: public(address)
-lastId: public(uint256)
-lastValue: public(uint256)
-
-MFT_ACCEPTED: bytes[10]
-
 MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 10
 
 
@@ -66,10 +53,10 @@ def initialize(
     _accepts_public_contributions: bool, _operator: address,
     _fee_percentage_per_i_token: uint256,
     _mft_expiry_limit: uint256,
-    _name: string[64], _symbol: string[32], _initial_exchange_rate: uint256,
+    _name: string[64], _initial_exchange_rate: uint256,
     _currency: address,
     _l_address: address, _i_address: address, _f_address: address,
-    _template_token_erc20: address) -> bool:
+    _erc20_pool_token_template_address: address) -> bool:
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = _dao_protocol
@@ -81,9 +68,10 @@ def initialize(
     self.fee_percentage_per_i_token = _fee_percentage_per_i_token
     self.mft_expiry_limit_days = _mft_expiry_limit
     # erc20 token
-    _pool_share_token: address = create_forwarder_to(_template_token_erc20)
+    _pool_share_token: address = create_forwarder_to(_erc20_pool_token_template_address)
     self.pool_share_token = _pool_share_token
-    assert_modifiable(ERC20(_pool_share_token).initialize(_name, _symbol, 18, 0))
+    assert_modifiable(ERC20PoolToken(_pool_share_token).initialize(_name,
+        concat(_name, ".RF.", ERC20(_currency).symbol()), 18, 0))
 
     self.l_address = _l_address
     self.f_address = _f_address
@@ -91,10 +79,6 @@ def initialize(
 
     self.DAO_INTEREST_POOL = 1
     self.daos[self.DAO_INTEREST_POOL] = msg.sender
-
-    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes32)"))
-    self.MFT_ACCEPTED = "0x0a8f896b"
-    self.shouldReject = False
 
     return True
 
@@ -226,36 +210,6 @@ def estimated_pool_share_tokens(_l_token_value: uint256) -> uint256:
 @constant
 def i_token_fee(_expiry: timestamp) -> uint256:
     return self._i_token_fee(_expiry)
-
-
-# START of MultiFungibleTokenReceiver interface functions
-@public
-def setShouldReject(_value: bool):
-    assert msg.sender == self.daos[self.DAO_INTEREST_POOL]
-    self.shouldReject = _value
-
-
-@public
-@constant
-def supportsInterface(interfaceID: bytes[10]) -> bool:
-    # ERC165 or MFT_ACCEPTED
-    return interfaceID == "0xa69f31f6" or interfaceID == "0x0a8f896b"
-
-
-@public
-def onMFTReceived(_operator: address, _from: address, _id: uint256, _value: uint256, _data: bytes32) -> bytes[10]:
-    self.lastOperator = _operator
-    self.lastFrom = _from
-    self.lastId = _id
-    self.lastValue = _value
-    self.lastData = _data
-    if self.shouldReject:
-        raise("onMFTReceived: transfer not accepted")
-    else:
-        return self.MFT_ACCEPTED
-
-
-# END of MultiFungibleTokenReceiver interface functions
 
 
 # Admin operations

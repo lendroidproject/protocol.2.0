@@ -5,8 +5,6 @@
 # @author Vignesh Meenakshi Sundaram (@vignesh-msundaram)
 
 
-from contracts.interfaces import MultiFungibleTokenReceiver
-
 # Structs
 struct Metadata:
     address_: address
@@ -103,21 +101,6 @@ def _hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_
             convert(_strike_price, bytes32)
         )
     )
-
-
-@private
-def _doSafeTransferAcceptanceCheck(_operator: address, _from: address, _to: address, _id: uint256, _value: uint256, _data: bytes32):
-    """
-        @dev Function to check receipt of MFT Transfer. Recommended to be used on Contracts that accept MFT transfers.
-        @param _operator Address that initiated the transfer.
-        @param _from Address from which to transfer.
-        @param _to The address to transfer MFT to.
-        @param _id The MFT ID with a specific combination of currency, expiry, underlying, and strike price.
-        @param _value MFT value to transfer.
-        @param _data Data sent with the transfer.
-    """
-    _interface_id: bytes[10] = MultiFungibleTokenReceiver(_to).onMFTReceived(_operator, _from, _id, _value, _data)
-    assert _interface_id == self.MFT_ACCEPTED, "contract returned an unknown value from onMFTReceived"
 
 
 @public
@@ -227,9 +210,6 @@ def _mint(_creator: address, _id: uint256, _to: address, _quantity: uint256):
     # It will also provide the circulating supply info.
     log.TransferSingle(_creator, ZERO_ADDRESS, _to, _id, _quantity)
 
-    if _to.is_contract:
-        self._doSafeTransferAcceptanceCheck(_creator, _creator, _to, _id, _quantity, EMPTY_BYTES32)
-
 
 @public
 def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
@@ -285,11 +265,6 @@ def safeTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256
 
     # MUST emit event
     log.TransferSingle(msg.sender, _from, _to, _id, _value)
-
-    # Now that the balance is updated and the event was emitted,
-    # call onMFTReceived if the destination is a contract.
-    if _to.is_contract:
-        self._doSafeTransferAcceptanceCheck(msg.sender, _from, _to, _id, _value, _data)
 
     return True
 
