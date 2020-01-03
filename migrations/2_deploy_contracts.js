@@ -199,6 +199,10 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(function(result) {
       console.log('DAI token support: ', result)
+      return contracts.ProtocolDao.set_token_support(contracts.WETH.address, true, { from: Governor })
+    })
+    .then(function(result) {
+      console.log('WETH token support: ', result)
 
       const addresses = {}
       Object.keys(contracts).forEach(
