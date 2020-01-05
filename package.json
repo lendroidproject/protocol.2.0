@@ -14,6 +14,7 @@
   },
   "scripts": {
     "deploy": "./node_modules/.bin/truffle deploy",
+    "build": "./node_modules/.bin/truper",
     "test": "./node_modules/.bin/truffle test",
     "test-cov": "./node_modules/.bin/solidity-coverage"
   },
