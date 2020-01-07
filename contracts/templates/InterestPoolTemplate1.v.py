@@ -44,7 +44,7 @@ accepts_public_contributions: public(bool)
 
 DAO_INTEREST_POOL: public(uint256)
 
-MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 10
+MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 1000
 
 
 @public

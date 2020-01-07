@@ -21,7 +21,6 @@ start_price: public(uint256)
 end_price: public(uint256)
 is_active: public(bool)
 # auction settings
-slippage_percentage: public(uint256)
 maximum_discount_percentage: public(uint256)
 discount_duration: public(timedelta)
 
@@ -33,8 +32,8 @@ def start(
     _protocol_dao: address,
     _currency: address, _expiry: timestamp, _underlying: address,
     _f_underlying: address, _f_id_underlying: uint256,
-    _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256,
-    _slippage_percentage: uint256, _maximum_discount_percentage: uint256,
+    _start_price: uint256, _currency_value: uint256, _underlying_value: uint256,
+    _maximum_discount_percentage: uint256,
     _discount_duration: timedelta
     ) -> bool:
     # verify inputs
@@ -44,7 +43,7 @@ def start(
     assert _underlying.is_contract
     assert as_unitless_number(_expiry) > 0
     assert block.timestamp >= _expiry
-    assert as_unitless_number(_expiry_price) > 0
+    assert as_unitless_number(_start_price) > 0
     assert as_unitless_number(_currency_value) > 0
     assert as_unitless_number(_underlying_value) > 0
     # set parameters
@@ -57,19 +56,38 @@ def start(
     self.expiry = _expiry
     self.f_underlying = _f_underlying
     self.f_id_underlying = _f_id_underlying
-    self.slippage_percentage = _slippage_percentage
     self.maximum_discount_percentage = _maximum_discount_percentage
     self.discount_duration = _discount_duration
 
     self.max_supply = _underlying_value
     self.currency_remaining = _currency_value
     # set start_price
-    self.start_price = (as_unitless_number(_expiry_price) * as_unitless_number(self.slippage_percentage)) / 100
+    self.start_price = _start_price
     self.end_price = as_unitless_number(self.start_price) * (100 - self.maximum_discount_percentage) / 100
 
-
-
     return True
+
+
+@private
+@constant
+def _loan_market_hash() -> bytes32:
+    """
+        @dev Function to get the hash of a loan market, given the currency,
+             expiry, and underlying.
+        @param _currency The address of the currency.
+        @param _expiry The timestamp when the loan market expires.
+        @param _underlying The address of the underlying.
+        @return A unique bytes32 representing the loan market.
+    """
+    return keccak256(
+        concat(
+            convert(self.protocol_dao, bytes32),
+            convert(self.currency, bytes32),
+            convert(self.expiry, bytes32),
+            convert(self.underlying, bytes32),
+            convert(0, bytes32)
+        )
+    )
 
 
 @private
@@ -102,6 +120,11 @@ def _transfer_f_underlying(_to: address, _value: uint256):
     assert_modifiable(MultiFungibleToken(self.f_underlying).safeTransferFrom(self, _to, self.f_id_underlying, _value, EMPTY_BYTES32))
 
 
+@private
+def _reset_currency_remaining():
+    self.currency_remaining = MarketDao(self.owner).currency_remaining_for_auction(self._loan_market_hash())
+
+
 @public
 @constant
 def auction_expiry() -> timestamp:
@@ -128,10 +151,14 @@ def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: 
         (as_unitless_number(self.currency_remaining) - as_unitless_number(_currency_value) == 0):
         self.is_active = False
     self.currency_remaining -= _currency_value
-    assert_modifiable(MarketDao(self.owner).process_auction_purchase(
+    _external_call_successful: bool = False
+    _loan_market_closed: bool = False
+    _external_call_successful, _loan_market_closed = MarketDao(self.owner).process_auction_purchase(
         self.currency, self.expiry, self.underlying,
         _purchaser, _currency_value, _underlying_value, self.is_active
-    ))
+    )
+    assert _external_call_successful
+    self.is_active = not _loan_market_closed
     self._transfer_f_underlying(_purchaser, _underlying_value)
     if (not self.is_active) and (_underlying_remaining > 0):
         self._transfer_f_underlying(self.owner, _underlying_value)
@@ -154,6 +181,7 @@ def escape_hatch_underlying_f() -> bool:
 @public
 def purchase(_underlying_value: uint256) -> bool:
     assert self.is_active
+    self._reset_currency_remaining()
     _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
     assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
     assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_remaining)
@@ -165,6 +193,7 @@ def purchase(_underlying_value: uint256) -> bool:
 @public
 def purchase_for_remaining_currency() -> bool:
     assert self.is_active
+    self._reset_currency_remaining()
     _underlying_value: uint256 = (as_unitless_number(self.currency_remaining) * (10 ** 18)) / as_unitless_number(self._current_price())
     _currency_value: uint256 = self.currency_remaining
     if as_unitless_number(_underlying_value) > as_unitless_number(self._lot()):
@@ -180,6 +209,7 @@ def purchase_for_remaining_currency() -> bool:
 @public
 def purchase_remaining_underlying() -> bool:
     assert self.is_active
+    self._reset_currency_remaining()
     _underlying_value: uint256 = as_unitless_number(self._lot())
     _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
     if as_unitless_number(_currency_value) > as_unitless_number(self.currency_remaining):

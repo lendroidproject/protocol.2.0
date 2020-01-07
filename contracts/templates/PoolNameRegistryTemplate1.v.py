@@ -285,7 +285,8 @@ def escape_hatch_erc20(_currency: address) -> bool:
 def register_name(_name: string[64]) -> bool:
     assert self.initialized
     assert not self.paused
-    assert not self._name_exists(_name)
+    if self._name_exists(_name):
+        raise "Pool name already exists"
     self._lock_name(_name)
     self._add_name(_name, msg.sender, self)
     self._unlock_name(_name)

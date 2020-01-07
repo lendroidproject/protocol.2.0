@@ -14,17 +14,19 @@ def s_payoff(_currency: address, _expiry: uint256(sec, positional), _underlying:
 def u_payoff(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> uint256:
     pass
 
+@constant
 @public
-def setShouldReject(_value: bool):
+def currency_remaining_for_auction(_loan_market_hash: bytes32) -> uint256:
     pass
 
 @constant
 @public
-def supportsInterface(interfaceID: bytes[10]) -> bool:
+def liquidated_underlying_value(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256, _currency_value: uint256) -> uint256:
     pass
 
+@constant
 @public
-def onMFTReceived(_operator: address, _from: address, _id: uint256, _value: uint256, _data: bytes32) -> bytes[10]:
+def shield_market_hash(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _strike_price: uint256) -> bytes32:
     pass
 
 @constant
@@ -42,7 +44,7 @@ def set_template(_template_type: int128, _address: address) -> bool:
     pass
 
 @public
-def set_registry(_registry_type: uint256, _address: address) -> bool:
+def set_registry(_registry_type: int128, _address: address) -> bool:
     pass
 
 @public
@@ -108,7 +110,7 @@ def settle_loan_market(_loan_market_hash: bytes32):
     pass
 
 @public
-def process_auction_purchase(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _purchaser: address, _currency_value: uint256, _underlying_value: uint256, _is_auction_active: bool) -> bool:
+def process_auction_purchase(_currency: address, _expiry: uint256(sec, positional), _underlying: address, _purchaser: address, _currency_value: uint256, _underlying_value: uint256, _is_auction_active: bool) -> (bool, bool):
     pass
 
 @public
@@ -135,17 +137,17 @@ def protocol_dao() -> address:
 
 @constant
 @public
-def daos(arg0: uint256) -> address:
+def daos(arg0: int128) -> address:
     pass
 
 @constant
 @public
-def registries(arg0: uint256) -> address:
+def registries(arg0: int128) -> address:
     pass
 
 @constant
 @public
-def templates(arg0: uint256) -> address:
+def templates(arg0: int128) -> address:
     pass
 
 @constant
@@ -155,17 +157,17 @@ def expiry_markets__expiry(arg0: uint256(sec, positional)) -> uint256(sec, posit
 
 @constant
 @public
-def expiry_markets__id(arg0: uint256(sec, positional)) -> uint256:
+def expiry_markets__id(arg0: uint256(sec, positional)) -> int128:
     pass
 
 @constant
 @public
-def next_expiry_market_id() -> uint256:
+def next_expiry_market_id() -> int128:
     pass
 
 @constant
 @public
-def expiry_market_id_to_timestamp(arg0: uint256) -> uint256(sec, positional):
+def expiry_market_id_to_timestamp(arg0: int128) -> uint256(sec, positional):
     pass
 
 @constant
@@ -186,6 +188,11 @@ def loan_markets__underlying(arg0: bytes32) -> address:
 @constant
 @public
 def loan_markets__settlement_price(arg0: bytes32) -> uint256:
+    pass
+
+@constant
+@public
+def loan_markets__total_s_payout_value(arg0: bytes32) -> uint256:
     pass
 
 @constant
@@ -220,7 +227,7 @@ def loan_markets__auction_underlying_sold(arg0: bytes32) -> uint256:
 
 @constant
 @public
-def loan_markets__shield_market_count(arg0: bytes32) -> uint256:
+def loan_markets__shield_market_count(arg0: bytes32) -> int128:
     pass
 
 @constant
@@ -230,17 +237,17 @@ def loan_markets__hash(arg0: bytes32) -> bytes32:
 
 @constant
 @public
-def loan_markets__id(arg0: bytes32) -> uint256:
+def loan_markets__id(arg0: bytes32) -> int128:
     pass
 
 @constant
 @public
-def next_loan_market_id(arg0: uint256(sec, positional)) -> uint256:
+def next_loan_market_id(arg0: uint256(sec, positional)) -> int128:
     pass
 
 @constant
 @public
-def loan_market_id_to_hash(arg0: uint256(sec, positional), arg1: uint256) -> bytes32:
+def loan_market_id_to_hash(arg0: uint256(sec, positional), arg1: int128) -> bytes32:
     pass
 
 @constant
@@ -290,17 +297,17 @@ def shield_markets__hash(arg0: bytes32) -> bytes32:
 
 @constant
 @public
-def shield_markets__id(arg0: bytes32) -> uint256:
+def shield_markets__id(arg0: bytes32) -> int128:
     pass
 
 @constant
 @public
-def next_shield_market_id(arg0: uint256(sec, positional)) -> uint256:
+def next_shield_market_id(arg0: bytes32) -> int128:
     pass
 
 @constant
 @public
-def shield_market_id_to_hash(arg0: uint256(sec, positional), arg1: uint256) -> bytes32:
+def shield_market_id_to_hash(arg0: bytes32, arg1: int128) -> bytes32:
     pass
 
 @constant
@@ -341,36 +348,6 @@ def LOAN_MARKET_STATUS_SETTLING() -> uint256:
 @constant
 @public
 def LOAN_MARKET_STATUS_CLOSED() -> uint256:
-    pass
-
-@constant
-@public
-def shouldReject() -> bool:
-    pass
-
-@constant
-@public
-def lastData() -> bytes32:
-    pass
-
-@constant
-@public
-def lastOperator() -> address:
-    pass
-
-@constant
-@public
-def lastFrom() -> address:
-    pass
-
-@constant
-@public
-def lastId() -> uint256:
-    pass
-
-@constant
-@public
-def lastValue() -> uint256:
     pass
 
 @constant

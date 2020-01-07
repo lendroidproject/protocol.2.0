@@ -51,7 +51,7 @@ DAO_SHIELD_PAYOUT: public(uint256)
 initialized: public(bool)
 accepts_public_contributions: public(bool)
 
-MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 10
+MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 1000
 
 
 @public

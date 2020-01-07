@@ -128,7 +128,7 @@ def test_register_names_with_variable_lengths(w3,
     assert LST_token.balanceOf(PoolNameRegistry.address) == Web3.toWei(16750000, 'ether')
 
 
-def test_fail_when_registering_duplicate_names(w3, assert_tx_failed,
+def test_fail_when_registering_duplicate_names(w3,
     Whale, Deployer, Governor,
     LST_token,
     get_PoolNameRegistry_contract, get_CurrencyDao_contract,

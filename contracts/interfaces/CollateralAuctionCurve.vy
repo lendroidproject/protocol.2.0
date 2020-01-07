@@ -1,7 +1,7 @@
 # Functions
 
 @public
-def start(_protocol_dao: address, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _f_underlying: address, _f_id_underlying: uint256, _expiry_price: uint256, _currency_value: uint256, _underlying_value: uint256, _slippage_percentage: uint256, _maximum_discount_percentage: uint256, _discount_duration: uint256(sec)) -> bool:
+def start(_protocol_dao: address, _currency: address, _expiry: uint256(sec, positional), _underlying: address, _f_underlying: address, _f_id_underlying: uint256, _start_price: uint256, _currency_value: uint256, _underlying_value: uint256, _maximum_discount_percentage: uint256, _discount_duration: uint256(sec)) -> bool:
     pass
 
 @constant
@@ -93,11 +93,6 @@ def end_price() -> uint256:
 @constant
 @public
 def is_active() -> bool:
-    pass
-
-@constant
-@public
-def slippage_percentage() -> uint256:
     pass
 
 @constant

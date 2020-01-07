@@ -511,7 +511,7 @@ def set_expiry_support(_timestamp: timestamp, _label: string[3], _is_active: boo
 
 
 @public
-def set_registry(_dao_type: int128, _registry_type: uint256, _address: address) -> bool:
+def set_registry(_dao_type: int128, _registry_type: int128, _address: address) -> bool:
     """
         @dev Function to set / change the Registry address across the system.
              Only the Governor can call this function.
