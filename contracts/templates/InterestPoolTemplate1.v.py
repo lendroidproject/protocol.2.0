@@ -1,5 +1,8 @@
-# Vyper version of the Lendroid protocol v2
-# THIS CONTRACT HAS NOT BEEN AUDITED!
+# @version 0.1.0b14
+# @notice Implementation of Lendroid v2 - Interest Pool
+# @dev THIS CONTRACT HAS NOT BEEN AUDITED
+# @author Vignesh (Vii) Meenakshi Sundaram (@vignesh-msundaram)
+# Lendroid Foundation
 
 
 from contracts.interfaces import ERC20
