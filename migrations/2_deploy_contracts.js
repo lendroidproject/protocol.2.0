@@ -179,7 +179,7 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(function(result) {
       console.log('initialize_underwriter_pool_dao result: ', result)
-      return contracts.ProtocolDao.initialize_pool_name_registry(100000000, { from: Deployer })
+      return contracts.ProtocolDao.initialize_pool_name_registry(250000, { from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_pool_name_registry result: ', result)
