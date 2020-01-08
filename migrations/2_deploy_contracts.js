@@ -203,19 +203,19 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(function(result) {
       console.log('WETH token support: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(4, '500000000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(4, 500000, { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 4: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(3, '1000000000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(3, 1000000, { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 3: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(2, '5000000000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(2, 5000000, { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 2: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(1, '10000000000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(1, 10000000, { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 1: ', result)
