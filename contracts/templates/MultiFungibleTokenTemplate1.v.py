@@ -1,8 +1,8 @@
-# Vyper version of the Lendroid protocol v2
-# THIS CONTRACT HAS NOT BEEN AUDITED!
-
-# @dev Implementation of Multi Fungible Token.
-# @author Vignesh Meenakshi Sundaram (@vignesh-msundaram)
+# @version 0.1.0b14
+# @notice Implementation of Multi Fungible Token
+# @dev THIS CONTRACT HAS NOT BEEN AUDITED
+# @author Vignesh (Vii) Meenakshi Sundaram (@vignesh-msundaram)
+# Lendroid Foundation
 
 
 # Structs
