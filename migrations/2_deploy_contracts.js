@@ -37,22 +37,22 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('LST deployed at: ', instance.address)
       contracts.LST = instance
-      instance.transfer(Test1, '100000000000000000000')
-      instance.transfer(Test2, '100000000000000000000')
+      instance.transfer(Test1, '16750000000000000000000000')
+      instance.transfer(Test2, '16750000000000000000000000')
       return deployer.deploy(ERC20, 'Test Lend Token', 'DAI', 18, 1000000)
     })
     .then(function(instance) {
       console.log('DAI deployed at: ', instance.address)
       contracts.DAI = instance
-      instance.transfer(Test1, '100000000000000000000')
-      instance.transfer(Test2, '100000000000000000000')
+      instance.transfer(Test1, '1000000000000000000000')
+      instance.transfer(Test2, '1000000000000000000000')
       return deployer.deploy(ERC20, 'Test Borrow Token', 'WETH', 18, 1000000)
     })
     .then(function(instance) {
       console.log('WETH deployed at: ', instance.address)
       contracts.WETH = instance
-      instance.transfer(Test1, '100000000000000000000')
-      instance.transfer(Test2, '100000000000000000000')
+      instance.transfer(Test1, '1000000000000000000000')
+      instance.transfer(Test2, '1000000000000000000000')
       return deployer.deploy(PriceFeed)
     })
     .then(function(instance) {
