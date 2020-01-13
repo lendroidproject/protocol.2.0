@@ -18,6 +18,54 @@ const ERC20PoolToken = artifacts.require('ERC20PoolTokenTemplate1.vyper')
 
 const ProtocolDao = artifacts.require('ProtocolDao.vyper')
 
+const monthNames = [
+  ['F', 'Jan'],
+  ['G', 'Feb'],
+  ['H', 'Mar'],
+  ['J', 'Apr'],
+  ['K', 'May'],
+  ['M', 'Jun'],
+  ['N', 'Jul'],
+  ['Q', 'Aug'],
+  ['U', 'Sep'],
+  ['V', 'Oct'],
+  ['X', 'Nov'],
+  ['Z', 'Dec'],
+]
+
+const lastWeekdayOfEachMonths = (years, { weekday = 4, from = 0 } = {}) => {
+  const lastDay = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  const weekdays = []
+  weekdays.match = {}
+  for (const year of years) {
+    const date = new Date(Date.UTC(year, 0, 1, 12))
+    if (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) {
+      lastDay[2] = 29
+    }
+    for (let m = from; m < from + 12; m += 1) {
+      const month = m % 12
+      const y = year + Math.floor(month / 12)
+      const ySuf = y.toString().substr(-2)
+      date.setFullYear(y, month % 12, lastDay[month % 12])
+      date.setDate(date.getDate() - ((date.getDay() + (7 - weekday)) % 7))
+      const name = monthNames[month][0] + ySuf
+      const timestamp = Math.round(date.getTime() / 1000)
+      const data = {
+        name,
+        timestamp,
+        fullName: `${monthNames[month][1]} ${y}`,
+        date: date.toISOString().substring(0, 10),
+      }
+      weekdays.push(data)
+      weekdays.match[name] = timestamp
+      weekdays.match[timestamp] = name
+    }
+  }
+  return weekdays
+}
+
+const expiries = lastWeekdayOfEachMonths([new Date().getFullYear()])
+
 module.exports = function(deployer, network, accounts) {
   console.log('Network : ', network)
   const [Deployer, Test1, Test2, Governor, EscapeHatchManager, EscapeHatchTokenHolder] = accounts
@@ -219,6 +267,68 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(function(result) {
       console.log('Reg Stake 1: ', result)
+      return contracts.ProtocolDao.set_minimum_mft_fee(2, '250000000000000000000000', { from: Governor })
+    })
+    .then(function(result) {
+      console.log('InterestPool - minimum_mft_fee: ', result)
+      return contracts.ProtocolDao.set_minimum_mft_fee(3, '250000000000000000000000', { from: Governor })
+    })
+    .then(function(result) {
+      console.log('UnderwriterPool - minimum_mft_fee: ', result)
+      return contracts.ProtocolDao.set_fee_multiplier_per_mft_count(2, '0', '250000000000000000000', { from: Governor })
+    })
+    .then(function(result) {
+      console.log('InterestPool - fee_multiplier_per_mft_count: ', result)
+      return contracts.ProtocolDao.set_fee_multiplier_per_mft_count(3, '0', '250000000000000000000', { from: Governor })
+    })
+    .then(function(result) {
+      console.log('UnderwriterPool - fee_multiplier_per_mft_count: ', result)
+      return Promise.all(
+        expiries.map(
+          ({ timestamp, name }) =>
+            new Promise((resolve, reject) =>
+              contracts.ProtocolDao.set_expiry_support(timestamp, name, true, { from: Governor })
+                .then(() => resolve({ [name]: timestamp }))
+                .catch(e => reject(e))
+            )
+        )
+      )
+    })
+    .then(function(results) {
+      console.log('Expiries support: ', results)
+      return Promise.all([
+        ...expiries.map(
+          ({ timestamp, name }) =>
+            new Promise((resolve, reject) =>
+              contracts.ProtocolDao.set_maximum_liability_for_loan_market(
+                contracts.DAI.address,
+                timestamp,
+                contracts.WETH.address,
+                '1000000000000000000000000',
+                { from: Governor }
+              )
+                .then(() => resolve({ [`DAI-WETH-${name}`]: timestamp }))
+                .catch(e => reject(e))
+            )
+        ),
+        ...expiries.map(
+          ({ timestamp, name }) =>
+            new Promise((resolve, reject) =>
+              contracts.ProtocolDao.set_maximum_liability_for_loan_market(
+                contracts.WETH.address,
+                timestamp,
+                contracts.DAI.address,
+                '1000000000000000000000000',
+                { from: Governor }
+              )
+                .then(() => resolve({ [`WETH-DAI-${name}`]: timestamp }))
+                .catch(e => reject(e))
+            )
+        ),
+      ])
+    })
+    .then(function(results) {
+      console.log('maximum_liability_for_loan_market: ', results)
 
       const addresses = {}
       Object.keys(contracts).forEach(
