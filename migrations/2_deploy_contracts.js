@@ -66,6 +66,8 @@ const lastWeekdayOfEachMonths = (years, { weekday = 4, from = 0 } = {}) => {
 
 const expiries = lastWeekdayOfEachMonths([new Date().getFullYear()])
 
+const toWei = val => `${val}000000000000000000`
+
 module.exports = function(deployer, network, accounts) {
   console.log('Network : ', network)
   const [Deployer, Test1, Test2, Governor, EscapeHatchManager, EscapeHatchTokenHolder] = accounts
@@ -85,22 +87,22 @@ module.exports = function(deployer, network, accounts) {
     .then(function(instance) {
       console.log('LST deployed at: ', instance.address)
       contracts.LST = instance
-      instance.transfer(Test1, '16750000000000000000000000')
-      instance.transfer(Test2, '16750000000000000000000000')
+      instance.transfer(Test1, toWei(16750000))
+      instance.transfer(Test2, toWei(16750000))
       return deployer.deploy(ERC20, 'Test Lend Token', 'DAI', 18, 1000000)
     })
     .then(function(instance) {
       console.log('DAI deployed at: ', instance.address)
       contracts.DAI = instance
-      instance.transfer(Test1, '1000000000000000000000')
-      instance.transfer(Test2, '1000000000000000000000')
+      instance.transfer(Test1, toWei(2500))
+      instance.transfer(Test2, toWei(2500))
       return deployer.deploy(ERC20, 'Test Borrow Token', 'WETH', 18, 1000000)
     })
     .then(function(instance) {
       console.log('WETH deployed at: ', instance.address)
       contracts.WETH = instance
-      instance.transfer(Test1, '1000000000000000000000')
-      instance.transfer(Test2, '1000000000000000000000')
+      instance.transfer(Test1, toWei(2500))
+      instance.transfer(Test2, toWei(2500))
       return deployer.deploy(PriceFeed)
     })
     .then(function(instance) {
@@ -227,7 +229,7 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(function(result) {
       console.log('initialize_underwriter_pool_dao result: ', result)
-      return contracts.ProtocolDao.initialize_pool_name_registry(250000, { from: Deployer })
+      return contracts.ProtocolDao.initialize_pool_name_registry(toWei(250000), { from: Deployer })
     })
     .then(function(result) {
       console.log('initialize_pool_name_registry result: ', result)
@@ -251,35 +253,35 @@ module.exports = function(deployer, network, accounts) {
     })
     .then(function(result) {
       console.log('WETH token support: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(4, 500000, { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(4, toWei(500000), { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 4: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(3, 1000000, { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(3, toWei(1000000), { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 3: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(2, 5000000, { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(2, toWei(5000000), { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 2: ', result)
-      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(1, 10000000, { from: Governor })
+      return contracts.ProtocolDao.set_pool_name_registration_stake_lookup(1, toWei(10000000), { from: Governor })
     })
     .then(function(result) {
       console.log('Reg Stake 1: ', result)
-      return contracts.ProtocolDao.set_minimum_mft_fee(2, '250000000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_minimum_mft_fee(2, toWei(250000), { from: Governor })
     })
     .then(function(result) {
       console.log('InterestPool - minimum_mft_fee: ', result)
-      return contracts.ProtocolDao.set_minimum_mft_fee(3, '250000000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_minimum_mft_fee(3, toWei(250000), { from: Governor })
     })
     .then(function(result) {
       console.log('UnderwriterPool - minimum_mft_fee: ', result)
-      return contracts.ProtocolDao.set_fee_multiplier_per_mft_count(2, '0', '250000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_fee_multiplier_per_mft_count(2, '0', toWei(250), { from: Governor })
     })
     .then(function(result) {
       console.log('InterestPool - fee_multiplier_per_mft_count: ', result)
-      return contracts.ProtocolDao.set_fee_multiplier_per_mft_count(3, '0', '250000000000000000000', { from: Governor })
+      return contracts.ProtocolDao.set_fee_multiplier_per_mft_count(3, '0', toWei(250), { from: Governor })
     })
     .then(function(result) {
       console.log('UnderwriterPool - fee_multiplier_per_mft_count: ', result)
@@ -304,7 +306,7 @@ module.exports = function(deployer, network, accounts) {
                 contracts.DAI.address,
                 timestamp,
                 contracts.WETH.address,
-                '1000000000000000000000000',
+                toWei(1000000),
                 { from: Governor }
               )
                 .then(() => resolve({ [`DAI-WETH-${name}`]: timestamp }))
@@ -318,7 +320,7 @@ module.exports = function(deployer, network, accounts) {
                 contracts.WETH.address,
                 timestamp,
                 contracts.DAI.address,
-                '1000000000000000000000000',
+                toWei(1000000),
                 { from: Governor }
               )
                 .then(() => resolve({ [`WETH-DAI-${name}`]: timestamp }))
