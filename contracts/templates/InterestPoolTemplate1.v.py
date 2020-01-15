@@ -246,6 +246,8 @@ def support_mft(_expiry: timestamp, _i_cost_per_day: uint256) -> bool:
     assert self.next_market_id < MAXIMUM_ALLOWED_MARKETS
     assert self.initialized
     assert msg.sender == self.owner
+    _market_hash: bytes32 = self._market_hash(_expiry)
+    assert self.markets[_market_hash].hash == EMPTY_BYTES32
     # verify mft_expiry_limit_days has been set
     # verify _expiry is within supported mft_expiry_limit_days
     _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
@@ -256,7 +258,6 @@ def support_mft(_expiry: timestamp, _i_cost_per_day: uint256) -> bool:
     _external_call_successful, _f_id, _i_id = InterestPoolDao(self.daos[self.DAO_INTEREST_POOL]).register_mft_support(
         self.name, _expiry, self.f_address, self.i_address)
     assert _external_call_successful
-    _market_hash: bytes32 = self._market_hash(_expiry)
     self.markets[_market_hash] = Market({
         expiry: _expiry,
         i_id: _i_id,

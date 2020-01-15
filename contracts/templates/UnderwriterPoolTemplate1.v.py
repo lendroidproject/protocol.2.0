@@ -292,6 +292,8 @@ def support_mft(_expiry: timestamp, _underlying: address, _strike_price: uint256
     assert self.next_market_id < MAXIMUM_ALLOWED_MARKETS
     assert self.initialized
     assert msg.sender == self.owner
+    _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
+    assert self.markets[_market_hash].hash == EMPTY_BYTES32
     # verify mft_expiry_limit_days has been set
     # verify _expiry is within supported mft_expiry_limit_days
     _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
@@ -304,7 +306,6 @@ def support_mft(_expiry: timestamp, _underlying: address, _strike_price: uint256
         self.name, _expiry, _underlying, _strike_price,
         self.i_address, self.s_address, self.u_address)
     assert _external_call_successful
-    _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     self.markets[_market_hash] = Market({
         expiry: _expiry,
         underlying: _underlying,
