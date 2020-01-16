@@ -28,6 +28,7 @@ from vyper import (
 
 # Constants
 
+MAX_UINT256 = (2 ** 256) - 1  # Max uint256 value
 ZERO_ADDRESS = Web3.toChecksumAddress('0x0000000000000000000000000000000000000000')
 EMPTY_BYTES32 = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 POOL_NAME_REGISTRATION_MIN_STAKE_LST = 250000
@@ -243,6 +244,16 @@ def get_logs(w3):
         return logs
 
     return get_logs
+
+
+@pytest.fixture
+def get_log_args(get_logs):
+    def get_log_args(tx_hash, c, event_name):
+        logs = get_logs(tx_hash, c, event_name)
+        assert len(logs) > 0
+        args = logs[0].args
+        return args
+    return get_log_args
 
 
 @pytest.fixture
