@@ -2,27 +2,295 @@ import os
 
 import pytest
 
+from web3 import Web3
+
 from conftest import (
-    ZERO_ADDRESS, EMPTY_BYTES32, Z19,
+    PROTOCOL_CONSTANTS,
+    POOL_NAME_REGISTRATION_MIN_STAKE_LST, POOL_NAME_LIONFURY,
+    ZERO_ADDRESS, EMPTY_BYTES32,
+    INTEREST_POOL_DAO_MIN_MFT_FEE, INTEREST_POOL_DAO_FEE_MULTIPLIER_PER_MFT_COUNT,
+    STRIKE_125, H20,
+    MAX_LIABILITY_CURENCY_MARKET
 )
 
 
-# """
-#     The tests in this file use the following deployed contracts, aka
-#     fixtures from conftest:
-#     #. LST_token
-#     #. Lend_token
-#     #. Malicious_token
-#     #. ERC20_library
-#     #. ERC1155_library
-#     #. CurrencyPool_library
-#     #. CurrencyDao
-#     #. InterestPool_library
-#     #. InterestPoolDao
-#     #. MarketDao
-# """
-#
-#
+def test_contribute(w3,
+        Whale, Deployer, Governor,
+        LST_token, Lend_token,
+        get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
+        get_PoolNameRegistry_contract, get_InterestPool_contract,
+        get_CurrencyDao_contract, get_InterestPoolDao_contract,
+        ProtocolDao):
+    # get CurrencyDao
+    CurrencyDao = get_CurrencyDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    # get InterestPoolDao
+    InterestPoolDao = get_InterestPoolDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+    # get PoolNameRegistry
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDao.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    # assign one of the accounts as _pool_owner
+    _pool_owner = w3.eth.accounts[6]
+    # initialize PoolNameRegistry
+    ProtocolDao.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Deployer})
+    # initialize CurrencyDao
+    ProtocolDao.initialize_currency_dao(transact={'from': Deployer})
+    # initialize InterestPoolDao
+    ProtocolDao.initialize_interest_pool_dao(transact={'from': Deployer})
+    # set support for Lend_token
+    ProtocolDao.set_token_support(Lend_token.address, True, transact={'from': Governor, 'gas': 2000000})
+    # get L_Lend_token
+    L_lend_token = get_ERC20_contract(address=CurrencyDao.token_addresses__l(Lend_token.address))
+    # get F_Lend_token
+    F_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__f(Lend_token.address))
+    # get I_lend_token
+    I_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__i(Lend_token.address))
+    # _pool_owner buys 1000 lend token from a 3rd party exchange
+    Lend_token.transfer(_pool_owner, Web3.toWei(1000, 'ether'), transact={'from': Whale})
+    # _pool_owner authorizes CurrencyDao to spend 800 Lend_token
+    Lend_token.approve(CurrencyDao.address, Web3.toWei(800, 'ether'), transact={'from': _pool_owner})
+    # _pool_owner wraps 800 Lend_token to L_lend_token
+    CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), transact={'from': _pool_owner, 'gas': 145000})
+    # _pool_owner buys POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token from a 3rd party exchange
+    LST_token.transfer(_pool_owner, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Whale})
+    # _pool_owner authorizes CurrencyDao to spend POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token
+    LST_token.approve(CurrencyDao.address, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': _pool_owner})
+    # _pool_owner registers _pool_name POOL_NAME_LIONFURY at the InterestPoolDao
+    _pool_name = POOL_NAME_LIONFURY
+    InterestPoolDao.register_pool(
+        False, Lend_token.address, _pool_name, Web3.toWei(50, 'ether'), 1, 90, transact={'from': _pool_owner, 'gas': 1200000})
+    # get InterestPool
+    InterestPool = get_InterestPool_contract(address=InterestPoolDao.pools__address_(_pool_name))
+    # get Poolshare_token
+    Poolshare_token = get_ERC20_Pool_Token_contract(address=InterestPool.pool_share_token())
+    # verify L_Lend_token and Poolshare_token balances
+    assert L_lend_token.balanceOf(InterestPool.address) == 0
+    assert Poolshare_token.balanceOf(_pool_owner) == 0
+    # _pool_owner contributes 500 L_lend_token to his own pool _pool_name
+    assert InterestPool.exchange_rate() == Web3.toWei(50, 'ether')
+    assert InterestPool.estimated_pool_share_tokens(Web3.toWei(500, 'ether')) == Web3.toWei(25000, 'ether')
+    assert InterestPool.l_token_balance() == 0
+    assert InterestPool.total_pool_share_token_supply() == 0
+    tx_hash = InterestPool.contribute(Web3.toWei(500, 'ether'), transact={'from': _pool_owner, 'gas': 300000})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # verify L_Lend_token and Poolshare_token balances
+    # assert L_lend_token.balanceOf(InterestPool.address) == Web3.toWei(500, 'ether')
+    # assert InterestPool.l_token_balance() == Web3.toWei(500, 'ether')
+    assert InterestPool.total_pool_share_token_supply() == Web3.toWei(25000, 'ether')
+    assert Poolshare_token.balanceOf(_pool_owner) == Web3.toWei(25000, 'ether')
+    # _pool_owner contributes 200 L_lend_token to his own pool _pool_name
+    assert InterestPool.exchange_rate() == Web3.toWei(50, 'ether')
+    assert InterestPool.estimated_pool_share_tokens(Web3.toWei(200, 'ether')) == Web3.toWei(10000, 'ether')
+    tx_hash = InterestPool.contribute(Web3.toWei(200, 'ether'), transact={'from': _pool_owner, 'gas': 300000})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # verify L_Lend_token and Poolshare_token balances
+    assert L_lend_token.balanceOf(InterestPool.address) == Web3.toWei(700, 'ether')
+    assert InterestPool.l_token_balance() == Web3.toWei(700, 'ether')
+    assert InterestPool.total_pool_share_token_supply() == Web3.toWei(35000, 'ether')
+    assert Poolshare_token.balanceOf(_pool_owner) == Web3.toWei(35000, 'ether')
+
+
+def test_withdraw_contribution_sans_i_token_purchase(w3,
+        Whale, Deployer, Governor,
+        LST_token, Lend_token,
+        get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
+        get_PoolNameRegistry_contract, get_InterestPool_contract,
+        get_CurrencyDao_contract, get_InterestPoolDao_contract,
+        ProtocolDao):
+    # get CurrencyDao
+    CurrencyDao = get_CurrencyDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    # get InterestPoolDao
+    InterestPoolDao = get_InterestPoolDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+    # get PoolNameRegistry
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDao.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    # assign one of the accounts as _pool_owner
+    _pool_owner = w3.eth.accounts[6]
+    # initialize PoolNameRegistry
+    ProtocolDao.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Deployer})
+    # initialize CurrencyDao
+    ProtocolDao.initialize_currency_dao(transact={'from': Deployer})
+    # initialize InterestPoolDao
+    ProtocolDao.initialize_interest_pool_dao(transact={'from': Deployer})
+    # set support for Lend_token
+    ProtocolDao.set_token_support(Lend_token.address, True, transact={'from': Governor, 'gas': 2000000})
+    # get L_Lend_token
+    L_lend_token = get_ERC20_contract(address=CurrencyDao.token_addresses__l(Lend_token.address))
+    # get F_Lend_token
+    F_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__f(Lend_token.address))
+    # get I_lend_token
+    I_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__i(Lend_token.address))
+    # _pool_owner buys 1000 lend token from a 3rd party exchange
+    Lend_token.transfer(_pool_owner, Web3.toWei(1000, 'ether'), transact={'from': Whale})
+    # _pool_owner authorizes CurrencyDao to spend 800 Lend_token
+    Lend_token.approve(CurrencyDao.address, Web3.toWei(800, 'ether'), transact={'from': _pool_owner})
+    # _pool_owner wraps 800 Lend_token to L_lend_token
+    CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), transact={'from': _pool_owner, 'gas': 145000})
+    # _pool_owner buys POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token from a 3rd party exchange
+    LST_token.transfer(_pool_owner, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Whale})
+    # _pool_owner authorizes CurrencyDao to spend POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token
+    LST_token.approve(CurrencyDao.address, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': _pool_owner})
+    # _pool_owner registers _pool_name POOL_NAME_LIONFURY at the InterestPoolDao
+    _pool_name = POOL_NAME_LIONFURY
+    InterestPoolDao.register_pool(
+        False, Lend_token.address, _pool_name, Web3.toWei(50, 'ether'), 1, 90, transact={'from': _pool_owner, 'gas': 1200000})
+    # get InterestPool
+    InterestPool = get_InterestPool_contract(address=InterestPoolDao.pools__address_(_pool_name))
+    # get Poolshare_token
+    Poolshare_token = get_ERC20_Pool_Token_contract(address=InterestPool.pool_share_token())
+    # verify L_Lend_token and Poolshare_token balances
+    assert L_lend_token.balanceOf(InterestPool.address) == 0
+    assert Poolshare_token.balanceOf(_pool_owner) == 0
+    # _pool_owner contributes 500 L_lend_token to his own InterestPool
+    InterestPool.contribute(Web3.toWei(500, 'ether'), transact={'from': _pool_owner, 'gas': 250000})
+    # verify L_Lend_token and Poolshare_token balances
+    assert Poolshare_token.balanceOf(_pool_owner) == Web3.toWei(25000, 'ether')
+    assert L_lend_token.balanceOf(_pool_owner) == Web3.toWei(300, 'ether')
+    assert L_lend_token.balanceOf(InterestPool.address) == Web3.toWei(500, 'ether')
+    # _pool_owner withdraws 12500 Poolshare_token from his own InterestPool
+    assert InterestPool.exchange_rate() == Web3.toWei(50, 'ether')
+    assert InterestPool.l_token_balance() == Web3.toWei(500, 'ether')
+    assert InterestPool.total_pool_share_token_supply() == Web3.toWei(25000, 'ether')
+    assert InterestPool.estimated_pool_share_tokens(Web3.toWei(250, 'ether')) == Web3.toWei(12500, 'ether')
+    InterestPool.withdraw_contribution(Web3.toWei(12500, 'ether'), transact={'from': _pool_owner, 'gas': 200000})
+    # verify L_Lend_token and Poolshare_token balances
+    assert Poolshare_token.balanceOf(_pool_owner) == Web3.toWei(12500, 'ether')
+    assert L_lend_token.balanceOf(_pool_owner) == Web3.toWei(550, 'ether')
+    assert L_lend_token.balanceOf(InterestPool.address) == Web3.toWei(250, 'ether')
+    # _pool_owner withdraws 6250 Poolshare_token from his own InterestPool
+    assert InterestPool.exchange_rate() == Web3.toWei(50, 'ether')
+    assert InterestPool.l_token_balance() == Web3.toWei(250, 'ether')
+    assert InterestPool.total_pool_share_token_supply() == Web3.toWei(12500, 'ether')
+    assert InterestPool.estimated_pool_share_tokens(Web3.toWei(125, 'ether')) == Web3.toWei(6250, 'ether')
+    InterestPool.withdraw_contribution(Web3.toWei(6250, 'ether'), transact={'from': _pool_owner, 'gas': 200000})
+    # verify L_Lend_token and Poolshare_token balances
+    assert Poolshare_token.balanceOf(_pool_owner) == Web3.toWei(6250, 'ether')
+    assert L_lend_token.balanceOf(_pool_owner) == Web3.toWei(675, 'ether')
+    assert L_lend_token.balanceOf(InterestPool.address) == Web3.toWei(125, 'ether')
+    # _pool_owner withdraws all remaining 6250 Poolshare_token from his own InterestPool
+    assert InterestPool.exchange_rate() == Web3.toWei(50, 'ether')
+    assert InterestPool.l_token_balance() == Web3.toWei(125, 'ether')
+    assert InterestPool.total_pool_share_token_supply() == Web3.toWei(6250, 'ether')
+    assert InterestPool.estimated_pool_share_tokens(Web3.toWei(125, 'ether')) == Web3.toWei(6250, 'ether')
+    InterestPool.withdraw_contribution(Web3.toWei(6250, 'ether'), transact={'from': _pool_owner, 'gas': 200000})
+    # verify L_Lend_token and Poolshare_token balances
+    assert Poolshare_token.balanceOf(_pool_owner) == 0
+    assert L_lend_token.balanceOf(_pool_owner) == Web3.toWei(800, 'ether')
+    assert L_lend_token.balanceOf(InterestPool.address) == 0
+    assert InterestPool.l_token_balance() == 0
+    assert InterestPool.total_pool_share_token_supply() == 0
+    # _pool_owner again contributes 200 L_lend_token to his own InterestPool
+    InterestPool.contribute(Web3.toWei(200, 'ether'), transact={'from': _pool_owner, 'gas': 250000})
+    # verify L_Lend_token and Poolshare_token balances
+    assert Poolshare_token.balanceOf(_pool_owner) == Web3.toWei(10000, 'ether')
+    assert L_lend_token.balanceOf(_pool_owner) == Web3.toWei(600, 'ether')
+    assert L_lend_token.balanceOf(InterestPool.address) == Web3.toWei(200, 'ether')
+    assert InterestPool.l_token_balance() == Web3.toWei(200, 'ether')
+    assert InterestPool.total_pool_share_token_supply() == Web3.toWei(10000, 'ether')
+
+
+def test_increment_i_tokens(w3,
+        Whale, Deployer, Governor,
+        LST_token, Lend_token,
+        get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
+        get_PoolNameRegistry_contract, get_InterestPool_contract,
+        get_CurrencyDao_contract, get_InterestPoolDao_contract,
+        ProtocolDao):
+    # get CurrencyDao
+    CurrencyDao = get_CurrencyDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    # get InterestPoolDao
+    InterestPoolDao = get_InterestPoolDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+    # get PoolNameRegistry
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDao.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    # assign one of the accounts as _pool_owner
+    _pool_owner = w3.eth.accounts[6]
+    # initialize PoolNameRegistry
+    ProtocolDao.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Deployer})
+    # initialize CurrencyDao
+    ProtocolDao.initialize_currency_dao(transact={'from': Deployer})
+    # initialize InterestPoolDao
+    ProtocolDao.initialize_interest_pool_dao(transact={'from': Deployer})
+    # set support for Lend_token
+    ProtocolDao.set_token_support(Lend_token.address, True, transact={'from': Governor, 'gas': 2000000})
+    # get L_lend_token
+    L_lend_token = get_ERC20_contract(address=CurrencyDao.token_addresses__l(Lend_token.address))
+    # get F_lend_token
+    F_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__f(Lend_token.address))
+    # get I_lend_token
+    I_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__i(Lend_token.address))
+    # _pool_owner buys 1000 lend token from a 3rd party exchange
+    Lend_token.transfer(_pool_owner, Web3.toWei(1000, 'ether'), transact={'from': Whale})
+    # _pool_owner authorizes CurrencyDao to spend 800 Lend_token
+    Lend_token.approve(CurrencyDao.address, Web3.toWei(800, 'ether'), transact={'from': _pool_owner})
+    # _pool_owner wraps 800 Lend_token to L_lend_token
+    CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), transact={'from': _pool_owner, 'gas': 145000})
+    # _pool_owner buys POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token from a 3rd party exchange
+    LST_token.transfer(_pool_owner, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Whale})
+    # _pool_owner authorizes CurrencyDao to spend POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token
+    LST_token.approve(CurrencyDao.address, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': _pool_owner})
+    # _pool_owner registers _pool_name POOL_NAME_LIONFURY at the InterestPoolDao
+    _pool_name = POOL_NAME_LIONFURY
+    InterestPoolDao.register_pool(
+        False, Lend_token.address, _pool_name, Web3.toWei(50, 'ether'), 1, 90, transact={'from': _pool_owner, 'gas': 1200000})
+    # get InterestPool
+    InterestPool = get_InterestPool_contract(address=InterestPoolDao.pools__address_(_pool_name))
+    tx_hash = ProtocolDao.set_minimum_mft_fee(
+        PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'],
+        Web3.toWei(INTEREST_POOL_DAO_MIN_MFT_FEE, 'ether'),
+        transact={'from': Governor})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # set MFT multiplier
+    tx_hash = ProtocolDao.set_fee_multiplier_per_mft_count(
+        PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], Web3.toWei(0, 'ether'),
+        Web3.toWei(INTEREST_POOL_DAO_FEE_MULTIPLIER_PER_MFT_COUNT, 'ether'),
+        transact={'from': Governor, 'gas': 75000})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # set support for expiry H20
+    tx_hash = ProtocolDao.set_expiry_support(H20, "H20", True, transact={'from': Governor})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # _pool_owner buys INTEREST_POOL_DAO_MIN_MFT_FEE LST_token from a 3rd party exchange
+    tx_hash = LST_token.transfer(_pool_owner, Web3.toWei(INTEREST_POOL_DAO_MIN_MFT_FEE, 'ether'), transact={'from': Whale})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # _pool_owner authorizes CurrencyDao to spend INTEREST_POOL_DAO_MIN_MFT_FEE LST_token
+    tx_hash = LST_token.approve(CurrencyDao.address, Web3.toWei(INTEREST_POOL_DAO_MIN_MFT_FEE, 'ether'), transact={'from': _pool_owner})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    # set support for MFT H20
+    tx_hash = InterestPool.support_mft(H20, Web3.toWei(0.01, 'ether'), transact={'from': _pool_owner, 'gas': 2500000})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    _market_hash = InterestPool.market_hash(H20)
+    _f_id = InterestPool.markets__f_id(_market_hash)
+    _i_id = InterestPool.markets__i_id(_market_hash)
+    # _pool_owner contributes 500 L_lend_token to his own pool _pool_name
+    tx_hash = InterestPool.contribute(Web3.toWei(500, 'ether'), transact={'from': _pool_owner, 'gas': 300000})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert InterestPool.i_token_balance(H20) == 0
+    assert I_lend_token.balanceOf(InterestPool.address, _i_id) == 0
+    assert InterestPool.f_token_balance(H20) == 0
+    assert F_lend_token.balanceOf(InterestPool.address, _f_id) == 0
+    assert InterestPool.total_f_token_balance() == 0
+    assert F_lend_token.totalBalanceOf(InterestPool.address) == 0
+    assert InterestPool.l_token_balance() == Web3.toWei(500, 'ether')
+    assert InterestPool.total_active_contributions() == Web3.toWei(500, 'ether')
+    # _pool_owner increments ITokens by converting 300 L_lend_token to 300 ITokens and 300 FTokens
+    tx_hash = InterestPool.increment_i_tokens(H20, Web3.toWei(300, 'ether'), transact={'from': _pool_owner, 'gas': 300000})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert InterestPool.i_token_balance(H20) == Web3.toWei(300, 'ether')
+    assert I_lend_token.balanceOf(InterestPool.address, _i_id) == Web3.toWei(300, 'ether')
+    assert InterestPool.f_token_balance(H20) == Web3.toWei(300, 'ether')
+    assert F_lend_token.balanceOf(InterestPool.address, _f_id) == Web3.toWei(300, 'ether')
+    assert InterestPool.total_f_token_balance() == Web3.toWei(300, 'ether')
+    assert F_lend_token.totalBalanceOf(InterestPool.address) == Web3.toWei(300, 'ether')
+    assert InterestPool.l_token_balance() == Web3.toWei(200, 'ether')
+    assert InterestPool.total_active_contributions() == Web3.toWei(500, 'ether')
+
+
 # def test_purchase_i_currency(w3, get_contract, get_logs,
 #         LST_token, Lend_token, Malicious_token,
 #         ERC20_library, ERC1155_library,

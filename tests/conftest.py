@@ -457,7 +457,7 @@ def get_InterestPool_contract(w3, Deployer):
     def get_InterestPool_contract(*args, **kwargs):
         source_code_path = 'contracts/templates/InterestPoolTemplate1.v.py'
         interfaces=[
-            'ERC20', 'ERC20PoolToken', 'MultiFungibleToken', 'InterestPoolDao'
+            'ERC20', 'LERC20', 'ERC20PoolToken', 'MultiFungibleToken', 'InterestPoolDao'
         ]
         kwargs.update({'interfaces': interfaces})
         return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
