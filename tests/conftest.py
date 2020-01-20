@@ -335,6 +335,14 @@ def Lend_token(get_ERC20_contract):
 
 
 @pytest.fixture
+def Lend_token_With_Max_Supply(get_ERC20_contract):
+    contract = get_ERC20_contract(
+        'Test Lend Token With Max Supply', 'DAIMAX', 18, 0
+    )
+    return contract
+
+
+@pytest.fixture
 def Borrow_token(get_ERC20_contract):
     contract = get_ERC20_contract(
         'Test Borrow Token', 'WETH', 18, 1000000
