@@ -22,6 +22,22 @@ def test_initialize(w3, Deployer, get_UnderwriterPoolDao_contract, ProtocolDao):
     assert UnderwriterPoolDao.initialized()
 
 
+def test_pause_and_unpause(w3, Deployer, EscapeHatchManager, get_UnderwriterPoolDao_contract, ProtocolDao):
+    UnderwriterPoolDao = get_UnderwriterPoolDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL']))
+    tx_hash = ProtocolDao.initialize_underwriter_pool_dao(transact={'from': Deployer})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not UnderwriterPoolDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], True, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert UnderwriterPoolDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], False, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not UnderwriterPoolDao.paused()
+
+
 def test_split(w3,
         Whale, Deployer, Governor,
         Lend_token, Borrow_token,

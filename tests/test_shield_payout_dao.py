@@ -5,31 +5,34 @@ from web3 import Web3
 import pytest
 
 from conftest import (
+    PROTOCOL_CONSTANTS,
     ZERO_ADDRESS, EMPTY_BYTES32, Z19
 )
 
 
-# """
-#     The tests in this file use the following deployed contracts, aka
-#     fixtures from conftest:
-#     #. LST_token
-#     #. Lend_token
-#     #. Borrow_token
-#     #. Malicious_token
-#     #. ERC20_library
-#     #. ERC1155_library
-#     #. CurrencyPool_library
-#     #. CurrencyDao
-#     #. InterestPool_library
-#     #. InterestPoolDao
-#     #. UnderwriterPool_library
-#     #. UnderwriterPoolDao
-#     #. CollateralAuctionGraph_Library
-#     #. CollateralAuctionDao
-#     #. ShieldPayoutDao
-#     #. PositionRegistry
-#     #. MarketDao
-# """
+def test_initialize(w3, Deployer, get_ShieldPayoutDao_contract, ProtocolDao):
+    ShieldPayoutDao = get_ShieldPayoutDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+    assert not ShieldPayoutDao.initialized()
+    tx_hash = ProtocolDao.initialize_shield_payout_dao(transact={'from': Deployer})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert ShieldPayoutDao.initialized()
+
+
+def test_pause_and_unpause(w3, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDao):
+    ShieldPayoutDao = get_ShieldPayoutDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+    tx_hash = ProtocolDao.initialize_shield_payout_dao(transact={'from': Deployer})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not ShieldPayoutDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], True, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert ShieldPayoutDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], False, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not ShieldPayoutDao.paused()
 #
 #
 # def test_register_shield_market(w3, get_contract, get_logs,

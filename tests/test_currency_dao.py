@@ -18,6 +18,22 @@ def test_initialize(w3, Deployer, get_CurrencyDao_contract, ProtocolDao):
     assert CurrencyDao.initialized()
 
 
+def test_pause_and_unpause(w3, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDao):
+    CurrencyDao = get_CurrencyDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    tx_hash = ProtocolDao.initialize_currency_dao(transact={'from': Deployer})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not CurrencyDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], True, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert CurrencyDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], False, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not CurrencyDao.paused()
+
+
 def test_wrap(w3, get_logs, get_ERC20_contract, get_CurrencyDao_contract,
     Deployer, Governor,
     Whale, Lend_token,

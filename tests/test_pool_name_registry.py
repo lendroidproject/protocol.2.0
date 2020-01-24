@@ -25,6 +25,23 @@ def test_initialize(w3, Deployer, get_PoolNameRegistry_contract, ProtocolDao):
     assert PoolNameRegistry.name_registration_minimum_stake() == Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether')
 
 
+def test_pause_and_unpause(w3, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDao):
+    # get PoolNameRegistry
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDao.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    # initialize PoolNameRegistry
+    tx_hash = ProtocolDao.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), transact={'from': Deployer})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not PoolNameRegistry.paused()
+    tx_hash = ProtocolDao.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], True, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert PoolNameRegistry.paused()
+    tx_hash = ProtocolDao.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], False, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not PoolNameRegistry.paused()
+
 def test_set_name_registration_stake_lookup(w3,
     Deployer, Governor,
     get_PoolNameRegistry_contract, ProtocolDao):

@@ -20,6 +20,22 @@ def test_initialize(w3, Deployer, get_InterestPoolDao_contract, ProtocolDao):
     assert InterestPoolDao.initialized()
 
 
+def test_pause_and_unpause(w3, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDao):
+    InterestPoolDao = get_InterestPoolDao_contract(address=ProtocolDao.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+    tx_hash = ProtocolDao.initialize_interest_pool_dao(transact={'from': Deployer})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not InterestPoolDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert InterestPoolDao.paused()
+    tx_hash = ProtocolDao.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, transact={'from': EscapeHatchManager})
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt['status'] == 1
+    assert not InterestPoolDao.paused()
+
+
 def test_split(w3,
         Whale, Deployer, Governor,
         Lend_token,

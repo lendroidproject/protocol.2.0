@@ -40,13 +40,13 @@ def test_initial_state(w3, get_ERC20_contract, get_CurrencyDao_contract,
     assert test_token.symbol() == 'LDAI'
     assert test_token.decimals() == 18
     # Check several account balances as 0
-    assert test_token.balanceOf(a1) == 0
+    assert test_token.balanceOf(_lend_token_holder) == 0
     assert test_token.balanceOf(a2) == 0
     assert test_token.balanceOf(a3) == 0
     # Check several allowances as 0
-    assert test_token.allowance(a1, a1) == 0
-    assert test_token.allowance(a1, a2) == 0
-    assert test_token.allowance(a1, a3) == 0
+    assert test_token.allowance(_lend_token_holder, _lend_token_holder) == 0
+    assert test_token.allowance(_lend_token_holder, a2) == 0
+    assert test_token.allowance(_lend_token_holder, a3) == 0
     assert test_token.allowance(a2, a3) == 0
 
 
