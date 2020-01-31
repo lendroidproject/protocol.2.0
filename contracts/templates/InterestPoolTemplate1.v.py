@@ -397,9 +397,7 @@ def contribute(_l_token_value: uint256) -> bool:
     _supply: uint256 = ERC20PoolToken(self.pool_share_token).totalSupply()
     _l_balance: uint256 = LERC20(self.l_address).balanceOf(self)
     _total_f_balance: uint256 = MultiFungibleToken(self.f_address).totalBalanceOf(self)
-    assert as_unitless_number(_total_f_balance) == 0
     _contributions: uint256 = as_unitless_number(_l_balance) + as_unitless_number(_total_f_balance) - as_unitless_number(self.operator_unwithdrawn_earnings)
-    assert as_unitless_number(_contributions) == as_unitless_number(_l_balance)
     _pool_share_token_value: uint256 = 0
     if (as_unitless_number(_supply) == 0) or (as_unitless_number(_contributions) == 0):
         _pool_share_token_value = (as_unitless_number(_l_token_value) * self.initial_exchange_rate) / self.DECIMALS
