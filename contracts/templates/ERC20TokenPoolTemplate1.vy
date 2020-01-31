@@ -5,7 +5,7 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import ERC20
+from ...interfaces import ERC20Interface
 
 
 owner: public(address)
@@ -27,14 +27,14 @@ def initialize(_token: address) -> bool:
 @public
 @constant
 def borrowable_amount() -> uint256:
-    return ERC20(self.token).balanceOf(self)
+    return ERC20Interface(self.token).balanceOf(self)
 
 
 @public
 def release(_to: address, _value: uint256) -> bool:
     assert self.initialized
     assert msg.sender == self.owner
-    assert_modifiable(ERC20(self.token).transfer(_to, _value))
+    assert_modifiable(ERC20Interface(self.token).transfer(_to, _value))
 
     return True
 
@@ -43,8 +43,8 @@ def release(_to: address, _value: uint256) -> bool:
 def destroy() -> bool:
     assert self.initialized
     assert msg.sender == self.owner
-    assert_modifiable(ERC20(self.token).transfer(
+    assert_modifiable(ERC20Interface(self.token).transfer(
         self.owner,
-        ERC20(self.token).balanceOf(self)
+        ERC20Interface(self.token).balanceOf(self)
     ))
     selfdestruct(self.owner)

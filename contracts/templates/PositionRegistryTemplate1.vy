@@ -5,7 +5,7 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import MarketDao
+from ...interfaces import MarketDaoInterface
 
 
 # Structs
@@ -221,7 +221,7 @@ def avail_loan(
     # create position
     self._open_position(msg.sender, _currency_value,
         _currency_address, _expiry, _underlying_address, _strike_price)
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).open_position(
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).open_position(
         msg.sender, _currency_value,
         _currency_address, _expiry, _underlying_address, _strike_price
     ))
@@ -239,7 +239,7 @@ def repay_loan(_position_id: uint256, _pay_value: uint256) -> bool:
     assert as_unitless_number(self.positions[_position_id].repaid_value) + as_unitless_number(_pay_value) <= as_unitless_number(self.positions[_position_id].currency_value)
     self._lock_position(_position_id)
     # validate position currencies
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).close_position(
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).close_position(
         self.positions[_position_id].borrower,
         _pay_value,
         self.positions[_position_id].currency,
@@ -262,7 +262,7 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
     self._lock_position(_position_id)
     # validate position currencies
     _currency_value_remaining: uint256 = as_unitless_number(self.positions[_position_id].currency_value) - as_unitless_number(self.positions[_position_id].repaid_value)
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).close_liquidated_position(
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).close_liquidated_position(
         self.positions[_position_id].borrower,
         _currency_value_remaining,
         self.positions[_position_id].currency,

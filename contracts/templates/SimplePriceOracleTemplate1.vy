@@ -5,9 +5,9 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import SimplePriceOracle
+from ...interfaces import SimplePriceOracleInterface
 
-implements: SimplePriceOracle
+implements: SimplePriceOracleInterface
 
 
 contract Feed:

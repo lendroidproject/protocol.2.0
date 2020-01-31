@@ -5,10 +5,10 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import MarketDao
+from ...interfaces import MultiFungibleTokenInterface
+from ...interfaces import MarketDaoInterface
 
-from contracts.interfaces import ProtocolDao
+from ...interfaces import ProtocolDaoInterface
 
 
 owner: public(address)
@@ -102,7 +102,7 @@ def _auction_expiry() -> timestamp:
 @private
 @constant
 def _lot() -> uint256:
-    return MultiFungibleToken(self.f_underlying).balanceOf(self, self.f_id_underlying)
+    return MultiFungibleTokenInterface(self.f_underlying).balanceOf(self, self.f_id_underlying)
 
 
 @private
@@ -120,12 +120,12 @@ def _current_price() -> uint256:
 
 @private
 def _transfer_f_underlying(_to: address, _value: uint256):
-    assert_modifiable(MultiFungibleToken(self.f_underlying).safeTransferFrom(self, _to, self.f_id_underlying, _value, EMPTY_BYTES32))
+    assert_modifiable(MultiFungibleTokenInterface(self.f_underlying).safeTransferFrom(self, _to, self.f_id_underlying, _value, EMPTY_BYTES32))
 
 
 @private
 def _reset_currency_remaining():
-    self.currency_remaining = MarketDao(self.owner).currency_remaining_for_auction(self._loan_market_hash())
+    self.currency_remaining = MarketDaoInterface(self.owner).currency_remaining_for_auction(self._loan_market_hash())
 
 
 @public
@@ -156,7 +156,7 @@ def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: 
     self.currency_remaining -= _currency_value
     _external_call_successful: bool = False
     _loan_market_closed: bool = False
-    _external_call_successful, _loan_market_closed = MarketDao(self.owner).process_auction_purchase(
+    _external_call_successful, _loan_market_closed = MarketDaoInterface(self.owner).process_auction_purchase(
         self.currency, self.expiry, self.underlying,
         _purchaser, _currency_value, _underlying_value, self.is_active
     )
@@ -173,7 +173,7 @@ def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: 
 def escape_hatch_underlying_f() -> bool:
     assert msg.sender == self.owner
     self._transfer_f_underlying(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         self._lot()
     )
     return True

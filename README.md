@@ -17,12 +17,12 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
 
 * Install dependencies via npm
 
-  `npm install`
+  `npm install ganache-cli@istanbul -g`
 
 
-* Install Python and Vyper v0.1.0-beta.14
+* Install Python and Vyper v0.1.0-beta.16
 
-  * Python 3.6+ is a pre-requisite, and can be installed from [here](https://www.python.org/downloads "Python version downloads")
+  * Python 3.7 is a pre-requisite, and can be installed from [here](https://www.python.org/downloads "Python version downloads")
 
   * Install virtualenv from pip
 
@@ -30,15 +30,11 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
 
   * Create a virtual environment
 
-    `virtualenv -p python3.6 --no-site-packages ~/vyper-venv`
+    `virtualenv -p python3.7 --no-site-packages ~/vyper-venv`
 
   * Activate Vyper's virtual environment
 
     `source ~/vyper-venv/bin/activate`
-
-  * Install Vyper v0.1.0-beta.14
-
-    `pip install vyper==0.1.0b14`
 
   * Install dependencies from requirements.txt via pip
 
@@ -51,9 +47,9 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
   `source ~/vyper-venv/bin/activate`
 
 
-* Run the tests using [Pytest Xdist](https://docs.pytest.org/en/3.0.1/xdist.html)
+* Run the tests
 
-  `pytest -n 8`
+  `brownie test`
 
 
 _Note_: When the development / testing session ends, deactivate the virtualenv

@@ -5,14 +5,14 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import ERC20
-from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import CurrencyDao
-from contracts.interfaces import ShieldPayoutDao
-from contracts.interfaces import CollateralAuctionCurve
-from contracts.interfaces import SimplePriceOracle
+from ...interfaces import ERC20Interface
+from ...interfaces import MultiFungibleTokenInterface
+from ...interfaces import CurrencyDaoInterface
+from ...interfaces import ShieldPayoutDaoInterface
+from ...interfaces import CollateralAuctionCurveInterface
+from ...interfaces import SimplePriceOracleInterface
 
-from contracts.interfaces import ProtocolDao
+from ...interfaces import ProtocolDaoInterface
 
 # Structs
 struct ExpiryMarket:
@@ -317,11 +317,11 @@ def liquidated_underlying_value(_currency: address, _expiry: timestamp,
 
 @private
 def _transfer_f_underlying(_currency: address, _expiry: timestamp, _from: address, _to: address, _value: uint256):
-    _token: address = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+    _token: address = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
     assert not _token == ZERO_ADDRESS
-    _id: uint256 = MultiFungibleToken(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
+    _id: uint256 = MultiFungibleTokenInterface(_token).id(_currency, _expiry, ZERO_ADDRESS, 0)
     assert not _id == 0
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
+    assert_modifiable(MultiFungibleTokenInterface(_token).safeTransferFrom(_from, _to, _id, _value, EMPTY_BYTES32))
 
 
 @private
@@ -385,7 +385,7 @@ def _settle_loan_market(_loan_market_hash: bytes32):
     )
     assert self.price_oracles[_currency_underlying_pair_hash].is_contract
     if as_unitless_number(self.loan_markets[_loan_market_hash].liability) > 0:
-        self.loan_markets[_loan_market_hash].settlement_price = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price() * as_unitless_number(self.auction_slippage_percentage) / 100
+        self.loan_markets[_loan_market_hash].settlement_price = SimplePriceOracleInterface(self.price_oracles[_currency_underlying_pair_hash]).get_price() * as_unitless_number(self.auction_slippage_percentage) / 100
         self._reset_total_s_payout_value(_loan_market_hash)
         # deploy and start collateral auction
         _auction: address = create_forwarder_to(self.templates[TEMPLATE_COLLATERAL_AUCTION])
@@ -393,13 +393,13 @@ def _settle_loan_market(_loan_market_hash: bytes32):
         self.loan_markets[_loan_market_hash].auction_curve = _auction
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_SETTLING
         # start collateral auction
-        _f_underlying: address = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(self.loan_markets[_loan_market_hash].underlying)
+        _f_underlying: address = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(self.loan_markets[_loan_market_hash].underlying)
         assert not _f_underlying == ZERO_ADDRESS
-        _f_id_underlying: uint256 = MultiFungibleToken(_f_underlying).id(
+        _f_id_underlying: uint256 = MultiFungibleTokenInterface(_f_underlying).id(
             self.loan_markets[_loan_market_hash].underlying,
             self.loan_markets[_loan_market_hash].expiry, ZERO_ADDRESS, 0)
         assert not _f_id_underlying == 0
-        assert_modifiable(CollateralAuctionCurve(_auction).start(
+        assert_modifiable(CollateralAuctionCurveInterface(_auction).start(
             self.protocol_dao,
             self.loan_markets[_loan_market_hash].currency,
             self.loan_markets[_loan_market_hash].expiry,
@@ -421,7 +421,7 @@ def _settle_loan_market(_loan_market_hash: bytes32):
             self.loan_markets[_loan_market_hash].collateral
         )
     else:
-        self.loan_markets[_loan_market_hash].settlement_price = SimplePriceOracle(self.price_oracles[_currency_underlying_pair_hash]).get_price()
+        self.loan_markets[_loan_market_hash].settlement_price = SimplePriceOracleInterface(self.price_oracles[_currency_underlying_pair_hash]).get_price()
         self.loan_markets[_loan_market_hash].status = self.LOAN_MARKET_STATUS_CLOSED
 
 
@@ -434,7 +434,7 @@ def _open_shield_market(_currency: address, _expiry: timestamp, _underlying: add
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     self.shield_market_id_to_hash[_loan_market_hash][self.next_shield_market_id[_loan_market_hash]] = _shield_market_hash
     # register shield_market
-    assert_modifiable(ShieldPayoutDao(self.daos[DAO_SHIELD_PAYOUT]).register_shield_market(
+    assert_modifiable(ShieldPayoutDaoInterface(self.daos[DAO_SHIELD_PAYOUT]).register_shield_market(
         _currency, _expiry, _underlying, _strike_price
     ))
 
@@ -693,9 +693,9 @@ def _transfer_balance_erc20(_token: address):
              ERC20 token to the Escape Hatch Token Holder.
         @param _token The address of the ERC20 token.
     """
-    assert_modifiable(ERC20(_token).transfer(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        ERC20(_token).balanceOf(self)
+    assert_modifiable(ERC20Interface(_token).transfer(
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20Interface(_token).balanceOf(self)
     ))
 
 
@@ -712,11 +712,11 @@ def _transfer_balance_mft(_token: address,
         @param _strike_price The price of the underlying per currency at _expiry.
     """
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
-    _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
-    _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+    _id: uint256 = MultiFungibleTokenInterface(_token).hash_to_id(_mft_hash)
+    _balance: uint256 = MultiFungibleTokenInterface(_token).balanceOf(self, _id)
+    assert_modifiable(MultiFungibleTokenInterface(_token).safeTransferFrom(
         self,
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         _id, _balance, EMPTY_BYTES32
     ))
 
@@ -737,7 +737,7 @@ def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: ad
     assert self.initialized
     assert msg.sender == self.protocol_dao
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
-    assert_modifiable(CollateralAuctionCurve(self.loan_markets[_loan_market_hash].auction_curve).escape_hatch_underlying_f())
+    assert_modifiable(CollateralAuctionCurveInterface(self.loan_markets[_loan_market_hash].auction_curve).escape_hatch_underlying_f())
     return True
 
 
@@ -756,7 +756,7 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     assert msg.sender == self.protocol_dao
     _token: address = _currency
     if _is_l:
-        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__l(_currency)
+        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__l(_currency)
     self._transfer_balance_erc20(_currency)
     return True
 
@@ -780,13 +780,13 @@ def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, 
     assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
     if _mft_type == MFT_TYPE_F:
-        _token = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
     if _mft_type == MFT_TYPE_I:
-        _token = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
     if _mft_type == MFT_TYPE_S:
-        _token = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
     if _mft_type == MFT_TYPE_U:
-        _token = CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True
@@ -834,7 +834,7 @@ def process_auction_purchase(
     assert not self.paused
     _loan_market_hash: bytes32 = self._loan_market_hash(_currency, _expiry, _underlying)
     assert msg.sender == self.loan_markets[_loan_market_hash].auction_curve
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_deposit_token(
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).authorized_deposit_token(
         _currency, _purchaser, _currency_value))
     self.loan_markets[_loan_market_hash].auction_currency_raised += _currency_value
     self.loan_markets[_loan_market_hash].auction_underlying_sold += _underlying_value
@@ -862,8 +862,8 @@ def open_position(
     assert self.shield_markets[_shield_market_hash].expiry == _expiry
     assert self.shield_markets[_shield_market_hash].strike_price == _strike_price
     # validate tokens
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
 
     _loan_market_hash: bytes32 = self._loan_market_hash(
         _currency,
@@ -878,17 +878,17 @@ def open_position(
     # transfer i_lend_currency from _borrower to self
     _i_address: address = ZERO_ADDRESS
     _i_id: uint256 = 0
-    _i_address, _i_id = CurrencyDao(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
+    _i_address, _i_id = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
     # transfer i_lend_currency from _borrower to self
-    assert_modifiable(MultiFungibleToken(_i_address).safeTransferFrom(_borrower, self, _i_id, _currency_value, EMPTY_BYTES32))
+    assert_modifiable(MultiFungibleTokenInterface(_i_address).safeTransferFrom(_borrower, self, _i_id, _currency_value, EMPTY_BYTES32))
     # transfer s_lend_currency from _borrower to self
-    assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(
+    assert_modifiable(MultiFungibleTokenInterface(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(
         _borrower, self, self.shield_markets[_shield_market_hash].s_id, _currency_value, EMPTY_BYTES32
     ))
     # transfer f_borrow_currency from borrower to self
     self._transfer_f_underlying(_underlying, _expiry, _borrower, self, _underlying_value)
     # transfer lend_currency to _borrower
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_withdraw_token(
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).authorized_withdraw_token(
         _currency, _borrower, _currency_value))
 
     return True
@@ -909,8 +909,8 @@ def close_position(
     assert self.shield_markets[_shield_market_hash].expiry == _expiry
     assert self.shield_markets[_shield_market_hash].strike_price == _strike_price
     # validate tokens
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     _loan_market_hash: bytes32 = self._loan_market_hash(
         _currency,
         _expiry,
@@ -923,16 +923,16 @@ def close_position(
     # transfer i_lend_currency from self to _borrower
     _i_address: address = ZERO_ADDRESS
     _i_id: uint256 = 0
-    _i_address, _i_id = CurrencyDao(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
-    assert_modifiable(MultiFungibleToken(_i_address).safeTransferFrom(self, _borrower, _i_id, _currency_value, EMPTY_BYTES32))
+    _i_address, _i_id = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).i_token(_currency, _expiry)
+    assert_modifiable(MultiFungibleTokenInterface(_i_address).safeTransferFrom(self, _borrower, _i_id, _currency_value, EMPTY_BYTES32))
     # transfer s_lend_currency from self to _borrower
-    assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(
+    assert_modifiable(MultiFungibleTokenInterface(self.shield_markets[_shield_market_hash].s_address).safeTransferFrom(
         self, _borrower, self.shield_markets[_shield_market_hash].s_id, _currency_value, EMPTY_BYTES32
     ))
     # transfer f_borrow_currency to _borrower
     self._transfer_f_underlying(_underlying, _expiry, self, _borrower, _underlying_value)
     # transfer lend_currency from _borrower to currency_pool
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_deposit_token(
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).authorized_deposit_token(
         _currency, _borrower, _currency_value))
 
     return True
@@ -953,8 +953,8 @@ def close_liquidated_position(
     assert self.shield_markets[_shield_market_hash].underlying == _underlying
     assert self.shield_markets[_shield_market_hash].expiry == _expiry
     assert self.shield_markets[_shield_market_hash].strike_price == _strike_price
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(self.shield_markets[_shield_market_hash].underlying)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(self.shield_markets[_shield_market_hash].underlying)
     _loan_market_hash: bytes32 = self._loan_market_hash(
         _currency,
         _expiry,
@@ -962,7 +962,7 @@ def close_liquidated_position(
     )
     assert self.loan_markets[_loan_market_hash].status == self.LOAN_MARKET_STATUS_CLOSED
     # burn s_lend_currency from self
-    assert_modifiable(MultiFungibleToken(self.shield_markets[_shield_market_hash].s_address).burn(
+    assert_modifiable(MultiFungibleTokenInterface(self.shield_markets[_shield_market_hash].s_address).burn(
         self.shield_markets[_shield_market_hash].s_id,
         self, _currency_value
     ))

@@ -5,14 +5,14 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import ERC20
-from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import CurrencyDao
-from contracts.interfaces import UnderwriterPool
-from contracts.interfaces import MarketDao
-from contracts.interfaces import PoolNameRegistry
+from ...interfaces import ERC20Interface
+from ...interfaces import MultiFungibleTokenInterface
+from ...interfaces import CurrencyDaoInterface
+from ...interfaces import UnderwriterPoolInterface
+from ...interfaces import MarketDaoInterface
+from ...interfaces import PoolNameRegistryInterface
 
-from contracts.interfaces import ProtocolDao
+from ...interfaces import ProtocolDaoInterface
 
 
 # structs
@@ -190,7 +190,7 @@ def _stake_LST(_name: string[64], _currency: address, _expiry: timestamp, _under
     self.pools[_name].LST_staked += _LST_value
     self.pools[_name].mft_count += 1
     self.LST_staked_per_mft[_name][_market_hash] = _LST_value
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
         self.LST, self.pools[_name].operator, self, _LST_value))
 
 
@@ -203,7 +203,7 @@ def _release_staked_LST(_name: string[64], _currency: address, _expiry: timestam
     self.pools[_name].LST_staked -= _LST_value
     self.pools[_name].mft_count -= 1
     clear(self.LST_staked_per_mft[_name][_market_hash])
-    assert_modifiable(ERC20(self.LST).transfer(
+    assert_modifiable(ERC20Interface(self.LST).transfer(
         self.pools[_name].operator, _LST_value
     ))
 
@@ -345,9 +345,9 @@ def _transfer_balance_erc20(_token: address):
              ERC20 token to the Escape Hatch Token Holder.
         @param _token The address of the ERC20 token.
     """
-    assert_modifiable(ERC20(_token).transfer(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        ERC20(_token).balanceOf(self)
+    assert_modifiable(ERC20Interface(_token).transfer(
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20Interface(_token).balanceOf(self)
     ))
 
 
@@ -364,11 +364,11 @@ def _transfer_balance_mft(_token: address,
         @param _strike_price The price of the underlying per currency at _expiry.
     """
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
-    _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
-    _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+    _id: uint256 = MultiFungibleTokenInterface(_token).hash_to_id(_mft_hash)
+    _balance: uint256 = MultiFungibleTokenInterface(_token).balanceOf(self, _id)
+    assert_modifiable(MultiFungibleTokenInterface(_token).safeTransferFrom(
         self,
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         _id, _balance, EMPTY_BYTES32
     ))
 
@@ -388,7 +388,7 @@ def escape_hatch_erc20(_currency: address, _is_l: bool) -> bool:
     assert msg.sender == self.protocol_dao
     _token: address = _currency
     if _is_l:
-        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__l(_currency)
+        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__l(_currency)
     self._transfer_balance_erc20(_currency)
     return True
 
@@ -412,13 +412,13 @@ def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, 
     assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
     if _mft_type == MFT_TYPE_F:
-        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
     if _mft_type == MFT_TYPE_I:
-        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
+        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
     if _mft_type == MFT_TYPE_S:
-        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
+        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
     if _mft_type == MFT_TYPE_U:
-        CurrencyDao(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
+        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True
@@ -437,13 +437,13 @@ def register_pool(
     assert self.initialized
     assert not self.paused
     # validate currency
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
     # Increment active pool count if pool name is already registered.
     # Otherwise, register pool name and increment active pool count
-    if PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).name_exists(_name):
-        assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).register_pool(_name, msg.sender))
+    if PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).name_exists(_name):
+        assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).register_pool(_name, msg.sender))
     else:
-        assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).register_name_and_pool(_name, msg.sender))
+        assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).register_name_and_pool(_name, msg.sender))
     # initialize pool
     _l_address: address = ZERO_ADDRESS
     _i_address: address = ZERO_ADDRESS
@@ -452,11 +452,11 @@ def register_pool(
     _u_address: address = ZERO_ADDRESS
     _address: address = create_forwarder_to(self.templates[TEMPLATE_UNDERWRITER_POOL])
     assert _address.is_contract
-    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
+    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
     _allow_public_contribution: bool = _accepts_public_contributions
-    if not ProtocolDao(self.protocol_dao).public_contributions_activated():
+    if not ProtocolDaoInterface(self.protocol_dao).public_contributions_activated():
         _allow_public_contribution = False
-    assert_modifiable(UnderwriterPool(_address).initialize(
+    assert_modifiable(UnderwriterPoolInterface(_address).initialize(
         self.protocol_dao,
         _allow_public_contribution, msg.sender,
         _fee_percentage_per_i_token, _fee_percentage_per_s_token,
@@ -498,7 +498,7 @@ def deregister_pool(_name: string[64]) -> bool:
     # deactivate pool
     self.pools[_name].is_active = False
     # Decrement active pool count from name registry
-    assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).deregister_pool(_name, self.pools[_name].operator))
+    assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).deregister_pool(_name, self.pools[_name].operator))
     # log PoolDeRegistered event
     log.PoolDeRegistered(self.pools[_name].operator, self.pools[_name].currency,
         msg.sender)
@@ -512,12 +512,12 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
     _i_address: address, _s_address: address, _u_address: address) -> (bool, uint256, uint256, uint256):
     assert self.initialized
     assert not self.paused
-    if not ProtocolDao(self.protocol_dao).non_standard_expiries_activated():
-        assert ProtocolDao(self.protocol_dao).expiries__is_active(_expiry)
+    if not ProtocolDaoInterface(self.protocol_dao).non_standard_expiries_activated():
+        assert ProtocolDaoInterface(self.protocol_dao).expiries__is_active(_expiry)
     self._validate_pool(_name, msg.sender)
     _currency: address = self.pools[_name].currency
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     _i_hash: bytes32 = self._mft_hash(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
     _s_hash: bytes32 = self._mft_hash(_s_address, _currency, _expiry, _underlying, _strike_price)
     _u_hash: bytes32 = self._mft_hash(_u_address, _currency, _expiry, _underlying, _strike_price)
@@ -528,7 +528,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
     self._stake_LST(_name, _currency, _expiry, _underlying, _strike_price)
 
     if not self.mfts[_i_hash].has_id:
-        _i_id = MultiFungibleToken(_i_address).get_or_create_id(_currency, _expiry, ZERO_ADDRESS, 0, "")
+        _i_id = MultiFungibleTokenInterface(_i_address).get_or_create_id(_currency, _expiry, ZERO_ADDRESS, 0, "")
         self.mfts[_i_hash] = MFT({
             address_: _i_address,
             currency: _currency,
@@ -540,7 +540,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
             hash: _i_hash
         })
     if not self.mfts[_s_hash].has_id:
-        _s_id = MultiFungibleToken(_s_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
+        _s_id = MultiFungibleTokenInterface(_s_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
         self.mfts[_s_hash] = MFT({
             address_: _s_address,
             currency: _currency,
@@ -552,7 +552,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
             hash: _s_hash
         })
     if not self.mfts[_u_hash].has_id:
-        _u_id = MultiFungibleToken(_u_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
+        _u_id = MultiFungibleTokenInterface(_u_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
         self.mfts[_u_hash] = MFT({
             address_: _u_address,
             currency: _currency,
@@ -567,7 +567,7 @@ def register_mft_support(_name: string[64], _expiry: timestamp,
     # create market on MarketDao
     # deploy and initialize shield payout graph via MarketDao
     # deploy and initialize collateral auction graph via MarketDao
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).open_shield_market(
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).open_shield_market(
         _currency, _expiry, _underlying, _strike_price,
         _s_address, _s_id,
         _u_address, _u_id
@@ -602,8 +602,8 @@ def deposit_l(_name: string[64], _from: address, _value: uint256) -> bool:
     assert not self.paused
     self._validate_pool(_name, msg.sender)
     # validate currency
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(self.pools[_name].currency)
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_l(
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(self.pools[_name].currency)
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).authorized_transfer_l(
         self.pools[_name].currency, _from, msg.sender, _value))
 
     return True
@@ -617,18 +617,18 @@ def _l_to_i_and_s_and_u(_currency: address, _expiry: timestamp, _underlying: add
     _f_address: address = ZERO_ADDRESS
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
-    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
-    _i_id: uint256 = MultiFungibleToken(_i_address).get_or_create_id(_currency, _expiry, ZERO_ADDRESS, 0, "")
-    _s_id: uint256 = MultiFungibleToken(_s_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
-    _u_id: uint256 = MultiFungibleToken(_u_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
+    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
+    _i_id: uint256 = MultiFungibleTokenInterface(_i_address).get_or_create_id(_currency, _expiry, ZERO_ADDRESS, 0, "")
+    _s_id: uint256 = MultiFungibleTokenInterface(_s_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
+    _u_id: uint256 = MultiFungibleTokenInterface(_u_address).get_or_create_id(_currency, _expiry, _underlying, _strike_price, "")
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
     # burn l_token from _from account
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_l_address, _from, _value))
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_l_address, _from, _value))
     # mint i_token into _to account
-    assert_modifiable(MultiFungibleToken(_i_address).mint(_i_id, _to, _value))
-    assert_modifiable(MultiFungibleToken(_s_address).mint(_s_id, _to, _value))
-    assert_modifiable(MultiFungibleToken(_u_address).mint(_u_id, _to, _value))
+    assert_modifiable(MultiFungibleTokenInterface(_i_address).mint(_i_id, _to, _value))
+    assert_modifiable(MultiFungibleTokenInterface(_s_address).mint(_s_id, _to, _value))
+    assert_modifiable(MultiFungibleTokenInterface(_u_address).mint(_u_id, _to, _value))
 
 
 @public
@@ -638,8 +638,8 @@ def split(
     assert self.initialized
     assert not self.paused
     assert _expiry > block.timestamp
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     self._l_to_i_and_s_and_u(_currency, _expiry, _underlying, _strike_price,
         _value, msg.sender, msg.sender)
 
@@ -654,23 +654,23 @@ def _i_and_s_and_u_to_l(_currency: address, _expiry: timestamp, _underlying: add
     _f_address: address = ZERO_ADDRESS
     _s_address: address = ZERO_ADDRESS
     _u_address: address = ZERO_ADDRESS
-    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDao(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
-    _i_id: uint256 = MultiFungibleToken(_i_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
-    _s_id: uint256 = MultiFungibleToken(_s_address).id(_currency, _expiry, _underlying, _strike_price)
-    _u_id: uint256 = MultiFungibleToken(_u_address).id(_currency, _expiry, _underlying, _strike_price)
+    _l_address, _i_address, _f_address, _s_address, _u_address = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).mft_addresses(_currency)
+    _i_id: uint256 = MultiFungibleTokenInterface(_i_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
+    _s_id: uint256 = MultiFungibleTokenInterface(_s_address).id(_currency, _expiry, _underlying, _strike_price)
+    _u_id: uint256 = MultiFungibleTokenInterface(_u_address).id(_currency, _expiry, _underlying, _strike_price)
     _i_hash: bytes32 = self._mft_hash(_i_address, _currency, _expiry, ZERO_ADDRESS, 0)
     _s_hash: bytes32 = self._mft_hash(_s_address, _currency, _expiry, _underlying, _strike_price)
     _u_hash: bytes32 = self._mft_hash(_u_address, _currency, _expiry, _underlying, _strike_price)
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
     # burn i_tokens from _from account
-    assert_modifiable(MultiFungibleToken(_i_address).burn(_i_id, _from, _value))
+    assert_modifiable(MultiFungibleTokenInterface(_i_address).burn(_i_id, _from, _value))
     # burn s_tokens from _from account
-    assert_modifiable(MultiFungibleToken(_s_address).burn(_s_id, _from, _value))
+    assert_modifiable(MultiFungibleTokenInterface(_s_address).burn(_s_id, _from, _value))
     # burn u_tokens from _from account
-    assert_modifiable(MultiFungibleToken(_u_address).burn(_u_id, _from, _value))
+    assert_modifiable(MultiFungibleTokenInterface(_u_address).burn(_u_id, _from, _value))
     # mint l_tokens to _to account
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_l_address, _to, _value))
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_l_address, _to, _value))
 
 
 @public
@@ -680,8 +680,8 @@ def fuse(
     assert self.initialized
     assert not self.paused
     assert _expiry > block.timestamp
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
-    assert CurrencyDao(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_currency)
+    assert CurrencyDaoInterface(self.daos[DAO_CURRENCY]).is_token_supported(_underlying)
     self._i_and_s_and_u_to_l(_currency, _expiry, _underlying, _strike_price,
         _value, msg.sender, msg.sender)
 

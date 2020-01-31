@@ -5,11 +5,11 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import ERC20
-from contracts.interfaces import ERC20PoolToken
-from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import UnderwriterPoolDao
-from contracts.interfaces import ShieldPayoutDao
+from ...interfaces import ERC20Interface
+from ...interfaces import ERC20PoolTokenInterface
+from ...interfaces import MultiFungibleTokenInterface
+from ...interfaces import UnderwriterPoolDaoInterface
+from ...interfaces import ShieldPayoutDaoInterface
 
 
 struct Market:
@@ -83,8 +83,8 @@ def initialize(
     # erc20 token
     _pool_share_token: address = create_forwarder_to(_erc20_pool_token_template_address)
     self.pool_share_token = _pool_share_token
-    assert_modifiable(ERC20PoolToken(_pool_share_token).initialize(_name,
-        concat(_name, ".RU.", ERC20(_currency).symbol()), 18, 0))
+    assert_modifiable(ERC20PoolTokenInterface(_pool_share_token).initialize(_name,
+        concat(_name, ".RU.", ERC20Interface(_currency).symbol()), 18, 0))
 
     self.l_address = _l_address
     self.i_address = _i_address
@@ -117,13 +117,13 @@ def _market_hash(_expiry: timestamp, _underlying: address, _strike_price: uint25
 @private
 @constant
 def _total_pool_share_token_supply() -> uint256:
-    return ERC20(self.pool_share_token).totalSupply()
+    return ERC20Interface(self.pool_share_token).totalSupply()
 
 
 @private
 @constant
 def _active_contributions() -> uint256:
-    return as_unitless_number(ERC20(self.l_address).balanceOf(self)) - as_unitless_number(self.operator_unwithdrawn_earnings)
+    return as_unitless_number(ERC20Interface(self.l_address).balanceOf(self)) - as_unitless_number(self.operator_unwithdrawn_earnings)
 
 
 @private
@@ -132,27 +132,27 @@ def _i_token_balance(_expiry: timestamp, _underlying: address, _strike_price: ui
     if _expiry >= block.timestamp:
         return 0
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-    return MultiFungibleToken(self.i_address).balanceOf(self, self.markets[_market_hash].i_id)
+    return MultiFungibleTokenInterface(self.i_address).balanceOf(self, self.markets[_market_hash].i_id)
 
 
 @private
 @constant
 def _s_token_balance(_expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-    return MultiFungibleToken(self.s_address).balanceOf(self, self.markets[_market_hash].s_id)
+    return MultiFungibleTokenInterface(self.s_address).balanceOf(self, self.markets[_market_hash].s_id)
 
 
 @private
 @constant
 def _u_token_balance(_expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-    return MultiFungibleToken(self.u_address).balanceOf(self, self.markets[_market_hash].u_id)
+    return MultiFungibleTokenInterface(self.u_address).balanceOf(self, self.markets[_market_hash].u_id)
 
 
 @private
 @constant
 def _total_u_token_balance() -> uint256:
-    return MultiFungibleToken(self.u_address).totalBalanceOf(self)
+    return MultiFungibleTokenInterface(self.u_address).totalBalanceOf(self)
 
 
 @private
@@ -292,8 +292,6 @@ def support_mft(_expiry: timestamp, _underlying: address, _strike_price: uint256
     assert self.next_market_id < MAXIMUM_ALLOWED_MARKETS
     assert self.initialized
     assert msg.sender == self.owner
-    _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-    assert self.markets[_market_hash].hash == EMPTY_BYTES32
     # verify mft_expiry_limit_days has been set
     # verify _expiry is within supported mft_expiry_limit_days
     _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
@@ -302,10 +300,11 @@ def support_mft(_expiry: timestamp, _underlying: address, _strike_price: uint256
     _i_id: uint256 = 0
     _s_id: uint256 = 0
     _u_id: uint256 = 0
-    _external_call_successful, _i_id, _s_id, _u_id = UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).register_mft_support(
+    _external_call_successful, _i_id, _s_id, _u_id = UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).register_mft_support(
         self.name, _expiry, _underlying, _strike_price,
         self.i_address, self.s_address, self.u_address)
     assert _external_call_successful
+    _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     self.markets[_market_hash] = Market({
         expiry: _expiry,
         underlying: _underlying,
@@ -333,7 +332,7 @@ def withdraw_mft_support(_expiry: timestamp, _underlying: address, _strike_price
     assert msg.sender == self.owner
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     self.markets[_market_hash].is_active = False
-    assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).deregister_mft_support(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).deregister_mft_support(
         self.name, self.currency, _expiry, _underlying, _strike_price
     ))
 
@@ -389,7 +388,7 @@ def withdraw_earnings() -> bool:
     assert self.initialized
     assert msg.sender == self.owner
     if as_unitless_number(self.operator_unwithdrawn_earnings) > 0:
-        assert_modifiable(ERC20(self.l_address).transfer(
+        assert_modifiable(ERC20Interface(self.l_address).transfer(
             self.owner, self.operator_unwithdrawn_earnings
         ))
 
@@ -401,7 +400,7 @@ def deregister() -> bool:
     assert self.initialized
     assert msg.sender == self.owner
     assert as_unitless_number(self._total_active_contributions()) == 0
-    assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).deregister_pool(self.name))
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).deregister_pool(self.name))
 
     return True
 
@@ -416,7 +415,7 @@ def increment_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: 
     # validate expiry
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     assert self.markets[_market_hash].is_active == True, "expiry is not offered"
-    assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).split(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).split(
         self.currency, _expiry, _underlying, _strike_price,
         _l_token_value
     ))
@@ -434,7 +433,7 @@ def decrement_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: 
     # validate expiry
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     assert self.markets[_market_hash].is_active == True, "expiry is not offered"
-    assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).fuse(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).fuse(
         self.currency, _expiry, _underlying, _strike_price,
         _l_token_value))
 
@@ -449,7 +448,7 @@ def exercise_u_tokens(_name: string[64],
     assert self.initialized
     assert _expiry > block.timestamp
     assert_modifiable(
-        ShieldPayoutDao(self.daos[self.DAO_SHIELD_PAYOUT]).exercise_u(
+        ShieldPayoutDaoInterface(self.daos[self.DAO_SHIELD_PAYOUT]).exercise_u(
             _currency, _expiry, _underlying, _strike_price, _value))
 
     return True
@@ -465,13 +464,13 @@ def contribute(_l_token_value: uint256) -> bool:
     if not self.accepts_public_contributions:
         assert msg.sender == self.owner
     # ask UnderwriterPoolDao to deposit l_tokens to self
-    assert_modifiable(UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).deposit_l(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).deposit_l(
         self.name, msg.sender, _l_token_value))
     # authorize CurrencyDao to handle _l_token_value quantity of l_currency
-    assert_modifiable(ERC20(self.l_address).approve(
-        UnderwriterPoolDao(self.daos[self.DAO_UNDERWRITER_POOL]).currency_dao(), _l_token_value))
+    assert_modifiable(ERC20Interface(self.l_address).approve(
+        UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).currency_dao(), _l_token_value))
     # mint pool tokens to msg.sender
-    assert_modifiable(ERC20(self.pool_share_token).mintAndAuthorizeMinter(
+    assert_modifiable(ERC20Interface(self.pool_share_token).mintAndAuthorizeMinter(
         msg.sender, self._estimated_pool_share_tokens(_l_token_value)))
 
     return True
@@ -505,31 +504,31 @@ def withdraw_contribution(_pool_share_token_value: uint256) -> bool:
         _u_token_value = as_unitless_number(_pool_share_token_value) * self._u_token_balance(self.markets[_market_hash].expiry, self.markets[_market_hash].underlying, self.markets[_market_hash].strike_price) / as_unitless_number(self._total_pool_share_token_supply())
         # transfer i_tokens from self to msg.sender
         if as_unitless_number(_i_token_value) > 0:
-            assert_modifiable(MultiFungibleToken(self.i_address).safeTransferFrom(
+            assert_modifiable(MultiFungibleTokenInterface(self.i_address).safeTransferFrom(
                 self, msg.sender,
                 self.markets[_market_hash].i_id,
                 _i_token_value, EMPTY_BYTES32))
         # transfer s_tokens from self to msg.sender
         if as_unitless_number(_s_token_value) > 0:
-            assert_modifiable(MultiFungibleToken(self.s_address).safeTransferFrom(
+            assert_modifiable(MultiFungibleTokenInterface(self.s_address).safeTransferFrom(
                 self, msg.sender,
                 self.markets[_market_hash].s_id,
                 _s_token_value, EMPTY_BYTES32))
         # transfer u_tokens from self to msg.sender
         if as_unitless_number(_u_token_value) > 0:
-            assert_modifiable(MultiFungibleToken(self.u_address).safeTransferFrom(
+            assert_modifiable(MultiFungibleTokenInterface(self.u_address).safeTransferFrom(
                 self, msg.sender,
                 self.markets[_market_hash].u_id,
                 _u_token_value, EMPTY_BYTES32))
 
     # burn pool_share_tokens from msg.sender by self
-    assert_modifiable(ERC20(self.pool_share_token).burnFrom(
+    assert_modifiable(ERC20Interface(self.pool_share_token).burnFrom(
         msg.sender, _pool_share_token_value))
     # calculate l_tokens to be transferred
     _l_token_value: uint256 = as_unitless_number(_pool_share_token_value) * self._active_contributions() / as_unitless_number(self._total_pool_share_token_supply())
     # transfer l_tokens from self to msg.sender
     if as_unitless_number(_l_token_value) > 0:
-        assert_modifiable(ERC20(self.l_address).transfer(
+        assert_modifiable(ERC20Interface(self.l_address).transfer(
             msg.sender, _l_token_value))
 
     return True
@@ -550,10 +549,10 @@ def purchase_i_tokens(_expiry: timestamp, _underlying: address, _strike_price: u
     # transfer l_tokens as fee from msg.sender to self
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_i_token) / 100
     self.operator_unwithdrawn_earnings += as_unitless_number(_operator_fee)
-    assert_modifiable(ERC20(self.l_address).transferFrom(
+    assert_modifiable(ERC20Interface(self.l_address).transferFrom(
         msg.sender, self, _fee_in_l_token))
     # transfer i_tokens from self to msg.sender
-    assert_modifiable(MultiFungibleToken(self.i_address).safeTransferFrom(
+    assert_modifiable(MultiFungibleTokenInterface(self.i_address).safeTransferFrom(
         self, msg.sender,
         self.markets[_market_hash].i_id,
         _i_token_value, EMPTY_BYTES32))
@@ -576,10 +575,10 @@ def purchase_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: u
     # transfer l_tokens as fee from msg.sender to self
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_s_token) / 100
     self.operator_unwithdrawn_earnings += as_unitless_number(_operator_fee)
-    assert_modifiable(ERC20(self.l_address).transferFrom(
+    assert_modifiable(ERC20Interface(self.l_address).transferFrom(
         msg.sender, self, _fee_in_l_token))
     # transfer s_tokens from self to msg.sender
-    assert_modifiable(MultiFungibleToken(self.s_address).safeTransferFrom(
+    assert_modifiable(MultiFungibleTokenInterface(self.s_address).safeTransferFrom(
         self, msg.sender,
         self.markets[_market_hash].s_id,
         _s_token_value, EMPTY_BYTES32))

@@ -5,14 +5,14 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import CurrencyDao
-from contracts.interfaces import InterestPoolDao
-from contracts.interfaces import UnderwriterPoolDao
-from contracts.interfaces import MarketDao
-from contracts.interfaces import ShieldPayoutDao
+from ...interfaces import CurrencyDaoInterface
+from ...interfaces import InterestPoolDaoInterface
+from ...interfaces import UnderwriterPoolDaoInterface
+from ...interfaces import MarketDaoInterface
+from ...interfaces import ShieldPayoutDaoInterface
 
-from contracts.interfaces import PoolNameRegistry
-from contracts.interfaces import PositionRegistry
+from ...interfaces import PoolNameRegistryInterface
+from ...interfaces import PositionRegistryInterface
 
 
 # Structs
@@ -315,7 +315,7 @@ def initialize_pool_name_registry(
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize pool name registry
-    assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).initialize(
+    assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).initialize(
         self.LST,
         self.daos[DAO_CURRENCY],
         self.daos[DAO_INTEREST_POOL],
@@ -338,7 +338,7 @@ def initialize_position_registry() -> bool:
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize position registry
-    assert_modifiable(PositionRegistry(self.registries[REGISTRY_POSITION]).initialize(
+    assert_modifiable(PositionRegistryInterface(self.registries[REGISTRY_POSITION]).initialize(
         self.LST, self.daos[DAO_MARKET]
     ))
 
@@ -357,7 +357,7 @@ def initialize_currency_dao() -> bool:
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize currency dao
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).initialize(
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).initialize(
         self.LST,
         self.templates[TEMPLATE_TOKEN_POOL],
         self.templates[TEMPLATE_ERC20],
@@ -385,7 +385,7 @@ def initialize_interest_pool_dao() -> bool:
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize interest pool dao
-    assert_modifiable(InterestPoolDao(self.daos[DAO_INTEREST_POOL]).initialize(
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).initialize(
         self.LST,
         self.registries[REGISTRY_POOL_NAME],
         self.daos[DAO_CURRENCY],
@@ -409,7 +409,7 @@ def initialize_underwriter_pool_dao() -> bool:
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize underwriter pool dao
-    assert_modifiable(UnderwriterPoolDao(self.daos[DAO_UNDERWRITER_POOL]).initialize(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).initialize(
         self.LST,
         self.registries[REGISTRY_POOL_NAME],
         self.daos[DAO_CURRENCY],
@@ -435,7 +435,7 @@ def initialize_market_dao() -> bool:
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize market dao
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).initialize(
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).initialize(
         self.LST,
         self.daos[DAO_CURRENCY],
         self.daos[DAO_INTEREST_POOL],
@@ -460,7 +460,7 @@ def initialize_shield_payout_dao() -> bool:
     """
     self._validate_caller(msg.sender, CALLER_DEPLOYER)
     # initialize shield payout dao
-    assert_modifiable(ShieldPayoutDao(self.daos[DAO_SHIELD_PAYOUT]).initialize(
+    assert_modifiable(ShieldPayoutDaoInterface(self.daos[DAO_SHIELD_PAYOUT]).initialize(
         self.LST,
         self.daos[DAO_CURRENCY],
         self.daos[DAO_MARKET]
@@ -526,7 +526,7 @@ def set_registry(_dao_type: int128, _registry_type: int128, _address: address) -
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     if _dao_type == DAO_MARKET and _registry_type == REGISTRY_POSITION:
-        assert_modifiable(MarketDao(self.daos[_dao_type]).set_registry(_registry_type, _address))
+        assert_modifiable(MarketDaoInterface(self.daos[_dao_type]).set_registry(_registry_type, _address))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -548,19 +548,19 @@ def set_template(_template_type: int128, _address: address) -> bool:
     if _template_type == TEMPLATE_TOKEN_POOL or \
            _template_type == TEMPLATE_ERC20 or \
            _template_type == TEMPLATE_MFT:
-        assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).set_template(
+        assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).set_template(
             _template_type, _address
         ))
     if _template_type == TEMPLATE_INTEREST_POOL:
-        assert_modifiable(InterestPoolDao(self.daos[DAO_INTEREST_POOL]).set_template(
+        assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).set_template(
             _template_type, _address
         ))
     if _template_type == TEMPLATE_UNDERWRITER_POOL:
-        assert_modifiable(UnderwriterPoolDao(self.daos[DAO_UNDERWRITER_POOL]).set_template(
+        assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).set_template(
             _template_type, _address
         ))
     if _template_type == TEMPLATE_COLLATERAL_AUCTION:
-        assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_template(
+        assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_template(
             _template_type, _address
         ))
 
@@ -580,7 +580,7 @@ def set_pool_name_registration_minimum_stake(_value: uint256) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).set_name_registration_minimum_stake(_value))
+    assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).set_name_registration_minimum_stake(_value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -602,7 +602,7 @@ def set_pool_name_registration_stake_lookup(_name_length: int128, _value: uint25
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(PoolNameRegistry(self.registries[REGISTRY_POOL_NAME]).set_name_registration_stake_lookup(_name_length, _value))
+    assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).set_name_registration_stake_lookup(_name_length, _value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -623,7 +623,7 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).set_token_support(_token, _is_active))
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).set_token_support(_token, _is_active))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -644,9 +644,9 @@ def set_minimum_mft_fee(_dao_type: int128, _value: uint256) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     if _dao_type == DAO_INTEREST_POOL:
-        assert_modifiable(InterestPoolDao(self.daos[_dao_type]).set_minimum_mft_fee(_value))
+        assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).set_minimum_mft_fee(_value))
     if _dao_type == DAO_UNDERWRITER_POOL:
-        assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).set_minimum_mft_fee(_value))
+        assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).set_minimum_mft_fee(_value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -666,9 +666,9 @@ def set_fee_multiplier_per_mft_count(_dao_type: int128, _mft_count: uint256, _va
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     if _dao_type == DAO_INTEREST_POOL:
-        assert_modifiable(InterestPoolDao(self.daos[_dao_type]).set_fee_multiplier_per_mft_count(_mft_count, _value))
+        assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).set_fee_multiplier_per_mft_count(_mft_count, _value))
     if _dao_type == DAO_UNDERWRITER_POOL:
-        assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).set_fee_multiplier_per_mft_count(_mft_count, _value))
+        assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).set_fee_multiplier_per_mft_count(_mft_count, _value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -688,9 +688,9 @@ def set_maximum_mft_support_count(_dao_type: int128, _value: uint256) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     if _dao_type == DAO_INTEREST_POOL:
-        assert_modifiable(InterestPoolDao(self.daos[_dao_type]).set_maximum_mft_support_count(_value))
+        assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).set_maximum_mft_support_count(_value))
     if _dao_type == DAO_UNDERWRITER_POOL:
-        assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).set_maximum_mft_support_count(_value))
+        assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).set_maximum_mft_support_count(_value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -712,7 +712,7 @@ def set_price_oracle(_currency: address, _underlying: address, _oracle: address)
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_price_oracle(_currency, _underlying, _oracle))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_price_oracle(_currency, _underlying, _oracle))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -734,7 +734,7 @@ def set_maximum_liability_for_currency_market(_currency: address, _expiry: times
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_maximum_liability_for_currency_market(_currency, _expiry, _value))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_maximum_liability_for_currency_market(_currency, _expiry, _value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -758,7 +758,7 @@ def set_maximum_liability_for_loan_market(_currency: address, _expiry: timestamp
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_maximum_liability_for_loan_market(_currency, _expiry, _underlying, _value))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_maximum_liability_for_loan_market(_currency, _expiry, _underlying, _value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -777,7 +777,7 @@ def set_auction_slippage_percentage(_value: uint256) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_auction_slippage_percentage(_value))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_auction_slippage_percentage(_value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -796,7 +796,7 @@ def set_auction_maximum_discount_percentage(_value: uint256) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_auction_maximum_discount_percentage(_value))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_auction_maximum_discount_percentage(_value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -815,7 +815,7 @@ def set_auction_discount_duration(_value: timedelta) -> bool:
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).set_auction_discount_duration(_value))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_auction_discount_duration(_value))
 
     log.SystemSettingsUpdated(msg.sender)
 
@@ -838,33 +838,33 @@ def toggle_dao_pause(_dao_type: int128, _pause: bool) -> bool:
     self._validate_caller(msg.sender, CALLER_ESCAPE_HATCH_MANAGER)
     if _dao_type == DAO_CURRENCY:
         if _pause:
-            assert_modifiable(CurrencyDao(self.daos[_dao_type]).pause())
+            assert_modifiable(CurrencyDaoInterface(self.daos[_dao_type]).pause())
         else:
-            assert_modifiable(CurrencyDao(self.daos[_dao_type]).unpause())
+            assert_modifiable(CurrencyDaoInterface(self.daos[_dao_type]).unpause())
         return True
     if _dao_type == DAO_INTEREST_POOL:
         if _pause:
-            assert_modifiable(InterestPoolDao(self.daos[_dao_type]).pause())
+            assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).pause())
         else:
-            assert_modifiable(InterestPoolDao(self.daos[_dao_type]).unpause())
+            assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).unpause())
         return True
     if _dao_type == DAO_UNDERWRITER_POOL:
         if _pause:
-            assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).pause())
+            assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).pause())
         else:
-            assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).unpause())
+            assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).unpause())
         return True
     if _dao_type == DAO_MARKET:
         if _pause:
-            assert_modifiable(MarketDao(self.daos[_dao_type]).pause())
+            assert_modifiable(MarketDaoInterface(self.daos[_dao_type]).pause())
         else:
-            assert_modifiable(MarketDao(self.daos[_dao_type]).unpause())
+            assert_modifiable(MarketDaoInterface(self.daos[_dao_type]).unpause())
         return True
     if _dao_type == DAO_SHIELD_PAYOUT:
         if _pause:
-            assert_modifiable(ShieldPayoutDao(self.daos[_dao_type]).pause())
+            assert_modifiable(ShieldPayoutDaoInterface(self.daos[_dao_type]).pause())
         else:
-            assert_modifiable(ShieldPayoutDao(self.daos[_dao_type]).unpause())
+            assert_modifiable(ShieldPayoutDaoInterface(self.daos[_dao_type]).unpause())
         return True
 
     raise("Invalid dao type")
@@ -884,15 +884,15 @@ def toggle_registry_pause(_registry_type: int128, _pause: bool) -> bool:
 
     if _registry_type == REGISTRY_POOL_NAME:
         if _pause:
-            assert_modifiable(PoolNameRegistry(self.registries[_registry_type]).pause())
+            assert_modifiable(PoolNameRegistryInterface(self.registries[_registry_type]).pause())
         else:
-            assert_modifiable(PoolNameRegistry(self.registries[_registry_type]).unpause())
+            assert_modifiable(PoolNameRegistryInterface(self.registries[_registry_type]).unpause())
         return True
     if _registry_type == REGISTRY_POSITION:
         if _pause:
-            assert_modifiable(PositionRegistry(self.registries[_registry_type]).pause())
+            assert_modifiable(PositionRegistryInterface(self.registries[_registry_type]).pause())
         else:
-            assert_modifiable(PositionRegistry(self.registries[_registry_type]).unpause())
+            assert_modifiable(PositionRegistryInterface(self.registries[_registry_type]).unpause())
         return True
 
     raise("Invalid registry type")
@@ -912,19 +912,19 @@ def escape_hatch_dao_erc20(_dao_type: int128, _currency: address, _is_l: bool) -
     """
     self._validate_caller(msg.sender, CALLER_ESCAPE_HATCH_MANAGER)
     if _dao_type == DAO_CURRENCY:
-        assert_modifiable(CurrencyDao(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
+        assert_modifiable(CurrencyDaoInterface(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
         return True
     if _dao_type == DAO_INTEREST_POOL:
-        assert_modifiable(InterestPoolDao(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
+        assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
         return True
     if _dao_type == DAO_UNDERWRITER_POOL:
-        assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
+        assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
         return True
     if _dao_type == DAO_MARKET:
-        assert_modifiable(MarketDao(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
+        assert_modifiable(MarketDaoInterface(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
         return True
     if _dao_type == DAO_SHIELD_PAYOUT:
-        assert_modifiable(ShieldPayoutDao(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
+        assert_modifiable(ShieldPayoutDaoInterface(self.daos[_dao_type]).escape_hatch_erc20(_currency, _is_l))
         return True
 
     raise("Invalid dao type")
@@ -944,7 +944,7 @@ def escape_hatch_registry_erc20(_registry_type: int128, _currency: address) -> b
     """
     self._validate_caller(msg.sender, CALLER_ESCAPE_HATCH_MANAGER)
     if _registry_type == REGISTRY_POOL_NAME:
-        assert_modifiable(PoolNameRegistry(self.registries[_registry_type]).escape_hatch_erc20(_currency))
+        assert_modifiable(PoolNameRegistryInterface(self.registries[_registry_type]).escape_hatch_erc20(_currency))
         return True
 
     raise("Invalid registry type")
@@ -972,19 +972,19 @@ def escape_hatch_dao_mft(_dao_type: int128, _mft_type: int128, _currency: addres
            _mft_type == MFT_TYPE_S or _mft_type == MFT_TYPE_U
 
     if _dao_type == DAO_CURRENCY:
-        assert_modifiable(CurrencyDao(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
+        assert_modifiable(CurrencyDaoInterface(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
         return True
     if _dao_type == DAO_INTEREST_POOL:
-        assert_modifiable(InterestPoolDao(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
+        assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
         return True
     if _dao_type == DAO_UNDERWRITER_POOL:
-        assert_modifiable(UnderwriterPoolDao(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
+        assert_modifiable(UnderwriterPoolDaoInterface(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
         return True
     if _dao_type == DAO_MARKET:
-        assert_modifiable(MarketDao(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
+        assert_modifiable(MarketDaoInterface(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
         return True
     if _dao_type == DAO_SHIELD_PAYOUT:
-        assert_modifiable(ShieldPayoutDao(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
+        assert_modifiable(ShieldPayoutDaoInterface(self.daos[_dao_type]).escape_hatch_mft(_mft_type, _currency, _expiry, _underlying, _strike_price))
         return True
 
     raise("Invalid dao type")
@@ -1006,5 +1006,5 @@ def escape_hatch_auction(_currency: address, _expiry: timestamp, _underlying: ad
     """
     self._validate_caller(msg.sender, CALLER_ESCAPE_HATCH_MANAGER)
 
-    assert_modifiable(MarketDao(self.daos[DAO_MARKET]).escape_hatch_auction(_currency, _expiry, _underlying))
+    assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).escape_hatch_auction(_currency, _expiry, _underlying))
     return True

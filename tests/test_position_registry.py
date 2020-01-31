@@ -13,30 +13,24 @@ from conftest import (
 )
 
 
-def test_initialize(w3, Deployer, get_PositionRegistry_contract, ProtocolDao):
+def test_initialize(accounts, Deployer, get_PositionRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
     # get PositionRegistry
-    PositionRegistry = get_PositionRegistry_contract(address=ProtocolDao.registries(PROTOCOL_CONSTANTS['REGISTRY_POSITION']))
-    assert not PositionRegistry.initialized()
+    PositionRegistry = get_PositionRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POSITION']))
+    assert not PositionRegistry.initialized({'from': anyone})
     # initialize PositionRegistry
-    tx_hash = ProtocolDao.initialize_position_registry(transact={'from': Deployer})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    assert PositionRegistry.initialized()
+    ProtocolDaoContract.initialize_position_registry({'from': Deployer})
+    assert PositionRegistry.initialized({'from': anyone})
 
 
-def test_pause_and_unpause(w3, Deployer, EscapeHatchManager, get_PositionRegistry_contract, ProtocolDao):
+def test_pause_and_unpause(accounts, Deployer, EscapeHatchManager, get_PositionRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
     # get PositionRegistry
-    PositionRegistry = get_PositionRegistry_contract(address=ProtocolDao.registries(PROTOCOL_CONSTANTS['REGISTRY_POSITION']))
+    PositionRegistry = get_PositionRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POSITION']))
     # initialize PositionRegistry
-    tx_hash = ProtocolDao.initialize_position_registry(transact={'from': Deployer})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    assert not PositionRegistry.paused()
-    tx_hash = ProtocolDao.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POSITION'], True, transact={'from': EscapeHatchManager})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    assert PositionRegistry.paused()
-    tx_hash = ProtocolDao.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POSITION'], False, transact={'from': EscapeHatchManager})
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    assert tx_receipt['status'] == 1
-    assert not PositionRegistry.paused()
+    ProtocolDaoContract.initialize_position_registry({'from': Deployer})
+    assert not PositionRegistry.paused({'from': anyone})
+    ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POSITION'], True, {'from': EscapeHatchManager})
+    assert PositionRegistry.paused({'from': anyone})
+    ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POSITION'], False, {'from': EscapeHatchManager})
+    assert not PositionRegistry.paused({'from': anyone})

@@ -1,16 +1,16 @@
-# @version 0.1.0b14
+# @version 0.1.0b16
 # @notice Implementation of Lendroid v2 - Currency DAO
 # @dev THIS CONTRACT HAS NOT BEEN AUDITED
 # @author Vignesh (Vii) Meenakshi Sundaram (@vignesh-msundaram)
 # Lendroid Foundation
 
 
-from contracts.interfaces import ERC20
-from contracts.interfaces import LERC20
-from contracts.interfaces import MultiFungibleToken
-from contracts.interfaces import ERC20TokenPool
+from ...interfaces import ERC20Interface
+from ...interfaces import LERC20Interface
+from ...interfaces import MultiFungibleTokenInterface
+from ...interfaces import ERC20TokenPoolInterface
 
-from contracts.interfaces import ProtocolDao
+from ...interfaces import ProtocolDaoInterface
 
 
 # Structs
@@ -190,7 +190,7 @@ def _deposit_token_to_pool(_token: address, _from: address, _value: uint256):
     _pool_hash: bytes32 = self._pool_hash(_token)
     assert self.pools[_pool_hash].address_.is_contract, "token is not supported"
     # transfer currency to currency pool
-    assert_modifiable(ERC20(_token).transferFrom(_from, self.pools[_pool_hash].address_, _value))
+    assert_modifiable(ERC20Interface(_token).transferFrom(_from, self.pools[_pool_hash].address_, _value))
 
 
 @private
@@ -208,7 +208,7 @@ def _withdraw_token_from_pool(_token: address, _to: address, _value: uint256):
     _pool_hash: bytes32 = self._pool_hash(_token)
     assert self.pools[_pool_hash].address_.is_contract, "token is not supported"
     # release token from token pool
-    assert_modifiable(ERC20TokenPool(self.pools[_pool_hash].address_).release(_to, _value))
+    assert_modifiable(ERC20TokenPoolInterface(self.pools[_pool_hash].address_).release(_to, _value))
 
 
 @private
@@ -228,7 +228,7 @@ def _wrap(_token: address, _from: address, _to: address, _value: uint256):
     # deposit currency from _from address
     self._deposit_token_to_pool(_token, _from, _value)
     # mint currency l_token to _to address
-    assert_modifiable(ERC20(self.token_addresses[_token].l).mintAndAuthorizeMinter(_to, _value))
+    assert_modifiable(ERC20Interface(self.token_addresses[_token].l).mintAndAuthorizeMinter(_to, _value))
 
 
 @private
@@ -246,7 +246,7 @@ def _unwrap(_token: address, _from: address, _to: address, _value: uint256):
         @return A bool indicating if the unwrap process was successful.
     """
     # burrn currency l_token from _from address
-    assert_modifiable(ERC20(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
+    assert_modifiable(ERC20Interface(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
     # release currency to _to address
     self._withdraw_token_from_pool(_token, _to, _value)
 
@@ -276,9 +276,9 @@ def _transfer_balance_erc20(_token: address):
              ERC20 token to the Escape Hatch Token Holder.
         @param _token The address of the ERC20 token.
     """
-    assert_modifiable(ERC20(_token).transfer(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        ERC20(_token).balanceOf(self)
+    assert_modifiable(ERC20Interface(_token).transfer(
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20Interface(_token).balanceOf(self)
     ))
 
 
@@ -295,11 +295,11 @@ def _transfer_balance_mft(_token: address,
         @param _strike_price The price of the underlying per currency at _expiry.
     """
     _mft_hash: bytes32 = self._mft_hash(_token, _currency, _expiry, _underlying, _strike_price)
-    _id: uint256 = MultiFungibleToken(_token).hash_to_id(_mft_hash)
-    _balance: uint256 = MultiFungibleToken(_token).balanceOf(self, _id)
-    assert_modifiable(MultiFungibleToken(_token).safeTransferFrom(
+    _id: uint256 = MultiFungibleTokenInterface(_token).hash_to_id(_mft_hash)
+    _balance: uint256 = MultiFungibleTokenInterface(_token).balanceOf(self, _id)
+    assert_modifiable(MultiFungibleTokenInterface(_token).safeTransferFrom(
         self,
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
         _id, _balance, EMPTY_BYTES32
     ))
 
@@ -351,7 +351,7 @@ def f_token(_currency: address, _expiry: timestamp) -> (address, uint256):
     _mft_hash: bytes32 = self._mft_hash(
         self.token_addresses[_currency].f, _currency, _expiry, ZERO_ADDRESS, 0)
 
-    return self.token_addresses[_currency].f, MultiFungibleToken(self.token_addresses[_currency].f).hash_to_id(_mft_hash)
+    return self.token_addresses[_currency].f, MultiFungibleTokenInterface(self.token_addresses[_currency].f).hash_to_id(_mft_hash)
 
 
 @public
@@ -360,7 +360,7 @@ def i_token(_currency: address, _expiry: timestamp) -> (address, uint256):
     _mft_hash: bytes32 = self._mft_hash(
         self.token_addresses[_currency].i, _currency, _expiry, ZERO_ADDRESS, 0)
 
-    return self.token_addresses[_currency].i, MultiFungibleToken(self.token_addresses[_currency].i).hash_to_id(_mft_hash)
+    return self.token_addresses[_currency].i, MultiFungibleTokenInterface(self.token_addresses[_currency].i).hash_to_id(_mft_hash)
 
 
 @public
@@ -369,7 +369,7 @@ def s_token(_currency: address, _expiry: timestamp, _underlying: address, _strik
     _mft_hash: bytes32 = self._mft_hash(self.token_addresses[_currency].s,
         _currency, _expiry, _underlying, _strike_price)
 
-    return self.token_addresses[_currency].s, MultiFungibleToken(self.token_addresses[_currency].s).hash_to_id(_mft_hash)
+    return self.token_addresses[_currency].s, MultiFungibleTokenInterface(self.token_addresses[_currency].s).hash_to_id(_mft_hash)
 
 
 @public
@@ -378,7 +378,7 @@ def u_token(_currency: address, _expiry: timestamp, _underlying: address, _strik
     _mft_hash: bytes32 = self._mft_hash(self.token_addresses[_currency].u,
         _currency, _expiry, _underlying, _strike_price)
 
-    return self.token_addresses[_currency].u, MultiFungibleToken(self.token_addresses[_currency].u).hash_to_id(_mft_hash)
+    return self.token_addresses[_currency].u, MultiFungibleTokenInterface(self.token_addresses[_currency].u).hash_to_id(_mft_hash)
 
 
 @public
@@ -399,14 +399,14 @@ def pool_hash(_token: address) -> bytes32:
 @public
 def mint_and_self_authorize_erc20(_token: address, _to: address, _value: uint256) -> bool:
     assert self.initialized
-    assert_modifiable(ERC20(_token).mintAndAuthorizeMinter(_to, _value))
+    assert_modifiable(ERC20Interface(_token).mintAndAuthorizeMinter(_to, _value))
     return True
 
 
 @public
 def burn_as_self_authorized_erc20(_token: address, _from: address, _value: uint256) -> bool:
     assert self.initialized
-    assert_modifiable(ERC20(_token).burnAsAuthorizedMinter(_from, _value))
+    assert_modifiable(ERC20Interface(_token).burnAsAuthorizedMinter(_from, _value))
     return True
 
 
@@ -447,36 +447,36 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
     assert _token.is_contract
     _pool_hash: bytes32 = self._pool_hash(_token)
     if _is_active:
-        _name: string[64] = ERC20(_token).name()
-        _symbol: string[32] = ERC20(_token).symbol()
-        _decimals: uint256 = ERC20(_token).decimals()
+        _name: string[64] = ERC20Interface(_token).name()
+        _symbol: string[32] = ERC20Interface(_token).symbol()
+        _decimals: uint256 = ERC20Interface(_token).decimals()
         assert self.pools[_pool_hash].address_ == ZERO_ADDRESS, "token pool already exists"
         _pool_address: address = create_forwarder_to(self.templates[TEMPLATE_TOKEN_POOL])
-        assert_modifiable(ERC20TokenPool(_pool_address).initialize(_token))
+        assert_modifiable(ERC20TokenPoolInterface(_pool_address).initialize(_token))
         # l token
         _l_address: address = create_forwarder_to(self.templates[TEMPLATE_LERC20])
-        assert_modifiable(LERC20(_l_address).initialize(_name, _symbol, _decimals, 0))
+        assert_modifiable(LERC20Interface(_l_address).initialize(_name, _symbol, _decimals, 0))
         # i token
         _i_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
-        assert_modifiable(MultiFungibleToken(_i_address).initialize(self.protocol_dao, [
+        assert_modifiable(MultiFungibleTokenInterface(_i_address).initialize(self.protocol_dao, [
             self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
             self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
         # f token
         _f_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
-        assert_modifiable(MultiFungibleToken(_f_address).initialize(self.protocol_dao, [
+        assert_modifiable(MultiFungibleTokenInterface(_f_address).initialize(self.protocol_dao, [
             self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
             self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
         # s token
         _s_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
-        assert_modifiable(MultiFungibleToken(_s_address).initialize(self.protocol_dao, [
+        assert_modifiable(MultiFungibleTokenInterface(_s_address).initialize(self.protocol_dao, [
             self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
             self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
         # u token
         _u_address: address = create_forwarder_to(self.templates[TEMPLATE_MFT])
-        assert_modifiable(MultiFungibleToken(_u_address).initialize(self.protocol_dao, [
+        assert_modifiable(MultiFungibleTokenInterface(_u_address).initialize(self.protocol_dao, [
             self, self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
             self.daos[DAO_MARKET], self.daos[DAO_SHIELD_PAYOUT]
         ]))
@@ -502,7 +502,7 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
         assert not self.pools[_pool_hash].address_ == ZERO_ADDRESS, "currency pool does not exist"
         clear(self.pools[_pool_hash].address_)
         clear(self.pools[_pool_hash].name)
-        assert_modifiable(ERC20TokenPool(self.pools[_pool_hash].address_).destroy())
+        assert_modifiable(ERC20TokenPoolInterface(self.pools[_pool_hash].address_).destroy())
 
     return True
 
@@ -626,7 +626,7 @@ def authorized_transfer_l(_token: address, _from: address, _to: address, _value:
     assert msg.sender in [
         self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL]
     ]
-    assert_modifiable(ERC20(self.token_addresses[_token].l).transferFrom(
+    assert_modifiable(ERC20Interface(self.token_addresses[_token].l).transferFrom(
         _from, _to, _value))
 
     return True
@@ -640,7 +640,7 @@ def authorized_transfer_erc20(_token: address, _from: address, _to: address, _va
         self.daos[DAO_INTEREST_POOL], self.daos[DAO_UNDERWRITER_POOL],
         self.registries[REGISTRY_POOL_NAME]
     ]
-    assert_modifiable(ERC20(_token).transferFrom(_from, _to, _value))
+    assert_modifiable(ERC20Interface(_token).transferFrom(_from, _to, _value))
     return True
 
 

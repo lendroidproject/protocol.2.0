@@ -11,15 +11,15 @@ from eth_utils.toolz import (
     compose,
 )
 import pytest
+
+import brownie
+
 from web3 import Web3
 from web3.contract import (
     Contract,
     mk_collision_prop,
 )
 from web3.logs import DISCARD
-from web3.providers.eth_tester import (
-    EthereumTesterProvider,
-)
 from web3.testing import Testing
 
 from vyper import (
@@ -30,7 +30,7 @@ from vyper import (
 
 MAX_UINT256 = (2 ** 256) - 1  # Max uint256 value
 ZERO_ADDRESS = Web3.toChecksumAddress('0x0000000000000000000000000000000000000000')
-EMPTY_BYTES32 = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+EMPTY_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 POOL_NAME_REGISTRATION_MIN_STAKE_LST = 250000
 POOL_NAME_REGISTRATION_LST_STAKE_PER_NAME_LENGTH = {
     '4': 500000,
@@ -162,109 +162,49 @@ def _none_addr(datatype, data):
 CONCISE_NORMALIZERS = (_none_addr,)
 
 
-@pytest.fixture
-def tester():
-    genesis_overrides = {"gas_limit": 4700000}
-    custom_genesis_params = PyEVMBackend._generate_genesis_params(
-        overrides=genesis_overrides
-    )
-    pyevm_backend = PyEVMBackend(genesis_parameters=custom_genesis_params)
-    t = EthereumTester(backend=pyevm_backend)
-    # t = EthereumTester()
-    return t
-
-
 def zero_gas_price_strategy(web3, transaction_params=None):
     return 0  # zero gas price makes testing simpler.
 
 
 @pytest.fixture
-def w3(tester):
-    w3 = Web3(EthereumTesterProvider(tester))
+def w3(web3):
+    w3 = web3
     w3.eth.setGasPriceStrategy(zero_gas_price_strategy)
     return w3
 
 
-def _get_contract(w3, Deployer, source_code_path, *args, **kwargs):
-    interfaces = kwargs.pop('interfaces', None)
-    if interfaces:
-        interface_codes = {}
-        for interface in interfaces:
-            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                os.pardir, 'contracts/interfaces/{0}.vy'.format(interface))) as f:
-                    interface_codes[interface] = {
-                        'type': 'vyper',
-                        'code': f.read()
-                    }
-        kwargs.update({'interface_codes': interface_codes})
-    with open(source_code_path) as f:
-        source_code = f.read()
-    out = compiler.compile_code(
-        source_code,
-        ['abi', 'bytecode'],
-        interface_codes=kwargs.pop('interface_codes', None),
-    )
-    abi = out['abi']
-    bytecode = out['bytecode']
+def _get_contract(Deployer, Contract, *args, **kwargs):
     address = kwargs.pop('address', None)
-    if address is None:
-        value = kwargs.pop('value_in_eth', 0) * 10 ** 18  # Handle deploying with an eth value.
-        c = w3.eth.contract(abi=abi, bytecode=bytecode)
-        deploy_transaction = c.constructor(*args)
-        tx_info = {
-            'from': Deployer,
-            'value': value,
-            'gasPrice': 0,
-        }
-        tx_info.update(kwargs)
-        tx_hash = deploy_transaction.transact(tx_info)
-        address = w3.eth.getTransactionReceipt(tx_hash)['contractAddress']
-    contract = w3.eth.contract(
-        address,
-        abi=abi,
-        bytecode=bytecode,
-        ContractFactoryClass=VyperContract,
-    )
+    if address:
+        contract = Contract.at(address)
+    else:
+        contract = Deployer.deploy(Contract, *args)
     return contract
 
 
 @pytest.fixture
-def get_contract(w3, Deployer):
-    def get_contract(source_code_path, *args, **kwargs):
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
-
-    return get_contract
-
-
-@pytest.fixture
-def get_logs(w3):
-    def get_logs(tx_hash, c, event_name):
+def get_logs():
+    def get_logs(tx_hash, event_name):
         tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
-        logs = c._classic_contract.events[event_name]().processReceipt(tx_receipt, errors=DISCARD)
         return logs
 
     return get_logs
 
 
 @pytest.fixture
-def get_log_args(get_logs):
-    def get_log_args(tx_hash, c, event_name):
-        logs = get_logs(tx_hash, c, event_name)
-        assert len(logs) > 0
-        args = logs[0].args
-        return args
+def get_log_args():
+    def get_log_args(tx, event_name, **kwargs):
+        args = tx.events[event_name]
+        assert len(args) > 0
+        return args[kwargs.pop('idx', 0)]
     return get_log_args
 
 
 @pytest.fixture
-def assert_tx_failed(tester):
+def assert_tx_failed():
     def assert_tx_failed(function_to_test, exception=TransactionFailed, exc_text=None):
-        snapshot_id = tester.take_snapshot()
-        with pytest.raises(exception) as excinfo:
+        with brownie.reverts():
             function_to_test()
-        tester.revert_to_snapshot(snapshot_id)
-        if exc_text:
-            assert exc_text in str(excinfo.value)
 
     return assert_tx_failed
 
@@ -285,37 +225,49 @@ def time_travel(w3):
 
 
 @pytest.fixture
-def Whale(w3):
-    return w3.eth.accounts[0]
+def Whale(accounts):
+    return accounts[0]
 
 
 @pytest.fixture
-def Deployer(w3):
-    return w3.eth.accounts[1]
+def Deployer(accounts):
+    return accounts[1]
 
 
 @pytest.fixture
-def Governor(w3):
-    return w3.eth.accounts[2]
+def Governor(accounts):
+    return accounts[2]
 
 
 @pytest.fixture
-def EscapeHatchManager(w3):
-    return w3.eth.accounts[3]
+def EscapeHatchManager(accounts):
+    return accounts[3]
 
 
 @pytest.fixture
-def EscapeHatchTokenHolder(w3):
-    return w3.eth.accounts[4]
+def EscapeHatchTokenHolder(accounts):
+    return accounts[4]
+
+
+@pytest.fixture(scope="function", autouse=True)
+def isolate(fn_isolation):
+    pass
 
 
 @pytest.fixture
-def get_ERC20_contract(w3, Whale):
+def get_ERC20_contract(Whale, ERC20Template1):
     def get_ERC20_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/ERC20Template1.v.py'
-        return _get_contract(w3, Whale, source_code_path, *args, **kwargs)
+        return _get_contract(Whale, ERC20Template1, *args, **kwargs)
 
     return get_ERC20_contract
+
+
+@pytest.fixture
+def Test_ERC20_token(get_ERC20_contract):
+    contract = get_ERC20_contract(
+        'Lendroid Support Token', 'LST', 18, 12000000000
+    )
+    return contract
 
 
 @pytest.fixture
@@ -365,10 +317,9 @@ def ERC20_library(get_ERC20_contract):
 
 
 @pytest.fixture
-def get_LERC20_contract(w3, Whale):
+def get_LERC20_contract(Whale, LERC20Template1):
     def get_LERC20_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/LERC20Template1.v.py'
-        return _get_contract(w3, Whale, source_code_path, *args, **kwargs)
+        return _get_contract(Whale, LERC20Template1, *args, **kwargs)
 
     return get_LERC20_contract
 
@@ -380,10 +331,9 @@ def LERC20_library(get_LERC20_contract):
 
 
 @pytest.fixture
-def get_ERC20_Pool_Token_contract(w3, Whale):
+def get_ERC20_Pool_Token_contract(Whale, ERC20PoolTokenTemplate1):
     def get_ERC20_Pool_Token_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/ERC20PoolTokenTemplate1.v.py'
-        return _get_contract(w3, Whale, source_code_path, *args, **kwargs)
+        return _get_contract(Whale, ERC20PoolTokenTemplate1, *args, **kwargs)
 
     return get_ERC20_Pool_Token_contract
 
@@ -395,10 +345,9 @@ def ERC20_Pool_Token_library(get_ERC20_Pool_Token_contract):
 
 
 @pytest.fixture
-def get_MFT_contract(w3, Deployer):
+def get_MFT_contract(Deployer, MultiFungibleTokenTemplate1):
     def get_MFT_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/MultiFungibleTokenTemplate1.v.py'
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, MultiFungibleTokenTemplate1, *args, **kwargs)
 
     return get_MFT_contract
 
@@ -410,12 +359,9 @@ def MultiFungibleToken_library(get_MFT_contract):
 
 
 @pytest.fixture
-def get_PoolNameRegistry_contract(w3, Deployer):
+def get_PoolNameRegistry_contract(Deployer, PoolNameRegistryTemplate1):
     def get_PoolNameRegistry_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/PoolNameRegistryTemplate1.v.py'
-        interfaces=['ERC20', 'CurrencyDao', 'ProtocolDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, PoolNameRegistryTemplate1, *args, **kwargs)
 
     return get_PoolNameRegistry_contract
 
@@ -427,12 +373,9 @@ def PoolNameRegistry_library(get_PoolNameRegistry_contract):
 
 
 @pytest.fixture
-def get_CurrencyPool_contract(w3, Deployer):
+def get_CurrencyPool_contract(Deployer, ERC20TokenPoolTemplate1):
     def get_CurrencyPool_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/ERC20TokenPoolTemplate1.v.py'
-        interfaces=['ERC20']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, ERC20TokenPoolTemplate1, *args, **kwargs)
 
     return get_CurrencyPool_contract
 
@@ -444,12 +387,9 @@ def CurrencyPool_library(get_CurrencyPool_contract):
 
 
 @pytest.fixture
-def get_CurrencyDao_contract(w3, Deployer):
+def get_CurrencyDao_contract(Deployer, CurrencyDao):
     def get_CurrencyDao_contract(*args, **kwargs):
-        source_code_path = 'contracts/daos/CurrencyDao.v.py'
-        interfaces=['ERC20', 'LERC20', 'MultiFungibleToken', 'ERC20TokenPool', 'ProtocolDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, CurrencyDao, *args, **kwargs)
 
     return get_CurrencyDao_contract
 
@@ -461,14 +401,9 @@ def CurrencyDao_library(get_CurrencyDao_contract):
 
 
 @pytest.fixture
-def get_InterestPool_contract(w3, Deployer):
+def get_InterestPool_contract(Deployer, InterestPoolTemplate1):
     def get_InterestPool_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/InterestPoolTemplate1.v.py'
-        interfaces=[
-            'ERC20', 'LERC20', 'ERC20PoolToken', 'MultiFungibleToken', 'InterestPoolDao'
-        ]
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, InterestPoolTemplate1, *args, **kwargs)
 
     return get_InterestPool_contract
 
@@ -480,12 +415,9 @@ def InterestPool_library(get_InterestPool_contract):
 
 
 @pytest.fixture
-def get_InterestPoolDao_contract(w3, Deployer):
+def get_InterestPoolDao_contract(Deployer, InterestPoolDao):
     def get_InterestPoolDao_contract(*args, **kwargs):
-        source_code_path = 'contracts/daos/InterestPoolDao.v.py'
-        interfaces=['ERC20', 'MultiFungibleToken', 'CurrencyDao', 'InterestPool', 'PoolNameRegistry', 'ProtocolDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, InterestPoolDao, *args, **kwargs)
 
     return get_InterestPoolDao_contract
 
@@ -497,15 +429,9 @@ def InterestPoolDao_library(get_InterestPoolDao_contract):
 
 
 @pytest.fixture
-def get_UnderwriterPool_contract(w3, Deployer):
+def get_UnderwriterPool_contract(Deployer, UnderwriterPoolTemplate1):
     def get_UnderwriterPool_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/UnderwriterPoolTemplate1.v.py'
-        interfaces=[
-            'ERC20', 'ERC20PoolToken', 'MultiFungibleToken',
-            'UnderwriterPoolDao', 'ShieldPayoutDao'
-        ]
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, UnderwriterPoolTemplate1, *args, **kwargs)
 
     return get_UnderwriterPool_contract
 
@@ -517,13 +443,9 @@ def UnderwriterPool_library(get_UnderwriterPool_contract):
 
 
 @pytest.fixture
-def get_UnderwriterPoolDao_contract(w3, Deployer):
+def get_UnderwriterPoolDao_contract(Deployer, UnderwriterPoolDao):
     def get_UnderwriterPoolDao_contract(*args, **kwargs):
-        source_code_path = 'contracts/daos/UnderwriterPoolDao.v.py'
-        interfaces=['ERC20', 'MultiFungibleToken', 'CurrencyDao',
-            'UnderwriterPool', 'MarketDao', 'PoolNameRegistry', 'ProtocolDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, UnderwriterPoolDao, *args, **kwargs)
 
     return get_UnderwriterPoolDao_contract
 
@@ -535,12 +457,9 @@ def UnderwriterPoolDao_library(get_UnderwriterPoolDao_contract):
 
 
 @pytest.fixture
-def get_CollateralAuctionCurve_contract(w3, Deployer):
+def get_CollateralAuctionCurve_contract(Deployer, SimpleCollateralAuctionCurveTemplate1):
     def get_CollateralAuctionCurve_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/SimpleCollateralAuctionCurveTemplate1.v.py'
-        interfaces=['MultiFungibleToken', 'MarketDao', 'ProtocolDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, SimpleCollateralAuctionCurveTemplate1, *args, **kwargs)
 
     return get_CollateralAuctionCurve_contract
 
@@ -552,12 +471,9 @@ def CollateralAuctionCurve_Library(get_CollateralAuctionCurve_contract):
 
 
 @pytest.fixture
-def get_ShieldPayoutDao_contract(w3, Deployer):
+def get_ShieldPayoutDao_contract(Deployer, ShieldPayoutDao):
     def get_ShieldPayoutDao_contract(*args, **kwargs):
-        source_code_path = 'contracts/daos/ShieldPayoutDao.v.py'
-        interfaces=['ERC20', 'MultiFungibleToken', 'CurrencyDao', 'MarketDao', 'ProtocolDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, ShieldPayoutDao, *args, **kwargs)
 
     return get_ShieldPayoutDao_contract
 
@@ -569,12 +485,9 @@ def ShieldPayoutDao_library(get_ShieldPayoutDao_contract):
 
 
 @pytest.fixture
-def get_PositionRegistry_contract(w3, Deployer):
+def get_PositionRegistry_contract(Deployer, PositionRegistryTemplate1):
     def get_PositionRegistry_contract(*args, **kwargs):
-        source_code_path = 'contracts/templates/PositionRegistryTemplate1.v.py'
-        interfaces=['MarketDao']
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, PositionRegistryTemplate1, *args, **kwargs)
 
     return get_PositionRegistry_contract
 
@@ -586,32 +499,25 @@ def PositionRegistry_library(get_PositionRegistry_contract):
 
 
 @pytest.fixture
-def PriceFeed(w3, get_contract):
-    contract = get_contract('tests/TestPriceFeed.v.py')
+def PriceFeed(Deployer, TestPriceFeed):
+    contract = _get_contract(Deployer, TestPriceFeed)
     return contract
 
 
 @pytest.fixture
-def PriceOracle(w3, get_contract, Lend_token, Borrow_token, PriceFeed):
-    contract = get_contract(
-        'contracts/templates/SimplePriceOracleTemplate1.v.py',
-        Lend_token.address, Borrow_token.address, PriceFeed.address,
-        interfaces=['SimplePriceOracle']
+def PriceOracle(Deployer, SimplePriceOracleTemplate1, Lend_token, Borrow_token, PriceFeed):
+    contract = _get_contract(
+        Deployer,
+        SimplePriceOracleTemplate1,
+        Lend_token.address, Borrow_token.address, PriceFeed.address
     )
     return contract
 
 
 @pytest.fixture
-def get_MarketDao_contract(w3, Deployer):
+def get_MarketDao_contract(Deployer, MarketDao):
     def get_MarketDao_contract(*args, **kwargs):
-        source_code_path = 'contracts/daos/MarketDao.v.py'
-        interfaces=[
-            'ERC20', 'MultiFungibleToken',
-            'CurrencyDao', 'ShieldPayoutDao', 'CollateralAuctionCurve',
-            'SimplePriceOracle', 'ProtocolDao'
-        ]
-        kwargs.update({'interfaces': interfaces})
-        return _get_contract(w3, Deployer, source_code_path, *args, **kwargs)
+        return _get_contract(Deployer, MarketDao, *args, **kwargs)
 
     return get_MarketDao_contract
 
@@ -623,7 +529,9 @@ def MarketDao_library(get_MarketDao_contract):
 
 
 @pytest.fixture
-def ProtocolDao(get_contract,
+def ProtocolDaoContract(
+        Deployer,
+        ProtocolDao,
         LST_token,
         Governor, EscapeHatchManager, EscapeHatchTokenHolder,
         CurrencyDao_library, InterestPoolDao_library, UnderwriterPoolDao_library,
@@ -634,8 +542,9 @@ def ProtocolDao(get_contract,
         ERC20_library, LERC20_library, ERC20_Pool_Token_library,
         MultiFungibleToken_library
     ):
-    contract = get_contract(
-        'contracts/daos/ProtocolDao.v.py',
+    contract = _get_contract(
+        Deployer,
+        ProtocolDao,
         LST_token.address,
         Governor, EscapeHatchManager, EscapeHatchTokenHolder,
         CurrencyDao_library.address, InterestPoolDao_library.address, UnderwriterPoolDao_library.address,
@@ -644,11 +553,6 @@ def ProtocolDao(get_contract,
         CurrencyPool_library.address, InterestPool_library.address, UnderwriterPool_library.address,
         PriceOracle.address, CollateralAuctionCurve_Library.address,
         ERC20_library.address, MultiFungibleToken_library.address,
-        LERC20_library.address, ERC20_Pool_Token_library.address,
-        interfaces=[
-            'CurrencyDao', 'InterestPoolDao', 'UnderwriterPoolDao',
-            'MarketDao', 'ShieldPayoutDao',
-            'PoolNameRegistry', 'PositionRegistry'
-        ]
+        LERC20_library.address, ERC20_Pool_Token_library.address
     )
     return contract

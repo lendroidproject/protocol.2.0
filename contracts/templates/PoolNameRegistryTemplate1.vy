@@ -5,10 +5,10 @@
 # Lendroid Foundation
 
 
-from contracts.interfaces import ERC20
-from contracts.interfaces import CurrencyDao
+from ...interfaces import ERC20Interface
+from ...interfaces import CurrencyDaoInterface
 
-from contracts.interfaces import ProtocolDao
+from ...interfaces import ProtocolDaoInterface
 
 
 # Structs
@@ -121,7 +121,7 @@ def _add_name(_name: string[64], _operator: address, _sender: address):
     if _sender == self.daos[DAO_UNDERWRITER_POOL]:
         self.names[self.next_name_id].underwriter_pool_registered = True
     self.next_name_id += 1
-    assert_modifiable(CurrencyDao(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
+    assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).authorized_transfer_erc20(
         self.LST, _operator, self, _LST_stake))
 
 
@@ -129,7 +129,7 @@ def _add_name(_name: string[64], _operator: address, _sender: address):
 def _remove_name(_name: string[64], _name_id: uint256):
 
     # transfer staked LST back to operator
-    assert_modifiable(ERC20(self.LST).transfer(
+    assert_modifiable(ERC20Interface(self.LST).transfer(
         self.names[_name_id].operator,
         self.names[_name_id].LST_staked
     ))
@@ -176,9 +176,9 @@ def _transfer_balance_erc20(_token: address):
              ERC20 token to the Escape Hatch Token Holder.
         @param _token The address of the ERC20 token.
     """
-    assert_modifiable(ERC20(_token).transfer(
-        ProtocolDao(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
-        ERC20(_token).balanceOf(self)
+    assert_modifiable(ERC20Interface(_token).transfer(
+        ProtocolDaoInterface(self.protocol_dao).authorized_callers(CALLER_ESCAPE_HATCH_TOKEN_HOLDER),
+        ERC20Interface(_token).balanceOf(self)
     ))
 
 
