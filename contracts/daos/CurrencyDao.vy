@@ -41,7 +41,7 @@ pools: public(map(bytes32, Pool))
 daos: public(map(int128, address))
 # registry_type => registry_address
 registries: public(map(int128, address))
-# template_name => template_contract_address
+# template_type => template_contract_address
 templates: public(map(int128, address))
 
 DAO_INTEREST_POOL: constant(int128) = 2
@@ -605,16 +605,6 @@ def unwrap(_token: address, _value: uint256) -> bool:
     assert self.initialized
     assert not self.paused
     self._unwrap(_token, msg.sender, msg.sender, _value)
-
-    return True
-
-
-@public
-def authorized_unwrap(_token: address, _to: address, _value: uint256) -> bool:
-    assert self.initialized
-    assert not self.paused
-    assert msg.sender == self.daos[DAO_MARKET]
-    self._unwrap(_token, msg.sender, _to, _value)
 
     return True
 

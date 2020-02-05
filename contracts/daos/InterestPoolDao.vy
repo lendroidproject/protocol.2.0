@@ -403,13 +403,13 @@ def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, 
     assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
     if _mft_type == MFT_TYPE_F:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
     if _mft_type == MFT_TYPE_I:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
     if _mft_type == MFT_TYPE_S:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
     if _mft_type == MFT_TYPE_U:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True
@@ -617,11 +617,11 @@ def _i_and_f_to_l(_currency: address, _expiry: timestamp,
     _f_id: uint256 = MultiFungibleTokenInterface(_f_address).id(_currency, _expiry, ZERO_ADDRESS, 0)
     assert (not _i_id == 0) and (not _f_id == 0)
     if _expiry > block.timestamp:
-        # mint i_token into _to account
+        # burn i_token from _from account
         assert_modifiable(MultiFungibleTokenInterface(_i_address).burn(_i_id, _from, _value))
-    # mint f_token into _to account
+    # burn f_token from _from account
     assert_modifiable(MultiFungibleTokenInterface(_f_address).burn(_f_id, _from, _value))
-    # burn l_token from _from account
+    # mint l_token into _to account
     assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).mint_and_self_authorize_erc20(_l_address, _to, _value))
 
 

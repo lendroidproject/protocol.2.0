@@ -29,7 +29,7 @@ protocol_dao: public(address)
 daos: public(map(uint256, address))
 # loan_id
 last_position_id: public(uint256)
-# expiry => (loan_id => Loan)
+# loan_id => Loan
 positions: public(map(uint256, Position))
 # borrower_address => loan_count
 borrow_position_count: public(map(address, uint256))
@@ -272,6 +272,6 @@ def close_liquidated_loan(_position_id: uint256) -> bool:
     ))
     # liquidate position
     self._liquidate_position(_position_id)
-    self._lock_position(_position_id)
+    self._unlock_position(_position_id)
 
     return True

@@ -259,6 +259,7 @@ def support_mft(_expiry: timestamp, _i_cost_per_day: uint256) -> bool:
     _market_hash: bytes32 = self._market_hash(_expiry)
     assert self.markets[_market_hash].hash == EMPTY_BYTES32
     # verify mft_expiry_limit_days has been set
+    assert self.mft_expiry_limit_days > 0
     # verify _expiry is within supported mft_expiry_limit_days
     _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
     assert _expiry <= block.timestamp + _rolling_window

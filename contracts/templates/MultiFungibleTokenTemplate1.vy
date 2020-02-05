@@ -39,7 +39,6 @@ creators: public(map(uint256, address))
 nonce: public(uint256)
 
 # Interface IDs
-MFT_ACCEPTED: bytes[10]
 INTERFACE_SIGNATURE_ERC165: bytes[10]
 INTERFACE_SIGNATURE_MFT: bytes[10]
 
@@ -53,12 +52,10 @@ def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = _protocol_dao
-    # bytes4(keccak256("onMFTReceived(address,address,uint256,uint256,bytes32)"))
-    self.MFT_ACCEPTED = "0x0a8f896b"
     # bytes4(keccak256("supportsInterface(bytes[10])"))
     self.INTERFACE_SIGNATURE_ERC165 = "0xa69f31f6"
     # bytes4(keccak256("initialize(address,address[5])")) ^
-    # bytes4(keccak256("hash(address,timestamp,address,uint256)")) ^
+    # bytes4(keccak256("_hash(address,timestamp,address,uint256)")) ^
     # bytes4(keccak256("get_or_create_id(address,timestamp,address,uint256,string[64])")) ^
     # bytes4(keccak256("supportsInterface(bytes[10])")) ^
     # bytes4(keccak256("id(address,timestamp,address,uint256)")) ^
@@ -82,7 +79,7 @@ def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
 @constant
 def _hash(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bytes32:
     """
-        @dev Function to get the hash of a MFT, given its indicators.
+        @dev Function to get the _hash of a MFT, given its indicators.
              This is an internal function and is used only within the context of
              this contract.
         @param _currency The address of the currency token in the MFT.
@@ -124,7 +121,7 @@ def id(_currency: address, _expiry: timestamp, _underlying: address, _strike_pri
         @param _expiry The timestamp when the MFT expires.
         @param _underlying The address of the underlying token in the MFT.
         @param _strike_price The price of the underlying per currency at _expiry.
-        @return Non-zero Id of the MFT hash if the MFT has been created. Zero otherwise.
+        @return Non-zero Id of the MFT _hash if the MFT has been created. Zero otherwise.
     """
     return self.hash_to_id[self._hash(_currency, _expiry, _underlying, _strike_price)]
 
@@ -133,23 +130,25 @@ def id(_currency: address, _expiry: timestamp, _underlying: address, _strike_pri
 @constant
 def is_valid_id(_id: uint256) -> bool:
     """
-        @dev Function to check if a given MFT hash is valid.
+        @dev Function to check if a given MFT _hash is valid.
         @param _id The MFT id.
-        @return Bool indicating if the id is registered to a hash.
+        @return Bool indicating if the id is registered to a _hash.
     """
     return self.hash_to_id[self.id_to_hash[_id]] == _id
 
 
 @public
-def setURI(_uri: string[64], _id: uint256):
+def setURI(_uri: string[64], _id: uint256) -> bool:
     """
         @dev Function to add a URI to a MFT metadata
         @param _id The MFT id.
-        @return Bool indicating if the id is registered to a hash.
+        @return Bool indicating if the id is registered to a _hash.
     """
     assert self.authorized_daos[msg.sender]
     self.metadata[_id].uri = _uri
     log.URI(_uri, _id)
+
+    return True
 
 
 @private
@@ -215,6 +214,7 @@ def _mint(_creator: address, _id: uint256, _to: address, _quantity: uint256):
 def mint(_id: uint256, _to: address, _quantity: uint256) -> bool:
     assert self.initialized
     assert self.authorized_daos[msg.sender]
+    assert self.hash_to_id[self.id_to_hash[_id]] == _id
     self._mint(msg.sender, _id, _to, _quantity)
 
     return True
@@ -245,7 +245,6 @@ def safeTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256
         MUST revert if balance of holder for token `_id` is lower than the `_value` sent.
         MUST revert on any other error.
         MUST emit the `TransferSingle` event to reflect the balance change (see "Safe Transfer Rules" section of the standard).
-        After the above conditions are met, this function MUST check if `_to` is a smart contract (e.g. code size > 0). If so, it MUST call `onMFTReceived` on `_to` and act appropriately (see "Safe Transfer Rules" section of the standard).
         @param _from    Source address
         @param _to      Target address
         @param _id      ID of the token type
@@ -256,8 +255,8 @@ def safeTransferFrom(_from: address, _to: address, _id: uint256, _value: uint256
     assert _to != ZERO_ADDRESS, "_to must be non-zero."
     assert (_from == msg.sender) or self.authorized_daos[msg.sender], "Need dao approval for 3rd party transfers."
 
-    # SafeMath will throw with insuficient funds _from
-    # or if _id is not valid (balance will be 0)
+    # Vyper will revert automatically for negative balance
+    # if _id is not valid (balance will be 0)
     self.balances[_id][_from] -= _value
     self.totalBalances[_from] -= _value
     self.balances[_id][_to] += _value

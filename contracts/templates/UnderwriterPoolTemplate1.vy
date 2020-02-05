@@ -129,7 +129,7 @@ def _active_contributions() -> uint256:
 @private
 @constant
 def _i_token_balance(_expiry: timestamp, _underlying: address, _strike_price: uint256) -> uint256:
-    if _expiry >= block.timestamp:
+    if _expiry <= block.timestamp:
         return 0
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
     return MultiFungibleTokenInterface(self.i_address).balanceOf(self, self.markets[_market_hash].i_id)

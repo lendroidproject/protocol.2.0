@@ -324,13 +324,13 @@ def escape_hatch_mft(_mft_type: int128, _currency: address, _expiry: timestamp, 
     assert msg.sender == self.protocol_dao
     _token: address = ZERO_ADDRESS
     if _mft_type == MFT_TYPE_F:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__f(_currency)
     if _mft_type == MFT_TYPE_I:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__i(_currency)
     if _mft_type == MFT_TYPE_S:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__s(_currency)
     if _mft_type == MFT_TYPE_U:
-        CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
+        _token = CurrencyDaoInterface(self.daos[DAO_CURRENCY]).token_addresses__u(_currency)
     assert not _token == ZERO_ADDRESS
     self._transfer_balance_mft(_token, _currency, _expiry, _underlying, _strike_price)
     return True

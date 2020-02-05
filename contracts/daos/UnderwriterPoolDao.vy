@@ -625,9 +625,12 @@ def _l_to_i_and_s_and_u(_currency: address, _expiry: timestamp, _underlying: add
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
     # burn l_token from _from account
     assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).burn_as_self_authorized_erc20(_l_address, _from, _value))
-    # mint i_token into _to account
-    assert_modifiable(MultiFungibleTokenInterface(_i_address).mint(_i_id, _to, _value))
+    if _expiry > block.timestamp:
+        # mint i_token into _to account
+        assert_modifiable(MultiFungibleTokenInterface(_i_address).mint(_i_id, _to, _value))
+    # mint s_token into _to account
     assert_modifiable(MultiFungibleTokenInterface(_s_address).mint(_s_id, _to, _value))
+    # mint u_token into _to account
     assert_modifiable(MultiFungibleTokenInterface(_u_address).mint(_u_id, _to, _value))
 
 
@@ -663,8 +666,9 @@ def _i_and_s_and_u_to_l(_currency: address, _expiry: timestamp, _underlying: add
     _u_hash: bytes32 = self._mft_hash(_u_address, _currency, _expiry, _underlying, _strike_price)
     # validate i, s, and u token types exists for combination of expiry, underlying, and strike
     assert (not _i_id == 0) and (not _s_id == 0) and (not _u_id == 0)
-    # burn i_tokens from _from account
-    assert_modifiable(MultiFungibleTokenInterface(_i_address).burn(_i_id, _from, _value))
+    if _expiry > block.timestamp:
+        # burn i_tokens from _from account
+        assert_modifiable(MultiFungibleTokenInterface(_i_address).burn(_i_id, _from, _value))
     # burn s_tokens from _from account
     assert_modifiable(MultiFungibleTokenInterface(_s_address).burn(_s_id, _from, _value))
     # burn u_tokens from _from account
