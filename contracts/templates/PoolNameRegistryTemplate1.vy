@@ -66,6 +66,12 @@ def initialize(
         _dao_underwriter_pool: address,
         _name_registration_minimum_stake: uint256
     ) -> bool:
+    # validate inputs
+    assert _LST.is_contract
+    assert _dao_currency.is_contract
+    assert _dao_interest_pool.is_contract
+    assert _dao_underwriter_pool.is_contract
+    assert as_unitless_number(_name_registration_minimum_stake) > 0
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = msg.sender
@@ -202,6 +208,8 @@ def set_name_registration_minimum_stake(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the minimum stake
             has been set.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.name_registration_minimum_stake = _value
@@ -224,6 +232,9 @@ def set_name_registration_stake_lookup(_name_length: int128, _stake: uint256) ->
         @return A bool with a value of "True" indicating the minimum stake
             has been set.
     """
+    # validate inputs
+    assert _name_length > 0
+    assert as_unitless_number(_stake) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.name_registration_stake_lookup[_name_length] = NameRegistrationStakeLookup({

@@ -53,14 +53,18 @@ paused: public(bool)
 @public
 def initialize(
         _LST: address,
-        _dao_address_market: address
+        _dao_market: address
     ) -> bool:
+    # validate inputs
+    assert msg.sender.is_contract
+    assert _LST.is_contract
+    assert _dao_market.is_contract
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = msg.sender
     self.LST = _LST
 
-    self.daos[DAO_MARKET] = _dao_address_market
+    self.daos[DAO_MARKET] = _dao_market
 
     self.LOAN_STATUS_ACTIVE = 1
     self.LOAN_STATUS_LIQUIDATED = 2

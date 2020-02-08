@@ -80,6 +80,18 @@ def initialize(
         _dao_market: address,
         _dao_shield_payout: address
         ) -> bool:
+    # validate inputs
+    assert msg.sender.is_contract
+    assert _LST.is_contract
+    assert _template_token_pool.is_contract
+    assert _template_erc20.is_contract
+    assert _template_mft.is_contract
+    assert _template_lerc20.is_contract
+    assert _pool_name_registry.is_contract
+    assert _dao_interest_pool.is_contract
+    assert _dao_underwriter_pool.is_contract
+    assert _dao_market.is_contract
+    assert _dao_shield_payout.is_contract
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = msg.sender
@@ -420,6 +432,9 @@ def set_template(_template_type: int128, _address: address) -> bool:
         @return A bool with a value of "True" indicating the template change
             has been made.
     """
+    # validate inputs
+    assert _template_type in [TEMPLATE_TOKEN_POOL, TEMPLATE_ERC20, TEMPLATE_MFT, TEMPLATE_LERC20]
+    assert _address.is_contract
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _template_type == TEMPLATE_TOKEN_POOL or \

@@ -101,6 +101,15 @@ def initialize(
         _template_token_erc20: address,
         _template_erc20_pool_token: address
         ) -> bool:
+    # validate inputs
+    assert _LST.is_contract
+    assert _registry_address_pool_name.is_contract
+    assert _dao_currency.is_contract
+    assert _dao_market.is_contract
+    assert _dao_shield_payout.is_contract
+    assert _template_underwriter_pool.is_contract
+    assert _template_token_erc20.is_contract
+    assert _template_erc20_pool_token.is_contract
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = msg.sender
@@ -233,6 +242,8 @@ def set_template(_template_type: int128, _address: address) -> bool:
         @return A bool with a value of "True" indicating the template change
             has been made.
     """
+    # validate input
+    assert _address.is_contract
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _template_type == TEMPLATE_UNDERWRITER_POOL
@@ -249,6 +260,8 @@ def set_minimum_mft_fee(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the stake for MFT support
             has been set.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.minimum_mft_fee = _value
@@ -268,6 +281,9 @@ def set_fee_multiplier_per_mft_count(
         @return A bool with a value of "True" indicating the multiplier for MFT
              support has been set.
     """
+    # validate inputs
+    assert as_unitless_number(_mft_count) >= 0
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.fee_multiplier_per_mft_count[_mft_count] = _value
@@ -284,6 +300,8 @@ def set_maximum_mft_support_count(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the maxmimum number for
              MFT support has been set.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.maximum_mft_support_count = _value

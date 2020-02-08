@@ -49,6 +49,8 @@ initialized: public(bool)
 
 @public
 def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
+    # validate inputs
+    assert _protocol_dao.is_contract
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = _protocol_dao
@@ -70,6 +72,7 @@ def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
     self.INTERFACE_SIGNATURE_MFT = "0xd9b67a26"
     self.authorized_daos[_protocol_dao] = True
     for _dao in _authorized_daos:
+        assert _dao.is_contract
         self.authorized_daos[_dao] = True
 
     return True

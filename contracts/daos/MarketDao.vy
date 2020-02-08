@@ -120,6 +120,15 @@ def initialize(
         _dao_shield_payout: address,
         _registry_position: address,
         _template_auction_erc20: address) -> bool:
+    # validate inputs
+    assert msg.sender.is_contract
+    assert _LST.is_contract
+    assert _dao_currency.is_contract
+    assert _dao_interest_pool.is_contract
+    assert _dao_underwriter_pool.is_contract
+    assert _registry_position.is_contract
+    assert _dao_shield_payout.is_contract
+    assert _template_auction_erc20.is_contract
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = msg.sender
@@ -487,6 +496,8 @@ def set_template(_template_type: int128, _address: address) -> bool:
         @return A bool with a value of "True" indicating the template change
             has been made.
     """
+    # validate input
+    assert _address.is_contract
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _template_type == TEMPLATE_COLLATERAL_AUCTION
@@ -504,6 +515,8 @@ def set_registry(_registry_type: int128, _address: address) -> bool:
         @return A bool with a value of "True" indicating the registry change
              has been made.
     """
+    # validate input
+    assert _address.is_contract
     assert self.initialized
     assert msg.sender == self.protocol_dao
     assert _registry_type == REGISTRY_POSITION
@@ -553,6 +566,10 @@ def set_maximum_liability_for_currency_market(_currency: address, _expiry: times
         @return A bool with a value of "True" indicating the maximum currency
              liability until the given expiry has been set.
     """
+    # validate inputs
+    assert _currency.is_contract
+    assert as_unitless_number(_expiry) > 0
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.maximum_market_liabilities[self._currency_market_hash(_currency, _expiry)] = _value
@@ -581,6 +598,11 @@ def set_maximum_liability_for_loan_market(_currency: address, _expiry: timestamp
              liability until the given expiry for the given underlying has been
              set.
     """
+    # validate inputs
+    assert _currency.is_contract
+    assert as_unitless_number(_expiry) > 0
+    assert _underlying.is_contract
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.maximum_market_liabilities[self._loan_market_hash(_currency, _expiry, _underlying)] = _value
@@ -598,6 +620,8 @@ def set_auction_slippage_percentage(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the slippage percentage
              has been set.
     """
+    # validate inputs
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.auction_slippage_percentage = _value
@@ -615,6 +639,8 @@ def set_auction_maximum_discount_percentage(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the maximum discount
              percentage has been set.
     """
+    # validate inputs
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.auction_maximum_discount_percentage = _value
@@ -632,6 +658,8 @@ def set_auction_discount_duration(_value: timedelta) -> bool:
         @return A bool with a value of "True" indicating the discount duration
              has been set.
     """
+    # validate inputs
+    assert as_unitless_number(_value) > 0
     assert self.initialized
     assert msg.sender == self.protocol_dao
     self.auction_discount_duration = _value

@@ -40,6 +40,10 @@ def initialize(
         _dao_currency: address,
         _dao_market: address
         ) -> bool:
+    # validate inputs
+    assert _LST.is_contract
+    assert _dao_currency.is_contract
+    assert _dao_market.is_contract
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = msg.sender
@@ -196,6 +200,11 @@ def u_payoff(_currency: address, _expiry: timestamp, _underlying: address, _stri
 # Admin functions
 @public
 def register_shield_market(_currency: address, _expiry: timestamp, _underlying: address, _strike_price: uint256) -> bool:
+    # validate inputs
+    assert _currency.is_contract
+    assert as_unitless_number(_expiry) > 0
+    assert _underlying.is_contract
+    assert as_unitless_number(_strike_price) > 0
     assert msg.sender == self.daos[DAO_MARKET]
     _shield_market_hash: bytes32 = self._shield_market_hash(_currency, _expiry, _underlying, _strike_price)
     self.registered_shield_markets[_shield_market_hash] = True

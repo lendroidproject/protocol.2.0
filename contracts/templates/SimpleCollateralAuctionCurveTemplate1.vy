@@ -164,7 +164,7 @@ def _purchase(_purchaser: address, _currency_value: uint256, _underlying_value: 
     self.is_active = not _loan_market_closed
     self._transfer_f_underlying(_purchaser, _underlying_value)
     if (not self.is_active) and (_underlying_remaining > 0):
-        self._transfer_f_underlying(self.owner, _underlying_value)
+        self._transfer_f_underlying(self.owner, _underlying_remaining)
 
 
 # Admin actions

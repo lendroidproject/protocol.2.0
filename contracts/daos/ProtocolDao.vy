@@ -121,6 +121,23 @@ def __init__(
     #. SimpleCollateralAuctionCurveTemplate
     #. ERC20Template
     #. MultiFungibleTokenTemplate
+    # validate inputs
+    assert _LST.is_contract
+    assert _template_dao_currency.is_contract
+    assert _template_dao_interest_pool.is_contract
+    assert _template_dao_underwriter_pool.is_contract
+    assert _template_dao_market.is_contract
+    assert _template_dao_shield_payout.is_contract
+    assert _template_pool_name_registry.is_contract
+    assert _template_position_registry.is_contract
+    assert _template_token_pool.is_contract
+    assert _template_interest_pool.is_contract
+    assert _template_price_oracle.is_contract
+    assert _template_collateral_auction.is_contract
+    assert _template_erc20.is_contract
+    assert _template_mft.is_contract
+    assert _template_lerc20.is_contract
+    assert _template_erc20_pool_token.is_contract
     assert not self.initialized
     self.initialized = True
 
@@ -503,6 +520,8 @@ def set_expiry_support(_timestamp: timestamp, _label: string[3], _is_active: boo
         @return A bool with a value of "True" indicating the expiry support has
              been toggled.
     """
+    # validate inputs
+    assert as_unitless_number(_timestamp) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     self.expiries[_timestamp] = Expiry({
         expiry_timestamp: _timestamp,
@@ -523,6 +542,10 @@ def set_registry(_dao_type: int128, _registry_type: int128, _address: address) -
         @return A bool with a value of "True" indicating the registry change
             has been made on the specified DAO.
     """
+    # validate inputs
+    assert _dao_type in [DAO_CURRENCY, DAO_INTEREST_POOL, DAO_UNDERWRITER_POOL, DAO_MARKET, DAO_SHIELD_PAYOUT]
+    assert _registry_type in [REGISTRY_POOL_NAME, REGISTRY_POSITION]
+    assert _address.is_contract
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     if _dao_type == DAO_MARKET and _registry_type == REGISTRY_POSITION:
@@ -543,6 +566,9 @@ def set_template(_template_type: int128, _address: address) -> bool:
         @return A bool with a value of "True" indicating the template change
             has been made across all DAOs.
     """
+    # validate inputs
+    assert _template_type in [TEMPLATE_TOKEN_POOL, TEMPLATE_ERC20, TEMPLATE_MFT, TEMPLATE_INTEREST_POOL, TEMPLATE_UNDERWRITER_POOL, TEMPLATE_COLLATERAL_AUCTION]
+    assert _address.is_contract
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     self.templates[_template_type] = _address
     if _template_type == TEMPLATE_TOKEN_POOL or \
@@ -578,6 +604,8 @@ def set_pool_name_registration_minimum_stake(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the minimum stake
             has been set within the Pool Name Registry.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).set_name_registration_minimum_stake(_value))
@@ -600,6 +628,9 @@ def set_pool_name_registration_stake_lookup(_name_length: int128, _value: uint25
         @return A bool with a value of "True" indicating the minimum stake
             has been set within the Pool Name Registry.
     """
+    # validate inputs
+    assert _name_length > 0
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(PoolNameRegistryInterface(self.registries[REGISTRY_POOL_NAME]).set_name_registration_stake_lookup(_name_length, _value))
@@ -621,6 +652,8 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
         @return A bool with a value of "True" indicating the token support has
              been toggled.
     """
+    # validate input
+    assert _token.is_contract
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(CurrencyDaoInterface(self.daos[DAO_CURRENCY]).set_token_support(_token, _is_active))
@@ -642,6 +675,9 @@ def set_minimum_mft_fee(_dao_type: int128, _value: uint256) -> bool:
         @return A bool with a value of "True" indicating the stake for MFT support
             has been set within the given DAO.
     """
+    # validate inputs
+    assert _dao_type in [DAO_INTEREST_POOL, DAO_UNDERWRITER_POOL]
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     if _dao_type == DAO_INTEREST_POOL:
         assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).set_minimum_mft_fee(_value))
@@ -664,6 +700,10 @@ def set_fee_multiplier_per_mft_count(_dao_type: int128, _mft_count: uint256, _va
         @return A bool with a value of "True" indicating the multiplier for MFT
              support has been set within the given DAO.
     """
+    # validate inputs
+    assert _dao_type in [DAO_INTEREST_POOL, DAO_UNDERWRITER_POOL]
+    assert as_unitless_number(_mft_count) >= 0
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     if _dao_type == DAO_INTEREST_POOL:
         assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).set_fee_multiplier_per_mft_count(_mft_count, _value))
@@ -686,6 +726,9 @@ def set_maximum_mft_support_count(_dao_type: int128, _value: uint256) -> bool:
         @return A bool with a value of "True" indicating the maxmimum number for
              MFT support has been set within the given DAO.
     """
+    # validate inputs
+    assert _dao_type in [DAO_INTEREST_POOL, DAO_UNDERWRITER_POOL]
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
     if _dao_type == DAO_INTEREST_POOL:
         assert_modifiable(InterestPoolDaoInterface(self.daos[_dao_type]).set_maximum_mft_support_count(_value))
@@ -710,6 +753,10 @@ def set_price_oracle(_currency: address, _underlying: address, _oracle: address)
         @return A bool with a value of "True" indicating the Price Oracle address
              has been set within the Market DAO for the currency-underlying pair.
     """
+    # validate inputs
+    assert _currency.is_contract
+    assert _underlying.is_contract
+    assert _oracle.is_contract
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_price_oracle(_currency, _underlying, _oracle))
@@ -732,6 +779,10 @@ def set_maximum_liability_for_currency_market(_currency: address, _expiry: times
         @return A bool with a value of "True" indicating the maximum currency
              liability until the given expiry has been set within the Market DAO.
     """
+    # validate inputs
+    assert _currency.is_contract
+    assert as_unitless_number(_expiry) > 0
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_maximum_liability_for_currency_market(_currency, _expiry, _value))
@@ -756,6 +807,11 @@ def set_maximum_liability_for_loan_market(_currency: address, _expiry: timestamp
              liability until the given expiry for the given underlying has been
              set within the Market DAO.
     """
+    # validate inputs
+    assert _currency.is_contract
+    assert as_unitless_number(_expiry) > 0
+    assert _underlying.is_contract
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_maximum_liability_for_loan_market(_currency, _expiry, _underlying, _value))
@@ -775,6 +831,8 @@ def set_auction_slippage_percentage(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the slippage percentage
              has been set within the Market DAO.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_auction_slippage_percentage(_value))
@@ -794,6 +852,8 @@ def set_auction_maximum_discount_percentage(_value: uint256) -> bool:
         @return A bool with a value of "True" indicating the maximum discount
              percentage has been set within the Market DAO.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_auction_maximum_discount_percentage(_value))
@@ -813,6 +873,8 @@ def set_auction_discount_duration(_value: timedelta) -> bool:
         @return A bool with a value of "True" indicating the discount duration
              has been set within the Market DAO.
     """
+    # validate input
+    assert as_unitless_number(_value) > 0
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
     assert_modifiable(MarketDaoInterface(self.daos[DAO_MARKET]).set_auction_discount_duration(_value))

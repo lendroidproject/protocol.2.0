@@ -70,6 +70,16 @@ def initialize(
     _s_address: address, _u_address: address,
     _dao_shield_payout: address,
     _erc20_pool_token_template_address: address) -> bool:
+    # validate inputs
+    assert _dao_protocol.is_contract
+    assert _currency.is_contract
+    assert _l_address.is_contract
+    assert _i_address.is_contract
+    assert _s_address.is_contract
+    assert _u_address.is_contract
+    assert _erc20_pool_token_template_address.is_contract
+    assert as_unitless_number(_mft_expiry_limit) > 0
+    assert as_unitless_number(_initial_exchange_rate) > 0
     assert not self.initialized
     self.initialized = True
     self.owner = _operator
@@ -341,6 +351,10 @@ def withdraw_mft_support(_expiry: timestamp, _underlying: address, _strike_price
 
 @public
 def set_i_cost_per_day(_expiry: timestamp, _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
+    # validate inputs
+    assert as_unitless_number(_expiry) > 0
+    assert _underlying.is_contract
+    assert as_unitless_number(_strike_price) > 0
     assert self.initialized
     assert msg.sender == self.owner
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
@@ -351,6 +365,10 @@ def set_i_cost_per_day(_expiry: timestamp, _underlying: address, _strike_price: 
 
 @public
 def set_s_cost_per_day(_expiry: timestamp, _underlying: address, _strike_price: uint256, _value: uint256) -> bool:
+    # validate inputs
+    assert as_unitless_number(_expiry) > 0
+    assert _underlying.is_contract
+    assert as_unitless_number(_strike_price) > 0
     assert self.initialized
     assert msg.sender == self.owner
     _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)

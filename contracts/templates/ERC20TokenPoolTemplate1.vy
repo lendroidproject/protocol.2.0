@@ -16,6 +16,9 @@ initialized: public(bool)
 
 @public
 def initialize(_token: address) -> bool:
+    # validate inputs
+    assert msg.sender.is_contract
+    assert _token.is_contract
     assert not self.initialized
     self.initialized = True
     self.owner = msg.sender

@@ -21,6 +21,7 @@ struct Market:
     id: int128
     hash: bytes32
 
+
 protocol_dao: public(address)
 owner: public(address)
 name: public(string[64])
@@ -62,6 +63,15 @@ def initialize(
     _currency: address,
     _l_address: address, _i_address: address, _f_address: address,
     _erc20_pool_token_template_address: address) -> bool:
+    # validate inputs
+    assert _dao_protocol.is_contract
+    assert _currency.is_contract
+    assert _l_address.is_contract
+    assert _i_address.is_contract
+    assert _f_address.is_contract
+    assert _erc20_pool_token_template_address.is_contract
+    assert as_unitless_number(_mft_expiry_limit) > 0
+    assert as_unitless_number(_initial_exchange_rate) > 0
     assert not self.initialized
     self.initialized = True
     self.protocol_dao = _dao_protocol
@@ -300,6 +310,8 @@ def withdraw_mft_support(_expiry: timestamp) -> bool:
 
 @public
 def set_i_cost_per_day(_expiry: timestamp, _value: uint256) -> bool:
+    # validate inputs
+    assert as_unitless_number(_expiry) > 0
     assert self.initialized
     assert msg.sender == self.owner
     self.markets[self._market_hash(_expiry)].i_cost_per_day = _value
