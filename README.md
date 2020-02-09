@@ -47,9 +47,13 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
   `source ~/vyper-venv/bin/activate`
 
 
-* Run the tests
+* Compile using brownie
 
-  `brownie test`
+  `brownie compile`
+
+* Run the tests with coverage
+
+  `brownie test --coverage`
 
 
 _Note_: When the development / testing session ends, deactivate the virtualenv
