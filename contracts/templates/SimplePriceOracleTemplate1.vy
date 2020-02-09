@@ -1,6 +1,6 @@
-# @version 0.1.0b14
-# @notice Implementation of Lendroid v2 - Simple Price Oracle
-# @dev THIS CONTRACT HAS NOT BEEN AUDITED
+# @version 0.1.0b16
+# @notice Implementation of Lendroid v2 - Simple Price Oracle. Users / developers are encouraged to submit their own Templates.
+# @dev THIS CONTRACT IS CURRENTLY UNDER AUDIT
 # @author Vignesh (Vii) Meenakshi Sundaram (@vignesh-msundaram)
 # Lendroid Foundation
 

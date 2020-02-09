@@ -1,3 +1,10 @@
+# @version 0.1.0b16
+# @notice Implementation of Price Feed used by the SimplePriceOracleTemplate
+# @dev THIS CONTRACT IS USED ONLY FOR TESTING
+# @author Vignesh (Vii) Meenakshi Sundaram (@vignesh-msundaram)
+# Lendroid Foundation
+
+
 owner: public(address)
 current_price: public(uint256)
 

@@ -1,6 +1,6 @@
-# @version 0.1.0b14
+# @version 0.1.0b16
 # @notice Implementation of Lendroid v2 - Shield Payout DAO
-# @dev THIS CONTRACT HAS NOT BEEN AUDITED
+# @dev THIS CONTRACT IS CURRENTLY UNDER AUDIT
 # @author Vignesh (Vii) Meenakshi Sundaram (@vignesh-msundaram)
 # Lendroid Foundation
 
