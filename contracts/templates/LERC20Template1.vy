@@ -29,6 +29,10 @@ initialized: bool
 
 @public
 def initialize(_name: string[64], _symbol: string[32], _decimals: uint256, _supply: uint256) -> bool:
+    """
+      Token name is a string array of size 72 instead of 64. This is to accommodate the prefix “Wrapped ”. Eg, Wrapped DAI.
+      Token symbol is a string array of size 33 instead of 32. This is to accommodate the prefix “L”. Eg, LDAI.
+    """
     assert not self.initialized
     self.initialized = True
     init_supply: uint256 = _supply * 10 ** _decimals

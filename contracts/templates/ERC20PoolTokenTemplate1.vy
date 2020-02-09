@@ -29,6 +29,11 @@ initialized: bool
 
 @public
 def initialize(_name: string[64], _symbol: string[100], _decimals: uint256, _supply: uint256) -> bool:
+    """
+      Token symbol is a string array of size 100 instead of 32.
+      This is because the symbol is of the format <pool_name>.<pool_type>.<currency_symbol>.
+      Eg, LionFury1.RF.DAI (Interest Pool Token), LionFury7.RU.DAI (Underwriter Pool Token)
+    """
     assert not self.initialized
     self.initialized = True
     init_supply: uint256 = _supply * 10 ** _decimals

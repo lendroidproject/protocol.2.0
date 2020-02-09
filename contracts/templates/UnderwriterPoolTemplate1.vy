@@ -55,13 +55,14 @@ market_id_to_hash: public(map(int128, bytes32))
 # market id counter
 next_market_id: public(int128)
 
-DAO_UNDERWRITER_POOL: public(uint256)
-DAO_SHIELD_PAYOUT: public(uint256)
+DAO_UNDERWRITER_POOL: constant(int128) = 3
+DAO_SHIELD_PAYOUT: constant(int128) = 5
 
 initialized: public(bool)
 accepts_public_contributions: public(bool)
 
 DECIMALS: constant(uint256) = 10 ** 18
+SECONDS_PER_DAY: constant(uint256) = 24 * 60 * 60
 MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 1000
 
 
@@ -109,11 +110,9 @@ def initialize(
     self.s_address = _s_address
     self.u_address = _u_address
 
-    self.DAO_UNDERWRITER_POOL = 1
-    self.daos[self.DAO_UNDERWRITER_POOL] = msg.sender
+    self.daos[DAO_UNDERWRITER_POOL] = msg.sender
 
-    self.DAO_SHIELD_PAYOUT = 2
-    self.daos[self.DAO_SHIELD_PAYOUT] = _dao_shield_payout
+    self.daos[DAO_SHIELD_PAYOUT] = _dao_shield_payout
 
     return True
 
@@ -159,7 +158,7 @@ def _i_token_fee(_expiry: timestamp, _underlying: address, _strike_price: uint25
         return 0
     else:
         _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-        return (self.markets[_market_hash].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / (60 * 60 * 24)
+        return (self.markets[_market_hash].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
 
 
 @private
@@ -169,7 +168,7 @@ def _s_token_fee(_expiry: timestamp, _underlying: address, _strike_price: uint25
         return 0
     else:
         _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-        return (self.markets[_market_hash].s_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / (60 * 60 * 24)
+        return (self.markets[_market_hash].s_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
 
 
 @private
@@ -279,13 +278,13 @@ def support_mft(_expiry: timestamp, _underlying: address, _strike_price: uint256
     assert msg.sender == self.owner
     # verify mft_expiry_limit_days has been set
     # verify _expiry is within supported mft_expiry_limit_days
-    _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
+    _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * as_unitless_number(SECONDS_PER_DAY)
     assert _expiry <= block.timestamp + _rolling_window
     _external_call_successful: bool = False
     _i_id: uint256 = 0
     _s_id: uint256 = 0
     _u_id: uint256 = 0
-    _external_call_successful, _i_id, _s_id, _u_id = UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).register_mft_support(
+    _external_call_successful, _i_id, _s_id, _u_id = UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).register_mft_support(
         self.name, _expiry, _underlying, _strike_price,
         self.i_address, self.s_address, self.u_address)
     assert _external_call_successful
@@ -329,7 +328,7 @@ def withdraw_mft_support(_expiry: timestamp, _underlying: address, _strike_price
     assert self.u_balance[self.markets[_market_hash].u_id] == 0
     # invalidate market support
     self.markets[_market_hash].is_active = False
-    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).deregister_mft_support(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).deregister_mft_support(
         self.name, self.currency, _expiry, _underlying, _strike_price
     ))
 
@@ -410,7 +409,7 @@ def deregister() -> bool:
     assert msg.sender == self.owner
     # validate balances of l_tokens and total_f_tokens
     assert as_unitless_number(self.l_balance) + as_unitless_number(self.u_total_balance) == 0
-    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).deregister_pool(self.name))
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).deregister_pool(self.name))
 
     return True
 
@@ -431,7 +430,7 @@ def increment_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: 
     self.s_balance[self.markets[_market_hash].s_id] += as_unitless_number(_l_token_value)
     self.u_balance[self.markets[_market_hash].u_id] += as_unitless_number(_l_token_value)
     self.u_total_balance += as_unitless_number(_l_token_value)
-    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).split(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).split(
         self.currency, _expiry, _underlying, _strike_price,
         _l_token_value
     ))
@@ -455,7 +454,7 @@ def decrement_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: 
     self.s_balance[self.markets[_market_hash].s_id] -= as_unitless_number(_l_token_value)
     self.u_balance[self.markets[_market_hash].u_id] -= as_unitless_number(_l_token_value)
     self.u_total_balance -= as_unitless_number(_l_token_value)
-    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).fuse(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).fuse(
         self.currency, _expiry, _underlying, _strike_price,
         _l_token_value))
 
@@ -477,7 +476,7 @@ def exercise_u_tokens(_name: string[64],
     self.u_balance[self.markets[_market_hash].u_id] -= as_unitless_number(_u_token_value)
     self.u_total_balance -= as_unitless_number(_u_token_value)
     assert_modifiable(
-        ShieldPayoutDaoInterface(self.daos[self.DAO_SHIELD_PAYOUT]).exercise_u(
+        ShieldPayoutDaoInterface(self.daos[DAO_SHIELD_PAYOUT]).exercise_u(
             _currency, _expiry, _underlying, _strike_price, _u_token_value))
 
     return True
@@ -507,11 +506,11 @@ def contribute(_l_token_value: uint256) -> bool:
     assert_modifiable(ERC20Interface(self.pool_share_token).mintAndAuthorizeMinter(
         msg.sender, _pool_share_token_value))
     # ask UnderwriterPoolDao to deposit l_tokens to self
-    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).deposit_l(
+    assert_modifiable(UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).deposit_l(
         self.name, msg.sender, _l_token_value))
     # authorize CurrencyDao to handle _l_token_value quantity of l_currency
     assert_modifiable(LERC20Interface(self.l_address).approve(
-        UnderwriterPoolDaoInterface(self.daos[self.DAO_UNDERWRITER_POOL]).currency_dao(), _l_token_value))
+        UnderwriterPoolDaoInterface(self.daos[DAO_UNDERWRITER_POOL]).currency_dao(), _l_token_value))
 
     return True
 

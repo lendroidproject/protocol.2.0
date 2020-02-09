@@ -29,6 +29,8 @@ discount_duration: public(timedelta)
 
 CALLER_ESCAPE_HATCH_TOKEN_HOLDER: constant(int128) = 3
 
+DECIMALS: constant(uint256) = 10 ** 18
+
 
 @public
 def start(
@@ -185,7 +187,7 @@ def escape_hatch_underlying_f() -> bool:
 def purchase(_underlying_value: uint256) -> bool:
     assert self.is_active
     self._reset_currency_remaining()
-    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
+    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / as_unitless_number(DECIMALS)
     assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
     assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_remaining)
     self._purchase(msg.sender, _currency_value, _underlying_value)
@@ -197,10 +199,10 @@ def purchase(_underlying_value: uint256) -> bool:
 def purchase_for_remaining_currency() -> bool:
     assert self.is_active
     self._reset_currency_remaining()
-    _underlying_value: uint256 = (as_unitless_number(self.currency_remaining) * (10 ** 18)) / as_unitless_number(self._current_price())
+    _underlying_value: uint256 = as_unitless_number(self.currency_remaining) * as_unitless_number(DECIMALS) / as_unitless_number(self._current_price())
     _currency_value: uint256 = self.currency_remaining
     if as_unitless_number(_underlying_value) > as_unitless_number(self._lot()):
-        _currency_value = as_unitless_number(self._lot()) * as_unitless_number(self._current_price()) / 10 ** 18
+        _currency_value = as_unitless_number(self._lot()) * as_unitless_number(self._current_price()) / as_unitless_number(DECIMALS)
         _underlying_value = self._lot()
     assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
     assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_remaining)
@@ -214,9 +216,9 @@ def purchase_remaining_underlying() -> bool:
     assert self.is_active
     self._reset_currency_remaining()
     _underlying_value: uint256 = as_unitless_number(self._lot())
-    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / 10 ** 18
+    _currency_value: uint256 = as_unitless_number(_underlying_value) * as_unitless_number(self._current_price()) / as_unitless_number(DECIMALS)
     if as_unitless_number(_currency_value) > as_unitless_number(self.currency_remaining):
-        _underlying_value = (as_unitless_number(self.currency_remaining) * (10 ** 18)) / as_unitless_number(self._current_price())
+        _underlying_value = as_unitless_number(self.currency_remaining) * as_unitless_number(DECIMALS) / as_unitless_number(self._current_price())
         _currency_value = self.currency_remaining
     assert as_unitless_number(_underlying_value) <= as_unitless_number(self._lot())
     assert as_unitless_number(_currency_value) <= as_unitless_number(self.currency_remaining)

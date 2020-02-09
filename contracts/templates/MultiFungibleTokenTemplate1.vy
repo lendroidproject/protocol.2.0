@@ -203,6 +203,10 @@ def get_or_create_id(_currency: address, _expiry: timestamp,
 
 @private
 def _mint(_creator: address, _id: uint256, _to: address, _quantity: uint256):
+    """
+      The _creator here might look redundant, however, since it can represent any of the authorized DAOs,
+      it is useful to understand which DAO minted the MFT.
+    """
     # Grant the items to the caller
     self.balances[_id][_to] += _quantity
     self.totalBalances[_to] += _quantity

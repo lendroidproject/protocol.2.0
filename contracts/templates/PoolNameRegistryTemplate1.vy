@@ -141,6 +141,8 @@ def _remove_name(_name: string[64], _name_id: uint256):
     ))
 
     clear(self.name_to_id[_name])
+    # check if given name id is the last name id stored. If so, just remove it.
+    # otherwise, replace the struct contents of given name id with those from last name id stored.
     if as_unitless_number(_name_id) < as_unitless_number(self.next_name_id - 1):
         self.names[_name_id] = Name({
             name: self.names[self.next_name_id - 1].name,

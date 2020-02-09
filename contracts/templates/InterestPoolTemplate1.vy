@@ -52,9 +52,10 @@ daos: public(map(uint256, address))
 initialized: public(bool)
 accepts_public_contributions: public(bool)
 
-DAO_INTEREST_POOL: public(uint256)
+DAO_INTEREST_POOL: constant(int128) = 2
 
 DECIMALS: constant(uint256) = 10 ** 18
+SECONDS_PER_DAY: constant(uint256) = 24 * 60 * 60
 MAXIMUM_ALLOWED_MARKETS: constant(uint256) = 1000
 
 
@@ -97,8 +98,7 @@ def initialize(
     self.f_address = _f_address
     self.i_address = _i_address
 
-    self.DAO_INTEREST_POOL = 1
-    self.daos[self.DAO_INTEREST_POOL] = msg.sender
+    self.daos[DAO_INTEREST_POOL] = msg.sender
 
     return True
 
@@ -143,12 +143,15 @@ def _i_token_fee(_expiry: timestamp) -> uint256:
     if _expiry < block.timestamp:
         return 0
     else:
-        return (self.markets[self._market_hash(_expiry)].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / (60 * 60 * 24)
+        return (self.markets[self._market_hash(_expiry)].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
 
 
 @private
 @constant
 def _estimated_pool_share_tokens(_l_token_value: uint256) -> uint256:
+    """
+      Return the number of Pool Share Tokens for the given purchase price (L Token value) and current exchange rate
+    """
     return (as_unitless_number(_l_token_value) * as_unitless_number(self._exchange_rate())) / as_unitless_number(DECIMALS)
 
 
@@ -250,12 +253,12 @@ def support_mft(_expiry: timestamp, _i_cost_per_day: uint256) -> bool:
     # verify mft_expiry_limit_days has been set
     assert self.mft_expiry_limit_days > 0
     # verify _expiry is within supported mft_expiry_limit_days
-    _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * 24 * 60 * 60
+    _rolling_window: uint256 = as_unitless_number(self.mft_expiry_limit_days) * as_unitless_number(SECONDS_PER_DAY)
     assert _expiry <= block.timestamp + _rolling_window
     _external_call_successful: bool = False
     _f_id: uint256 = 0
     _i_id: uint256 = 0
-    _external_call_successful, _f_id, _i_id = InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).register_mft_support(
+    _external_call_successful, _f_id, _i_id = InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).register_mft_support(
         self.name, _expiry, self.f_address, self.i_address)
     assert _external_call_successful
     self.markets[_market_hash] = Market({
@@ -291,7 +294,7 @@ def withdraw_mft_support(_expiry: timestamp) -> bool:
     assert self.f_balance[self.markets[_market_hash].f_id] == 0
     # invalidate market support
     self.markets[_market_hash].is_active = False
-    assert_modifiable(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).deregister_mft_support(
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).deregister_mft_support(
         self.name, self.currency, _expiry
     ))
 
@@ -343,7 +346,7 @@ def deregister() -> bool:
     assert msg.sender == self.owner
     # validate balances of l_tokens and total_f_tokens
     assert as_unitless_number(self.l_balance) + as_unitless_number(self.f_total_balance) == 0
-    assert_modifiable(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).deregister_pool(self.name))
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).deregister_pool(self.name))
 
     return True
 
@@ -363,7 +366,7 @@ def increment_i_tokens(_expiry: timestamp, _l_token_value: uint256) -> bool:
     self.i_balance[self.markets[_market_hash].i_id] += as_unitless_number(_l_token_value)
     self.f_balance[self.markets[_market_hash].f_id] += as_unitless_number(_l_token_value)
     self.f_total_balance += as_unitless_number(_l_token_value)
-    assert_modifiable(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).split(
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).split(
         self.currency, _expiry, _l_token_value))
 
     return True
@@ -384,7 +387,7 @@ def decrement_i_tokens(_expiry: timestamp, _l_token_value: uint256) -> bool:
     self.i_balance[self.markets[_market_hash].i_id] -= as_unitless_number(_l_token_value)
     self.f_balance[self.markets[_market_hash].f_id] -= as_unitless_number(_l_token_value)
     self.f_total_balance -= as_unitless_number(_l_token_value)
-    assert_modifiable(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).fuse(
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).fuse(
         self.currency, _expiry, _l_token_value))
 
     return True
@@ -402,7 +405,7 @@ def exercise_f_tokens(_expiry: timestamp, _f_token_value: uint256) -> bool:
     self.l_balance += as_unitless_number(_f_token_value)
     self.f_balance[self.markets[_market_hash].f_id] -= as_unitless_number(_f_token_value)
     self.f_total_balance -= as_unitless_number(_f_token_value)
-    assert_modifiable(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).fuse(
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).fuse(
         self.currency, _expiry, _f_token_value))
 
     return True
@@ -431,9 +434,9 @@ def contribute(_l_token_value: uint256) -> bool:
     # mint pool tokens to msg.sender
     assert_modifiable(ERC20PoolTokenInterface(self.pool_share_token).mintAndAuthorizeMinter(msg.sender, _pool_share_token_value))
     # ask InterestPoolDaoInterface to deposit l_tokens to self
-    assert_modifiable(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).deposit_l(self.name, msg.sender, _l_token_value))
+    assert_modifiable(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).deposit_l(self.name, msg.sender, _l_token_value))
     # authorize CurrencyDao to handle _l_token_value quantity of l_token
-    assert_modifiable(LERC20Interface(self.l_address).approve(InterestPoolDaoInterface(self.daos[self.DAO_INTEREST_POOL]).currency_dao(), _l_token_value))
+    assert_modifiable(LERC20Interface(self.l_address).approve(InterestPoolDaoInterface(self.daos[DAO_INTEREST_POOL]).currency_dao(), _l_token_value))
 
     return True
 
