@@ -157,7 +157,7 @@ def test_open_position_sans_poolshare_model(accounts, get_log_args,
     assert S_lend_token.balanceOf(_lend_and_borrow_token_holder, _s_lend_id, {'from': anyone}) == Web3.toWei(500, 'ether')
     assert U_lend_token.balanceOf(_lend_and_borrow_token_holder, _u_lend_id, {'from': anyone}) == Web3.toWei(500, 'ether')
     # _lend_and_borrow_token_holder splits 4 L_borrow_tokens into 4 F_borrow_tokens and 4 I_borrow_tokens for H20
-    InterestPoolDaoContract.split(Borrow_token.address, H20, Web3.toWei(4, 'ether'), {'from': _lend_and_borrow_token_holder, 'gas': 640000})
+    InterestPoolDaoContract.split(Borrow_token.address, H20, Web3.toWei(4, 'ether'), {'from': _lend_and_borrow_token_holder, 'gas': 700000})
     assert L_borrow_token.balanceOf(_lend_and_borrow_token_holder, {'from': anyone}) == 0
     _f_borrow_id = F_borrow_token.id(Borrow_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_borrow_id = I_borrow_token.id(Borrow_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
@@ -294,7 +294,7 @@ def test_partial_close_position_sans_poolshare_model(accounts, get_log_args,
     _s_lend_id = S_lend_token.id(Lend_token.address, H20, Borrow_token.address, STRIKE_125, {'from': anyone})
     _u_lend_id = U_lend_token.id(Lend_token.address, H20, Borrow_token.address, STRIKE_125, {'from': anyone})
     # _lend_and_borrow_token_holder splits 4 L_borrow_tokens into 4 F_borrow_tokens and 4 I_borrow_tokens for H20
-    InterestPoolDaoContract.split(Borrow_token.address, H20, Web3.toWei(4, 'ether'), {'from': _lend_and_borrow_token_holder, 'gas': 640000})
+    InterestPoolDaoContract.split(Borrow_token.address, H20, Web3.toWei(4, 'ether'), {'from': _lend_and_borrow_token_holder, 'gas': 700000})
     _f_borrow_id = F_borrow_token.id(Borrow_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_borrow_id = I_borrow_token.id(Borrow_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     # _lend_and_borrow_token_holder avails a loan for 500 Lend_tokens
@@ -422,7 +422,7 @@ def test_full_close_position_sans_poolshare_model(accounts, get_log_args,
     _s_lend_id = S_lend_token.id(Lend_token.address, H20, Borrow_token.address, STRIKE_125, {'from': anyone})
     _u_lend_id = U_lend_token.id(Lend_token.address, H20, Borrow_token.address, STRIKE_125, {'from': anyone})
     # _lend_and_borrow_token_holder splits 4 L_borrow_tokens into 4 F_borrow_tokens and 4 I_borrow_tokens for H20
-    InterestPoolDaoContract.split(Borrow_token.address, H20, Web3.toWei(4, 'ether'), {'from': _lend_and_borrow_token_holder, 'gas': 640000})
+    InterestPoolDaoContract.split(Borrow_token.address, H20, Web3.toWei(4, 'ether'), {'from': _lend_and_borrow_token_holder, 'gas': 700000})
     _f_borrow_id = F_borrow_token.id(Borrow_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_borrow_id = I_borrow_token.id(Borrow_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     # _lend_and_borrow_token_holder avails a loan for 500 Lend_tokens

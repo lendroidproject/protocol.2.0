@@ -66,7 +66,7 @@ def test_split(accounts,
     CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), {'from': _lend_token_holder, 'gas': 145000})
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == Web3.toWei(800, 'ether')
     # _lend_token_holder splits 600 L_lend_tokens into 600 F_lend_tokens and 600 I_lend_tokens for H20
-    InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 640000})
+    InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 700000})
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == Web3.toWei(200, 'ether')
     _f_id = F_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_id = I_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
@@ -107,7 +107,7 @@ def test_fuse(accounts,
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == 0
     CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), {'from': _lend_token_holder, 'gas': 145000})
     # _lend_token_holder splits 600 L_lend_tokens into 600 F_lend_tokens and 600 I_lend_tokens for H20
-    InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 640000})
+    InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 700000})
     _f_id = F_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_id = I_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == Web3.toWei(200, 'ether')
