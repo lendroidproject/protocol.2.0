@@ -12,18 +12,18 @@ from conftest import (
     STRIKE_125, H20,
     MAX_LIABILITY_CURENCY_MARKET
 )
-def test_initialize(accounts,
-        Whale, Deployer, Governor,
-        LST_token, Lend_token,
-        get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
-        get_PoolNameRegistry_contract, get_InterestPool_contract,
-        get_CurrencyDao_contract, get_InterestPoolDao_contract,
-        ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolContract = get_InterestPool_contract(address=InterestPoolContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
-    assert not InterestPoolContract.initialized({'from': anyone})
-    InterestPoolContract.initialize_interest_pool({'from': Deployer})
-    assert InterestPoolContract.initialized({'from': anyone})
+# def test_initialize(accounts,
+#         Whale, Deployer, Governor,
+#         LST_token, Lend_token,
+#         get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
+#         get_PoolNameRegistry_contract, get_InterestPool_contract,
+#         get_CurrencyDao_contract, get_InterestPoolDao_contract,
+#         ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolContract = get_InterestPool_contract(address=InterestPoolContract.(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+#     assert not InterestPoolContract.initialized({'from': anyone})
+#     InterestPoolContract.initialize_interest_pool({'from': Deployer})
+#     assert InterestPoolContract.initialized({'from': anyone})
 
 
 
