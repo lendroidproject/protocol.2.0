@@ -55,6 +55,17 @@ Please use Git commits according to this article: https://chris.beams.io/posts/g
 
   `brownie test --coverage`
 
+  <i>Note : Version 1.5.1 of brownie requires the following patch:
+  * Within the virtual env, navigate to the brownie package installed in python3 site-packages.
+  * edit `brownie/network/transaction.py` and add a `try, catch` around the line `pc = last["pc_map"][trace[i]["pc"]]` like this
+  ```
+  try:
+      pc = last["pc_map"][trace[i]["pc"]]
+  except KeyError:
+      continue
+  ```
+  </i>
+
 
 _Note_: When the development / testing session ends, deactivate the virtualenv
 
