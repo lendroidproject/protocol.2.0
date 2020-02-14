@@ -19,7 +19,7 @@ Lendroid Protocol for commercial reasons.
 
 <b>License Terms</b>
 
-Copyright ©2019 LENDROID FOUNDATION
+Copyright ©2020 LENDROID FOUNDATION
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of the Lendroid
 Protocol Smart Contract(s) and associated documentation and Library files namely lendroid.js,
