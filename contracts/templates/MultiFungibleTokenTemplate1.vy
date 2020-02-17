@@ -58,18 +58,18 @@ def initialize(_protocol_dao: address, _authorized_daos: address[5]) -> bool:
     self.INTERFACE_SIGNATURE_ERC165 = "0xa69f31f6"
     # bytes4(keccak256("initialize(address,address[5])")) ^
     # bytes4(keccak256("_hash(address,timestamp,address,uint256)")) ^
-    # bytes4(keccak256("get_or_create_id(address,timestamp,address,uint256,string[64])")) ^
     # bytes4(keccak256("supportsInterface(bytes[10])")) ^
     # bytes4(keccak256("id(address,timestamp,address,uint256)")) ^
     # bytes4(keccak256("is_valid_id(uint256)")) ^
     # bytes4(keccak256("setURI(string[64],uint256)")) ^
+    # bytes4(keccak256("get_or_create_id(address,timestamp,address,uint256,string[64])")) ^
     # bytes4(keccak256("mint(uint256,address,uint256)")) ^
     # bytes4(keccak256("burn(uint256,address,uint256)")) ^
     # bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes32)")) ^
+    # bytes4(keccak256("totalBalanceOf(address)")) ^
     # bytes4(keccak256("balanceOf(address,uint256)")) ^
-    # bytes4(keccak256("burn(uint256,address,uint256)")) ^
     # bytes4(keccak256("balanceOfBatch(address,uint256[5])"));
-    self.INTERFACE_SIGNATURE_MFT = "0xd9b67a26"
+    self.INTERFACE_SIGNATURE_MFT = "0x63f108f4"
     self.authorized_daos[_protocol_dao] = True
     for _dao in _authorized_daos:
         assert _dao.is_contract
