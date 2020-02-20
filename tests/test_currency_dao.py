@@ -28,6 +28,51 @@ def test_pause_and_unpause(accounts, Deployer, EscapeHatchManager, get_CurrencyD
     assert not CurrencyDaoContract.paused({'from': anyone})
 
 
+def test_pause_failed_when_paused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], True, {'from': EscapeHatchManager})
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], True, {'from': EscapeHatchManager}))
+
+
+def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], True, {'from': EscapeHatchManager}))
+
+
+def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    # Tx failed
+    for account in accounts:
+        assert_tx_failed(lambda: CurrencyDaoContract.pause({'from': account}))
+
+
+def test_unpause_failed_when_unpaused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], False, {'from': EscapeHatchManager}))
+
+
+def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_CURRENCY'], False, {'from': EscapeHatchManager}))
+
+
+def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_CurrencyDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    # Tx failed
+    for account in accounts:
+        assert_tx_failed(lambda: CurrencyDaoContract.unpause({'from': account}))
+
+
 def test_wrap(accounts, get_ERC20_contract, get_CurrencyDao_contract,
     Deployer, Governor,
     Whale, Lend_token,

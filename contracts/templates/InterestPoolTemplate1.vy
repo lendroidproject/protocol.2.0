@@ -143,7 +143,8 @@ def _i_token_fee(_expiry: timestamp) -> uint256:
     if _expiry < block.timestamp:
         return 0
     else:
-        return (self.markets[self._market_hash(_expiry)].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
+        # return (self.markets[self._market_hash(_expiry)].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
+        return self.markets[self._market_hash(_expiry)].i_cost_per_day
 
 
 @private
@@ -505,7 +506,7 @@ def purchase_i_tokens(_expiry: timestamp, _fee_in_l_token: uint256) -> bool:
     # validate _i_token_value
     assert as_unitless_number(_fee_in_l_token) > 0
     assert as_unitless_number(self._i_token_fee(_expiry)) > 0
-    _i_token_value: uint256 = as_unitless_number(_fee_in_l_token) / as_unitless_number(self._i_token_fee(_expiry))
+    _i_token_value: uint256 = (as_unitless_number(_fee_in_l_token) * DECIMALS) / as_unitless_number(self._i_token_fee(_expiry))
     assert as_unitless_number(self.i_balance[self.markets[_market_hash].i_id]) >= _i_token_value
     # calculate operator fee
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_i_token) / 100

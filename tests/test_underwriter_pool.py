@@ -2,34 +2,55 @@ import os
 
 import pytest
 
+from web3 import Web3
+
 from conftest import (
-    ZERO_ADDRESS, EMPTY_BYTES32, Z19,
+    PROTOCOL_CONSTANTS,
+    POOL_NAME_REGISTRATION_MIN_STAKE_LST, POOL_NAME_LIONFURY,
+    ZERO_ADDRESS, EMPTY_BYTES32,
+    INTEREST_POOL_DAO_MIN_MFT_FEE, INTEREST_POOL_DAO_FEE_MULTIPLIER_PER_MFT_COUNT,
+    STRIKE_125, H20,
+    MAX_LIABILITY_CURENCY_MARKET
 )
 
 
-# """
-#     The tests in this file use the following deployed contracts, aka
-#     fixtures from conftest:
-#     #. LST_token
-#     #. Lend_token
-#     #. Borrow_token
-#     #. Malicious_token
-#     #. ERC20_library
-#     #. ERC1155_library
-#     #. CurrencyPool_library
-#     #. CurrencyDao
-#     #. InterestPool_library
-#     #. InterestPoolDao
-#     #. UnderwriterPool_library
-#     #. UnderwriterPoolDao
-#     #. CollateralAuctionGraph_Library
-#     #. CollateralAuctionDao
-#     #. ShieldPayoutDao
-#     #. PositionRegistry
-#     #. MarketDao
-# """
-#
-#
+def test_initialize(accounts,
+        Whale, Deployer, Governor,
+        LST_token, Lend_token,
+        get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
+        get_PoolNameRegistry_contract, get_UnderwriterPool_contract,
+        get_CurrencyDao_contract, get_UnderwriterPoolDao_contract,
+        ProtocolDaoContract):
+    anyone = accounts[-1]
+    # get CurrencyDaoContract
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    # get UnderwriterPoolDaoContract
+    UnderwriterPoolDaoContract = get_UnderwriterPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL']))
+    # get PoolNameRegistryContract
+    PoolNameRegistryContract = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    # assign one of the accounts as _pool_owner
+    _pool_owner = accounts[6]
+    # initialize PoolNameRegistryContract
+    ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+    # initialize CurrencyDaoContract
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    # initialize UnderwriterPoolDaoContract
+    ProtocolDaoContract.initialize_underwriter_pool_dao({'from': Deployer})
+    # set support for Lend_token
+    ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
+    # _pool_owner buys POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token from a 3rd party exchange
+    LST_token.transfer(_pool_owner, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Whale})
+    # _pool_owner authorizes CurrencyDaoContract to spend POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token
+    LST_token.approve(CurrencyDaoContract.address, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': _pool_owner})
+    # _pool_owner registers _pool_name POOL_NAME_LIONFURY at the UnderwriterPoolDaoContract
+    _pool_name = POOL_NAME_LIONFURY
+    UnderwriterPoolDaoContract.register_pool(
+        False, Lend_token.address, _pool_name, Web3.toWei(50, 'ether'), 1, 1, 90, {'from': _pool_owner, 'gas': 1200000})
+    # get UnderwriterPoolContract
+    UnderwriterPoolContract = get_UnderwriterPool_contract(address=UnderwriterPoolDaoContract.pools__address_(_pool_name, {'from': anyone}))
+    assert UnderwriterPoolContract.initialized({'from': anyone})
+
+
 # def test_purchase_i_currency(w3, get_contract, get_logs,
 #         LST_token, Lend_token, Borrow_token, Malicious_token,
 #         ERC20_library, ERC1155_library,
