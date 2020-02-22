@@ -33,6 +33,51 @@ def test_pause_and_unpause(accounts, Deployer, EscapeHatchManager, get_MarketDao
     assert not MarketDaoContract.paused({'from': anyone})
 
 
+def test_pause_failed_when_paused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
+    ProtocolDaoContract.initialize_market_dao({'from': Deployer})
+    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_MARKET'], True, {'from': EscapeHatchManager})
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_MARKET'], True, {'from': EscapeHatchManager}))
+
+
+def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_MARKET'], True, {'from': EscapeHatchManager}))
+
+
+def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
+    ProtocolDaoContract.initialize_market_dao({'from': Deployer})
+    # Tx failed
+    for account in accounts:
+        assert_tx_failed(lambda: MarketDaoContract.pause({'from': account}))
+
+
+def test_unpause_failed_when_unpaused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_MARKET'], False, {'from': EscapeHatchManager}))
+
+
+def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_MARKET'], False, {'from': EscapeHatchManager}))
+
+
+def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    # Tx failed
+    for account in accounts:
+        assert_tx_failed(lambda: MarketDaoContract.unpause({'from': account}))
+
+
 def test_open_position_sans_poolshare_model(accounts, get_log_args,
     Whale, Deployer, Governor,
     Lend_token, Borrow_token, LST_token,
@@ -440,1410 +485,1410 @@ def test_full_close_position_sans_poolshare_model(accounts, get_log_args,
     assert PositionRegistryContract.positions__status(_position_id, {'from': anyone}) == PositionRegistryContract.LOAN_STATUS_CLOSED({'from': anyone})
 
 
-# # def test_settle_loan_market_with_no_loans(accounts, get_contract, get_log_args, time_travel,
-# #         LST_token, Lend_token, Borrow_token, Malicious_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceFeed,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     ):
-# #     owner = accounts[0]
-# #     _initialize_all_daos(owner, accounts,
-# #         LST_token, Lend_token, Borrow_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     )
-# #     # set_offer_registration_fee_lookup()
-# #     _minimum_fee = 100
-# #     _minimum_interval = 10
-# #     _fee_multiplier = 2000
-# #     _fee_multiplier_decimals = 1000
-# #     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
-# #         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
-# #         {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Lend_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Borrow_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # register_pool for Lend_token
-# #     pool_owner = accounts[1]
-# #     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
-# #         'Underwriter Pool A', 'UPA', 50,
-# #         {'from': pool_owner, 'gas': 850000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get UnderwriterPool contract
-# #     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
-# #     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-# #     UnderwriterPool = get_contract(
-# #         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-# #         interfaces=[
-# #             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
-# #         ],
-# #         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
-# #     )
-# #     # get UnderwriterPoolCurrency
-# #     UnderwriterPoolCurrency = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=UnderwriterPool.pool_currency_address()
-# #     )
-# #     # pool_owner buys LST from a 3rd party
-# #     LST_token.transfer(pool_owner, 1000 * 10 ** 18, {'from': owner})
-# #     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
-# #     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
-# #         {'from': pool_owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
-# #     _strike_price = 200 * 10 ** 18
-# #     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
-# #         _strike_price, {'from': pool_owner, 'gas': 2600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get L_currency_token
-# #     L_currency_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
-# #     )
-# #     # get L_underlying_token
-# #     L_underlying_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
-# #     )
-# #     # assign one of the accounts as a Lender
-# #     Lender = accounts[2]
-# #     # Lender buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
-# #         {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
-# #         {'from': Lender, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
-# #     # Lender gets 40000 UnderwriterPoolCurrency tokens
-# #     # 800 L_tokens are deposited into UnderwriterPool account
-# #     tx_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # vefiry shield_currency_price is not set
-# #     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
-# #     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[3], Lend_token.address, H20,
-# #         Borrow_token.address, _strike_price)
-# #     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
-# #     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
-# #     # 600 L_tokens burned from UnderwriterPool account
-# #     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
-# #     tx_hash = UnderwriterPool.increment_i_currency_supply(
-# #         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
-# #         {'from': pool_owner, 'gas': 600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get I_token
-# #     I_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
-# #     )
-# #     S_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
-# #     )
-# #     U_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
-# #     )
-# #     # assign one of the accounts as a High_Risk_Insurer
-# #     High_Risk_Insurer = accounts[2]
-# #     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
-# #         _strike_price, 100 * 10 ** 18, 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
-# #         _strike_price, 2 * 10 ** 18, 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a Borrower
-# #     Borrower = accounts[3]
-# #     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
-# #     tx_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
-# #     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
-# #     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, 3 * (10 ** 18),
-# #         {'from': Borrower})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
-# #         {'from': Borrower, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower wishes to avail a loan of 400 Lend_tokens
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
-# #     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
-# #     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-# #     assert PositionRegistryContract.last_offer_index() == 0
-# #     tx_hash = PositionRegistryContract.create_offer(
-# #         Lend_token.address, H20, Borrow_token.address, _strike_price,
-# #         2, 20, 5 * 10 ** 15,
-# #         {'from': High_Risk_Insurer, 'gas': 450000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get Auction contract
-# #     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
-# #         Lend_token.address, H20, Borrow_token.address
-# #     )
-# #     Auction = get_contract(
-# #         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
-# #         interfaces=['ERC20', 'MarketDaoContract'],
-# #         address=CollateralAuctionDao.graphs(_loan_market_hash)
-# #     )
-# #     # No loans availed for the loan market
-# #     # Time passes, until the loan market expires
-# #     time_travel(H20)
-# #     # update price feed
-# #     tx_hash = PriceFeed.set_price(240 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a _loan_market_settler
-# #     _loan_market_settler = accounts[3]
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
-# #     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__shield_market_count(_loan_market_hash) == 1
-# #     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 90000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_CLOSED()
-# #
-# #
-# # def test_settle_loan_market_with_loans(accounts, get_contract, get_log_args, time_travel,
-# #         LST_token, Lend_token, Borrow_token, Malicious_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceFeed,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     ):
-# #     owner = accounts[0]
-# #     _initialize_all_daos(owner, accounts,
-# #         LST_token, Lend_token, Borrow_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     )
-# #     # set_offer_registration_fee_lookup()
-# #     _minimum_fee = 100
-# #     _minimum_interval = 10
-# #     _fee_multiplier = 2000
-# #     _fee_multiplier_decimals = 1000
-# #     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
-# #         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
-# #         {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Lend_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Borrow_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # register_pool for Lend_token
-# #     pool_owner = accounts[1]
-# #     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
-# #         'Underwriter Pool A', 'UPA', 50,
-# #         {'from': pool_owner, 'gas': 850000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get UnderwriterPool contract
-# #     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
-# #     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-# #     UnderwriterPool = get_contract(
-# #         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-# #         interfaces=[
-# #             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
-# #         ],
-# #         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
-# #     )
-# #     # get UnderwriterPoolCurrency
-# #     UnderwriterPoolCurrency = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=UnderwriterPool.pool_currency_address()
-# #     )
-# #     # pool_owner buys LST from a 3rd party
-# #     LST_token.transfer(pool_owner, 1000 * 10 ** 18, {'from': owner})
-# #     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
-# #     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
-# #         {'from': pool_owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
-# #     _strike_price = 200 * 10 ** 18
-# #     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
-# #         _strike_price, {'from': pool_owner, 'gas': 2600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get L_currency_token
-# #     L_currency_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
-# #     )
-# #     # get L_underlying_token
-# #     L_underlying_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
-# #     )
-# #     # assign one of the accounts as a Lender
-# #     Lender = accounts[2]
-# #     # Lender buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
-# #         {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
-# #         {'from': Lender, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
-# #     # Lender gets 40000 UnderwriterPoolCurrency tokens
-# #     # 800 L_tokens are deposited into UnderwriterPool account
-# #     tx_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # vefiry shield_currency_price is not set
-# #     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
-# #     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[3], Lend_token.address, H20,
-# #         Borrow_token.address, _strike_price)
-# #     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
-# #     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
-# #     # 600 L_tokens burned from UnderwriterPool account
-# #     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
-# #     tx_hash = UnderwriterPool.increment_i_currency_supply(
-# #         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
-# #         {'from': pool_owner, 'gas': 600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get I_token
-# #     I_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
-# #     )
-# #     S_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
-# #     )
-# #     U_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
-# #     )
-# #     # assign one of the accounts as a High_Risk_Insurer
-# #     High_Risk_Insurer = accounts[2]
-# #     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
-# #         _strike_price, 100 * 10 ** 18, 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
-# #         _strike_price, 2 * 10 ** 18, 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a Borrower
-# #     Borrower = accounts[3]
-# #     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
-# #     tx_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
-# #     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
-# #     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, 3 * (10 ** 18),
-# #         {'from': Borrower})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
-# #         {'from': Borrower, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower wishes to avail a loan of 400 Lend_tokens
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
-# #     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
-# #     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-# #     assert PositionRegistryContract.last_offer_index() == 0
-# #     tx_hash = PositionRegistryContract.create_offer(
-# #         Lend_token.address, H20, Borrow_token.address, _strike_price,
-# #         2, 20, 5 * 10 ** 15,
-# #         {'from': High_Risk_Insurer, 'gas': 450000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower purchases this offer for the amount of 0.1 ETH
-# #     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
-# #     tx_hash = PositionRegistryContract.avail_loan(0,
-# #         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify Lend_token balance of Borrower
-# #     assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
-# #     # get Auction contract
-# #     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
-# #         Lend_token.address, H20, Borrow_token.address
-# #     )
-# #     Auction = get_contract(
-# #         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
-# #         interfaces=['ERC20', 'MarketDaoContract'],
-# #         address=CollateralAuctionDao.graphs(_loan_market_hash)
-# #     )
-# #     # No loans availed for the loan market
-# #     # Time passes, until the loan market expires
-# #     time_travel(H20)
-# #     # update price feed
-# #     tx_hash = PriceFeed.set_price(240 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a _loan_market_settler
-# #     _loan_market_settler = accounts[3]
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
-# #     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 400 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 2 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__shield_market_count(_loan_market_hash) == 1
-# #     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
-# #
-# #
-# # def test_situation_after_loan_market_settlement_for_expiry_price_above_original_price(accounts, get_contract, get_log_args, time_travel,
-# #         LST_token, Lend_token, Borrow_token, Malicious_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceFeed,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     ):
-# #     owner = accounts[0]
-# #     _initialize_all_daos(owner, accounts,
-# #         LST_token, Lend_token, Borrow_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     )
-# #     # set_offer_registration_fee_lookup()
-# #     _minimum_fee = 100
-# #     _minimum_interval = 10
-# #     _fee_multiplier = 2000
-# #     _fee_multiplier_decimals = 1000
-# #     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
-# #         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
-# #         {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Lend_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Borrow_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # register_pool for Lend_token
-# #     pool_owner = accounts[1]
-# #     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
-# #         'Underwriter Pool A', 'UPA', 50,
-# #         {'from': pool_owner, 'gas': 850000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get UnderwriterPool contract
-# #     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
-# #     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-# #     UnderwriterPool = get_contract(
-# #         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-# #         interfaces=[
-# #             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
-# #         ],
-# #         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
-# #     )
-# #     # get UnderwriterPoolCurrency
-# #     UnderwriterPoolCurrency = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=UnderwriterPool.pool_currency_address()
-# #     )
-# #     # pool_owner buys LST from a 3rd party
-# #     LST_token.transfer(pool_owner, 1000 * 10 ** 18, {'from': owner})
-# #     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
-# #     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
-# #         {'from': pool_owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
-# #     _strike_price = 200 * 10 ** 18
-# #     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
-# #         _strike_price, {'from': pool_owner, 'gas': 2600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get L_currency_token
-# #     L_currency_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
-# #     )
-# #     # get L_underlying_token
-# #     L_underlying_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
-# #     )
-# #     # assign one of the accounts as a Lender
-# #     Lender = accounts[2]
-# #     # Lender buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
-# #         {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
-# #         {'from': Lender, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
-# #     # Lender gets 40000 UnderwriterPoolCurrency tokens
-# #     # 800 L_tokens are deposited into UnderwriterPool account
-# #     tx_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # vefiry shield_currency_price is not set
-# #     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
-# #     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[3], Lend_token.address, H20,
-# #         Borrow_token.address, _strike_price)
-# #     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
-# #     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
-# #     # 600 L_tokens burned from UnderwriterPool account
-# #     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
-# #     tx_hash = UnderwriterPool.increment_i_currency_supply(
-# #         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
-# #         {'from': pool_owner, 'gas': 600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get I_token
-# #     I_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
-# #     )
-# #     S_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
-# #     )
-# #     U_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
-# #     )
-# #     # assign one of the accounts as a High_Risk_Insurer
-# #     High_Risk_Insurer = accounts[2]
-# #     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
-# #         _strike_price, 100 * 10 ** 18, 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
-# #         _strike_price, 2 * 10 ** 18, 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a Borrower
-# #     Borrower = accounts[3]
-# #     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
-# #     tx_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
-# #     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
-# #     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, 3 * (10 ** 18),
-# #         {'from': Borrower})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
-# #         {'from': Borrower, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower wishes to avail a loan of 400 Lend_tokens
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
-# #     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
-# #     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-# #     assert PositionRegistryContract.last_offer_index() == 0
-# #     tx_hash = PositionRegistryContract.create_offer(
-# #         Lend_token.address, H20, Borrow_token.address, _strike_price,
-# #         2, 20, 5 * 10 ** 15,
-# #         {'from': High_Risk_Insurer, 'gas': 450000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower purchases this offer for the amount of 0.1 ETH
-# #     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
-# #     tx_hash = PositionRegistryContract.avail_loan(0,
-# #         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify Lend_token balance of Borrower
-# #     assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
-# #     # get Auction contract
-# #     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
-# #         Lend_token.address, H20, Borrow_token.address
-# #     )
-# #     Auction = get_contract(
-# #         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
-# #         interfaces=['ERC20', 'MarketDaoContract'],
-# #         address=CollateralAuctionDao.graphs(_loan_market_hash)
-# #     )
-# #     time_travel(H20)
-# #     # update price feed
-# #     tx_hash = PriceFeed.set_price(240 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a _loan_market_settler
-# #     _loan_market_settler = accounts[3]
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
-# #     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 400 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 2 * 10 ** 18
-# #     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
-# #     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == 240 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 400 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 2 * 10 ** 18
-# #     # assign one of the accounts as an _auctioned_collateral_purchaser
-# #     _auctioned_collateral_purchaser = accounts[4]
-# #     # _auctioned_collateral_purchaser buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(_auctioned_collateral_purchaser, 1000 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # _auctioned_collateral_purchaser authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
-# #         {'from': _auctioned_collateral_purchaser})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     time_travel(H20 + 10 * 60)
-# #     # _auctioned_collateral_purchaser purchases 1.5 Borrow_tokens for 210.6 Lend_tokens
-# #     assert Auction.is_active() == True
-# #     assert Auction.current_price() == 216.32 * 10 ** 18
-# #     assert Auction.currency_value_remaining() == 400 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 0
-# #     _underlying_value = Auction.currency_value_remaining() / Auction.current_price()
-# #     tx_hash = Auction.purchase(Web3.toWei(_underlying_value, 'ether'), {'from': _auctioned_collateral_purchaser, 'gas': 220000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 400 * 10 ** 18 - Auction.currency_value_remaining()
-# #     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == Web3.toWei(_underlying_value, 'ether')
-# #     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 0
-# #     tx_hash = Auction.purchase_for_remaining_currency({'from': _auctioned_collateral_purchaser, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Auction.is_active() == False
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_CLOSED()
-# #     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 400 * 10 ** 18
-# #     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == 1849586800695850701
-# #     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 216264519107463452257
-# #
-# #
-# # def test_l_token_balances_until_loan_market_settlement_for_expiry_price_below_original_price(accounts, get_contract, get_log_args, time_travel,
-# #         LST_token, Lend_token, Borrow_token, Malicious_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceFeed,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     ):
-# #     owner = accounts[0]
-# #     _initialize_all_daos(owner, accounts,
-# #         LST_token, Lend_token, Borrow_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     )
-# #     # set_offer_registration_fee_lookup()
-# #     _minimum_fee = 100
-# #     _minimum_interval = 10
-# #     _fee_multiplier = 2000
-# #     _fee_multiplier_decimals = 1000
-# #     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
-# #         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
-# #         {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Lend_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Borrow_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # register_pool for Lend_token
-# #     pool_owner = accounts[1]
-# #     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
-# #         'Underwriter Pool A', 'UPA', 50,
-# #         {'from': pool_owner, 'gas': 850000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get UnderwriterPool contract
-# #     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
-# #     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-# #     UnderwriterPool = get_contract(
-# #         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-# #         interfaces=[
-# #             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
-# #         ],
-# #         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
-# #     )
-# #     # get UnderwriterPoolCurrency
-# #     UnderwriterPoolCurrency = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=UnderwriterPool.pool_currency_address()
-# #     )
-# #     # pool_owner buys LST from a 3rd party
-# #     LST_token.transfer(pool_owner, Web3.toWei(1000, 'ether'), {'from': owner})
-# #     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
-# #     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
-# #         {'from': pool_owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
-# #     _strike_price = Web3.toWei(200, 'ether')
-# #     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
-# #         _strike_price, {'from': pool_owner, 'gas': 2600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get L_currency_token
-# #     L_currency_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
-# #     )
-# #     _currency_pool_hash = CurrencyDaoContract.pool_hash(Lend_token.address)
-# #     # get L_underlying_token
-# #     L_underlying_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
-# #     )
-# #     _underlying_pool_hash = CurrencyDaoContract.pool_hash(Borrow_token.address)
-# #     # assign one of the accounts as a Lender
-# #     Lender = accounts[2]
-# #     # Lender buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(Lender, Web3.toWei(1000, 'ether'), {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(800, 'ether'),
-# #         {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply and lend_currency_balance
-# #     assert L_currency_token.totalSupply() == 0
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == 0
-# #     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, Web3.toWei(800, 'ether'),
-# #         {'from': Lender, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
-# #     assert L_currency_token.balanceOf(Lender) == Web3.toWei(800, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == 0
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
-# #     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
-# #     # Lender gets 40000 UnderwriterPoolCurrency tokens
-# #     # 800 L_tokens are deposited into UnderwriterPool account
-# #     tx_hash = UnderwriterPool.purchase_pool_currency(Web3.toWei(800, 'ether'), {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
-# #     assert L_currency_token.balanceOf(Lender) == 0
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(800, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
-# #     # vefiry shield_currency_price is not set
-# #     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
-# #     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[3], Lend_token.address, H20,
-# #         Borrow_token.address, _strike_price)
-# #     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
-# #     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
-# #     # 600 L_tokens burned from UnderwriterPool account
-# #     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
-# #     tx_hash = UnderwriterPool.increment_i_currency_supply(
-# #         H20, Borrow_token.address, _strike_price, Web3.toWei(600, 'ether'),
-# #         {'from': pool_owner, 'gas': 600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
-# #     # get I_token
-# #     I_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
-# #     )
-# #     S_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
-# #     )
-# #     U_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
-# #     )
-# #     # assign one of the accounts as a High_Risk_Insurer
-# #     High_Risk_Insurer = accounts[2]
-# #     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
-# #         _strike_price, Web3.toWei(100, 'ether'), 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
-# #         _strike_price, Web3.toWei(2, 'ether'), 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a Borrower
-# #     Borrower = accounts[3]
-# #     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
-# #     tx_hash = Borrow_token.transfer(Borrower, Web3.toWei(10, 'ether'), {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Borrow_token.balanceOf(Borrower) == Web3.toWei(10, 'ether')
-# #     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
-# #     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, Web3.toWei(3, 'ether'),
-# #         {'from': Borrower})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == 0
-# #     assert L_underlying_token.balanceOf(Borrower) == 0
-# #     assert L_underlying_token.balanceOf(UnderwriterPool.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == 0
-# #     # Borrower deposits 3 Borrow_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, Web3.toWei(3, 'ether'),
-# #         {'from': Borrower, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(3, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
-# #     # Borrower wishes to avail a loan of 400 Lend_tokens
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
-# #     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
-# #     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-# #     assert PositionRegistryContract.last_offer_index() == 0
-# #     tx_hash = PositionRegistryContract.create_offer(
-# #         Lend_token.address, H20, Borrow_token.address, _strike_price,
-# #         2, 20, 5 * 10 ** 15,
-# #         {'from': High_Risk_Insurer, 'gas': 450000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
-# #     # Borrower purchases this offer for the amount of 0.1 ETH
-# #     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
-# #     tx_hash = PositionRegistryContract.avail_loan(0,
-# #         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
-# #     # verify Lend_token balance of Borrower
-# #     assert Lend_token.balanceOf(Borrower) == Web3.toWei(400, 'ether')
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
-# #     # get Auction contract
-# #     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
-# #         Lend_token.address, H20, Borrow_token.address
-# #     )
-# #     Auction = get_contract(
-# #         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
-# #         interfaces=['ERC20', 'MarketDaoContract'],
-# #         address=CollateralAuctionDao.graphs(_loan_market_hash)
-# #     )
-# #     time_travel(H20)
-# #     # update price feed
-# #     tx_hash = PriceFeed.set_price(Web3.toWei(150, 'ether'), {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # assign one of the accounts as a _loan_market_settler
-# #     _loan_market_settler = accounts[3]
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
-# #     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == Web3.toWei(400, 'ether')
-# #     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == Web3.toWei(2, 'ether')
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
-# #     assert Borrow_token.balanceOf(Auction.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
-# #     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
-# #     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == Web3.toWei(150, 'ether')
-# #     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == Web3.toWei(400, 'ether')
-# #     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == Web3.toWei(2, 'ether')
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
-# #     assert Borrow_token.balanceOf(Auction.address) == Web3.toWei(2, 'ether')
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
-# #     # assign one of the accounts as an _auctioned_collateral_purchaser
-# #     _auctioned_collateral_purchaser = accounts[4]
-# #     # _auctioned_collateral_purchaser buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(_auctioned_collateral_purchaser, 1000 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # _auctioned_collateral_purchaser authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
-# #         {'from': _auctioned_collateral_purchaser})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     time_travel(H20 + 10 * 60)
-# #     assert Auction.is_active() == True
-# #     assert Auction.current_price() == Web3.toWei(135.2, 'ether')
-# #     assert Auction.currency_value_remaining() == Web3.toWei(400, 'ether')
-# #     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == 0
-# #     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 0
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert Borrow_token.balanceOf(Auction.address) == Web3.toWei(2, 'ether')
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
-# #     # _auctioned_collateral_purchaser purchases all of the 2 Borrow_tokens for current price of Lend_tokens
-# #     tx_hash = Auction.purchase_for_remaining_currency({'from': _auctioned_collateral_purchaser, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Auction.is_active() == False
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_CLOSED()
-# #     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 270330666666666666666
-# #     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == Web3.toWei(2, 'ether')
-# #     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 135165333333333333333
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == 670330666666666666666
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert Borrow_token.balanceOf(Auction.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
-# #
-# #
-# # def test_close_liquidated_loan_for_settlement_price_below_original_price(accounts, get_contract, get_log_args, time_travel,
-# #         LST_token, Lend_token, Borrow_token, Malicious_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceFeed,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     ):
-# #     owner = accounts[0]
-# #     _initialize_all_daos(owner, accounts,
-# #         LST_token, Lend_token, Borrow_token,
-# #         ERC20_library, ERC1155_library,
-# #         CurrencyPool_library, CurrencyDaoContract,
-# #         InterestPool_library, InterestPoolDaoContract,
-# #         UnderwriterPool_library, UnderwriterPoolDaoContract,
-# #         CollateralAuctionGraph_Library, CollateralAuctionDao,
-# #         ShieldPayoutDaoContract,
-# #         PositionRegistryContract,
-# #         PriceOracle,
-# #         MarketDaoContract
-# #     )
-# #     # set_offer_registration_fee_lookup()
-# #     _minimum_fee = 100
-# #     _minimum_interval = 10
-# #     _fee_multiplier = 2000
-# #     _fee_multiplier_decimals = 1000
-# #     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
-# #         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
-# #         {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Lend_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # set_currency_support for Borrow_token in CurrencyDaoContract
-# #     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
-# #         {'from': owner, 'gas': 1570000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # register_pool for Lend_token
-# #     pool_owner = accounts[1]
-# #     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
-# #         'Underwriter Pool A', 'UPA', 50,
-# #         {'from': pool_owner, 'gas': 850000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get UnderwriterPool contract
-# #     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
-# #     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
-# #     UnderwriterPool = get_contract(
-# #         'contracts/templates/UnderwriterPoolTemplate1.v.py',
-# #         interfaces=[
-# #             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
-# #         ],
-# #         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
-# #     )
-# #     # get UnderwriterPoolCurrency
-# #     UnderwriterPoolCurrency = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=UnderwriterPool.pool_currency_address()
-# #     )
-# #     # pool_owner buys LST from a 3rd party
-# #     LST_token.transfer(pool_owner, Web3.toWei(1000, 'ether'), {'from': owner})
-# #     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
-# #     tx_hash = LST_token.approve(CurrencyDaoContract.address, Web3.toWei(UnderwriterPoolDaoContract.offer_registration_fee(), 'ether'),
-# #         {'from': pool_owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
-# #     _strike_price = Web3.toWei(200, 'ether')
-# #     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
-# #         _strike_price, {'from': pool_owner, 'gas': 2600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get L_currency_token
-# #     L_currency_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
-# #     )
-# #     _currency_pool_hash = CurrencyDaoContract.pool_hash(Lend_token.address)
-# #     # get L_underlying_token
-# #     L_underlying_token = get_contract(
-# #         'contracts/templates/ERC20Template1.v.py',
-# #         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
-# #     )
-# #     _underlying_pool_hash = CurrencyDaoContract.pool_hash(Borrow_token.address)
-# #     # assign one of the accounts as a Lender
-# #     Lender = accounts[2]
-# #     # Lender buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(Lender, Web3.toWei(1000, 'ether'), {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(800, 'ether'),
-# #         {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
-# #     assert L_currency_token.totalSupply() == 0
-# #     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == 0
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, Web3.toWei(800, 'ether'),
-# #         {'from': Lender, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
-# #     assert L_currency_token.balanceOf(Lender) == Web3.toWei(800, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == 0
-# #     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
-# #     # Lender gets 40000 UnderwriterPoolCurrency tokens
-# #     # 800 L_tokens are deposited into UnderwriterPool account
-# #     tx_hash = UnderwriterPool.purchase_pool_currency(Web3.toWei(800, 'ether'), {'from': Lender})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
-# #     assert L_currency_token.balanceOf(Lender) == 0
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(800, 'ether')
-# #     # vefiry shield_currency_price is not set
-# #     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
-# #     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[3], Lend_token.address, H20,
-# #         Borrow_token.address, _strike_price)
-# #     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
-# #         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
-# #     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
-# #     # 600 L_tokens burned from UnderwriterPool account
-# #     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
-# #     tx_hash = UnderwriterPool.increment_i_currency_supply(
-# #         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
-# #         {'from': pool_owner, 'gas': 600000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get I_token
-# #     I_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
-# #     )
-# #     S_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
-# #     )
-# #     U_token = get_contract(
-# #         'contracts/templates/ERC1155Template2.v.py',
-# #         interfaces=['ERC1155TokenReceiver'],
-# #         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
-# #     )
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     # verify i_lend_currency supply and i_lend_currency balance
-# #     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(600, 'ether')
-# #     # verify s_lend_currency supply and s_lend_currency balance
-# #     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
-# #     # verify u_lend_currency supply and u_lend_currency balance
-# #     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
-# #     # assign one of the accounts as a High_Risk_Insurer
-# #     High_Risk_Insurer = accounts[2]
-# #     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
-# #         _strike_price, Web3.toWei(100, 'ether'), 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
-# #     # The corresponding 2 u_tokens remain in the UnderwriterPool
-# #     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
-# #         _strike_price, Web3.toWei(2, 'ether'), 0, {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify i_lend_currency supply and i_lend_currency balance
-# #     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(100, 'ether')
-# #     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
-# #     # verify s_lend_currency supply and s_lend_currency balance
-# #     assert S_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(2, 'ether')
-# #     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
-# #     # verify u_lend_currency supply and u_lend_currency balance
-# #     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
-# #     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
-# #     # assign one of the accounts as a Borrower
-# #     Borrower = accounts[3]
-# #     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
-# #     tx_hash = Borrow_token.transfer(Borrower, Web3.toWei(10, 'ether'), {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert Borrow_token.balanceOf(Borrower) == Web3.toWei(10, 'ether')
-# #     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
-# #     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, Web3.toWei(3, 'ether'),
-# #         {'from': Borrower})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
-# #     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, Web3.toWei(3, 'ether'),
-# #         {'from': Borrower, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower wishes to avail a loan of 400 Lend_tokens
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
-# #     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
-# #     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
-# #         {'from': High_Risk_Insurer})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
-# #     assert PositionRegistryContract.last_offer_index() == 0
-# #     tx_hash = PositionRegistryContract.create_offer(
-# #         Lend_token.address, H20, Borrow_token.address, _strike_price,
-# #         2, 20, 5 * 10 ** 15,
-# #         {'from': High_Risk_Insurer, 'gas': 450000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # Borrower purchases this offer for the amount of 0.1 ETH
-# #     # 20 i_tokens are transferred from High_Risk_Insurer account to Borrower
-# #     # 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
-# #     tx_hash = PositionRegistryContract.avail_loan(0,
-# #         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify i_lend_currency supply and i_lend_currency balance
-# #     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(80, 'ether')
-# #     assert I_token.totalBalanceOf(Borrower) == Web3.toWei(20, 'ether')
-# #     assert I_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
-# #     # verify s_lend_currency supply and s_lend_currency balance
-# #     assert S_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(0, 'ether')
-# #     assert S_token.totalBalanceOf(Borrower) == 0
-# #     assert S_token.totalBalanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
-# #     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
-# #     # verify u_lend_currency supply and u_lend_currency balance
-# #     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
-# #     assert U_token.totalBalanceOf(Borrower) == 0
-# #     assert U_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
-# #     # verify Lend_token balance of Borrower
-# #     assert Lend_token.balanceOf(Borrower) == Web3.toWei(400, 'ether')
-# #     # Borrower authorizes CurrencyDaoContract to spend 400 Lend_tokens
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(400, 'ether'),
-# #         {'from': Borrower})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # get Auction contract
-# #     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
-# #         Lend_token.address, H20, Borrow_token.address
-# #     )
-# #     Auction = get_contract(
-# #         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
-# #         interfaces=['ERC20', 'MarketDaoContract'],
-# #         address=CollateralAuctionDao.graphs(_loan_market_hash)
-# #     )
-# #     # time passes until loan market expires
-# #     time_travel(H20)
-# #     # update price feed
-# #     tx_hash = PriceFeed.set_price(Web3.toWei(150, 'ether'), {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
-# #     assert Borrow_token.balanceOf(Auction.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
-# #     # assign one of the accounts as a _loan_market_settler
-# #     _loan_market_settler = accounts[3]
-# #     # _loan_market_settler initiates loan market settlement
-# #     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
-# #     assert Borrow_token.balanceOf(Auction.address) == Web3.toWei(2, 'ether')
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
-# #     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
-# #     # assign one of the accounts as an _auctioned_collateral_purchaser
-# #     _auctioned_collateral_purchaser = accounts[4]
-# #     # _auctioned_collateral_purchaser buys 1000 lend token from a 3rd party exchange
-# #     tx_hash = Lend_token.transfer(_auctioned_collateral_purchaser, 1000 * 10 ** 18, {'from': owner})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     # _auctioned_collateral_purchaser authorizes CurrencyDaoContract to spend 800 lend currency
-# #     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
-# #         {'from': _auctioned_collateral_purchaser})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     time_travel(H20 + 10 * 60)
-# #     # _auctioned_collateral_purchaser purchases all of the 2 Borrow_tokens for current price of Lend_tokens
-# #     tx_hash = Auction.purchase_for_remaining_currency({'from': _auctioned_collateral_purchaser, 'gas': 280000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     assert tx_receipt['status'] == 1
-# #     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 135165333333333333333
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(Borrower) == 0
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
-# #     assert Borrow_token.balanceOf(Auction.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
-# #     # verify i_lend_currency supply and i_lend_currency balance
-# #     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(80, 'ether')
-# #     assert I_token.totalBalanceOf(Borrower) == Web3.toWei(20, 'ether')
-# #     assert I_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
-# #     # verify s_lend_currency supply and s_lend_currency balance
-# #     assert S_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(0, 'ether')
-# #     assert S_token.totalBalanceOf(Borrower) == 0
-# #     assert S_token.totalBalanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
-# #     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
-# #     # verify u_lend_currency supply and u_lend_currency balance
-# #     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
-# #     assert U_token.totalBalanceOf(Borrower) == 0
-# #     assert U_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
-# #     # Borrower cannot exercise his 2 s_tokens
-# #     assert MarketDaoContract.shield_payout(Lend_token.address, H20, Borrow_token.address, _strike_price) == 0
-# #     # Borrower closes the liquidated loan
-# #     position_id = PositionRegistryContract.borrow_position(Borrower, PositionRegistryContract.borrow_position_count(Borrower))
-# #     tx_hash = PositionRegistryContract.close_liquidated_loan(position_id, {'from': Borrower, 'gas': 200000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     print('\n\n tx_receipt:\n{0}\n\n'.format(tx_receipt))
-# #     assert tx_receipt['status'] == 1
-# #     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
-# #     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
-# #     assert L_currency_token.balanceOf(Borrower) == 0
-# #     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
-# #     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
-# #     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
-# #     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
-# #     # verify i_lend_currency supply and i_lend_currency balance
-# #     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(80, 'ether')
-# #     assert I_token.totalBalanceOf(Borrower) == Web3.toWei(20, 'ether')
-# #     assert I_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
-# #     # verify s_lend_currency supply and s_lend_currency balance
-# #     assert S_token.totalBalanceOf(High_Risk_Insurer) == 0
-# #     assert S_token.totalBalanceOf(Borrower) == 0
-# #     assert S_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
-# #     # verify u_lend_currency supply and u_lend_currency balance
-# #     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
-# #     assert U_token.totalBalanceOf(Borrower) == 0
-# #     assert U_token.totalBalanceOf(MarketDaoContract.address) == 0
-# #     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
+# def test_settle_loan_market_with_no_loans(accounts, get_contract, get_log_args, time_travel,
+#         LST_token, Lend_token, Borrow_token, Malicious_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceFeed,
+#         PriceOracle,
+#         MarketDaoContract
+#     ):
+#     owner = accounts[0]
+#     _initialize_all_daos(owner, accounts,
+#         LST_token, Lend_token, Borrow_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceOracle,
+#         MarketDaoContract
+#     )
+#     # set_offer_registration_fee_lookup()
+#     _minimum_fee = 100
+#     _minimum_interval = 10
+#     _fee_multiplier = 2000
+#     _fee_multiplier_decimals = 1000
+#     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
+#         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
+#         {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Lend_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Borrow_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # register_pool for Lend_token
+#     pool_owner = accounts[1]
+#     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
+#         'Underwriter Pool A', 'UPA', 50,
+#         {'from': pool_owner, 'gas': 850000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get UnderwriterPool contract
+#     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
+#     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
+#     UnderwriterPool = get_contract(
+#         'contracts/templates/UnderwriterPoolTemplate1.v.py',
+#         interfaces=[
+#             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
+#         ],
+#         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
+#     )
+#     # get UnderwriterPoolCurrency
+#     UnderwriterPoolCurrency = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=UnderwriterPool.pool_currency_address()
+#     )
+#     # pool_owner buys LST from a 3rd party
+#     LST_token.transfer(pool_owner, 1000 * 10 ** 18, {'from': owner})
+#     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
+#     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
+#         {'from': pool_owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
+#     _strike_price = 200 * 10 ** 18
+#     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
+#         _strike_price, {'from': pool_owner, 'gas': 2600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get L_currency_token
+#     L_currency_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
+#     )
+#     # get L_underlying_token
+#     L_underlying_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
+#     )
+#     # assign one of the accounts as a Lender
+#     Lender = accounts[2]
+#     # Lender buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
+#         {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
+#         {'from': Lender, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+#     # Lender gets 40000 UnderwriterPoolCurrency tokens
+#     # 800 L_tokens are deposited into UnderwriterPool account
+#     tx_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # vefiry shield_currency_price is not set
+#     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
+#     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[3], Lend_token.address, H20,
+#         Borrow_token.address, _strike_price)
+#     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
+#     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+#     # 600 L_tokens burned from UnderwriterPool account
+#     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
+#     tx_hash = UnderwriterPool.increment_i_currency_supply(
+#         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
+#         {'from': pool_owner, 'gas': 600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get I_token
+#     I_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
+#     )
+#     S_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
+#     )
+#     U_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
+#     )
+#     # assign one of the accounts as a High_Risk_Insurer
+#     High_Risk_Insurer = accounts[2]
+#     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
+#         _strike_price, 100 * 10 ** 18, 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
+#         _strike_price, 2 * 10 ** 18, 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a Borrower
+#     Borrower = accounts[3]
+#     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
+#     tx_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
+#     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
+#     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, 3 * (10 ** 18),
+#         {'from': Borrower})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
+#         {'from': Borrower, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower wishes to avail a loan of 400 Lend_tokens
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
+#     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
+#     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
+#     assert PositionRegistryContract.last_offer_index() == 0
+#     tx_hash = PositionRegistryContract.create_offer(
+#         Lend_token.address, H20, Borrow_token.address, _strike_price,
+#         2, 20, 5 * 10 ** 15,
+#         {'from': High_Risk_Insurer, 'gas': 450000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get Auction contract
+#     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
+#         Lend_token.address, H20, Borrow_token.address
+#     )
+#     Auction = get_contract(
+#         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
+#         interfaces=['ERC20', 'MarketDaoContract'],
+#         address=CollateralAuctionDao.graphs(_loan_market_hash)
+#     )
+#     # No loans availed for the loan market
+#     # Time passes, until the loan market expires
+#     time_travel(H20)
+#     # update price feed
+#     tx_hash = PriceFeed.set_price(240 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a _loan_market_settler
+#     _loan_market_settler = accounts[3]
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
+#     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__shield_market_count(_loan_market_hash) == 1
+#     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 90000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_CLOSED()
+#
+#
+# def test_settle_loan_market_with_loans(accounts, get_contract, get_log_args, time_travel,
+#         LST_token, Lend_token, Borrow_token, Malicious_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceFeed,
+#         PriceOracle,
+#         MarketDaoContract
+#     ):
+#     owner = accounts[0]
+#     _initialize_all_daos(owner, accounts,
+#         LST_token, Lend_token, Borrow_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceOracle,
+#         MarketDaoContract
+#     )
+#     # set_offer_registration_fee_lookup()
+#     _minimum_fee = 100
+#     _minimum_interval = 10
+#     _fee_multiplier = 2000
+#     _fee_multiplier_decimals = 1000
+#     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
+#         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
+#         {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Lend_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Borrow_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # register_pool for Lend_token
+#     pool_owner = accounts[1]
+#     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
+#         'Underwriter Pool A', 'UPA', 50,
+#         {'from': pool_owner, 'gas': 850000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get UnderwriterPool contract
+#     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
+#     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
+#     UnderwriterPool = get_contract(
+#         'contracts/templates/UnderwriterPoolTemplate1.v.py',
+#         interfaces=[
+#             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
+#         ],
+#         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
+#     )
+#     # get UnderwriterPoolCurrency
+#     UnderwriterPoolCurrency = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=UnderwriterPool.pool_currency_address()
+#     )
+#     # pool_owner buys LST from a 3rd party
+#     LST_token.transfer(pool_owner, 1000 * 10 ** 18, {'from': owner})
+#     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
+#     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
+#         {'from': pool_owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
+#     _strike_price = 200 * 10 ** 18
+#     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
+#         _strike_price, {'from': pool_owner, 'gas': 2600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get L_currency_token
+#     L_currency_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
+#     )
+#     # get L_underlying_token
+#     L_underlying_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
+#     )
+#     # assign one of the accounts as a Lender
+#     Lender = accounts[2]
+#     # Lender buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
+#         {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
+#         {'from': Lender, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+#     # Lender gets 40000 UnderwriterPoolCurrency tokens
+#     # 800 L_tokens are deposited into UnderwriterPool account
+#     tx_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # vefiry shield_currency_price is not set
+#     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
+#     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[3], Lend_token.address, H20,
+#         Borrow_token.address, _strike_price)
+#     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
+#     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+#     # 600 L_tokens burned from UnderwriterPool account
+#     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
+#     tx_hash = UnderwriterPool.increment_i_currency_supply(
+#         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
+#         {'from': pool_owner, 'gas': 600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get I_token
+#     I_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
+#     )
+#     S_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
+#     )
+#     U_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
+#     )
+#     # assign one of the accounts as a High_Risk_Insurer
+#     High_Risk_Insurer = accounts[2]
+#     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
+#         _strike_price, 100 * 10 ** 18, 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
+#         _strike_price, 2 * 10 ** 18, 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a Borrower
+#     Borrower = accounts[3]
+#     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
+#     tx_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
+#     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
+#     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, 3 * (10 ** 18),
+#         {'from': Borrower})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
+#         {'from': Borrower, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower wishes to avail a loan of 400 Lend_tokens
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
+#     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
+#     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
+#     assert PositionRegistryContract.last_offer_index() == 0
+#     tx_hash = PositionRegistryContract.create_offer(
+#         Lend_token.address, H20, Borrow_token.address, _strike_price,
+#         2, 20, 5 * 10 ** 15,
+#         {'from': High_Risk_Insurer, 'gas': 450000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower purchases this offer for the amount of 0.1 ETH
+#     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
+#     tx_hash = PositionRegistryContract.avail_loan(0,
+#         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify Lend_token balance of Borrower
+#     assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
+#     # get Auction contract
+#     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
+#         Lend_token.address, H20, Borrow_token.address
+#     )
+#     Auction = get_contract(
+#         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
+#         interfaces=['ERC20', 'MarketDaoContract'],
+#         address=CollateralAuctionDao.graphs(_loan_market_hash)
+#     )
+#     # No loans availed for the loan market
+#     # Time passes, until the loan market expires
+#     time_travel(H20)
+#     # update price feed
+#     tx_hash = PriceFeed.set_price(240 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a _loan_market_settler
+#     _loan_market_settler = accounts[3]
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
+#     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 400 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 2 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__shield_market_count(_loan_market_hash) == 1
+#     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
+#
+#
+# def test_situation_after_loan_market_settlement_for_expiry_price_above_original_price(accounts, get_contract, get_log_args, time_travel,
+#         LST_token, Lend_token, Borrow_token, Malicious_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceFeed,
+#         PriceOracle,
+#         MarketDaoContract
+#     ):
+#     owner = accounts[0]
+#     _initialize_all_daos(owner, accounts,
+#         LST_token, Lend_token, Borrow_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceOracle,
+#         MarketDaoContract
+#     )
+#     # set_offer_registration_fee_lookup()
+#     _minimum_fee = 100
+#     _minimum_interval = 10
+#     _fee_multiplier = 2000
+#     _fee_multiplier_decimals = 1000
+#     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
+#         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
+#         {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Lend_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Borrow_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # register_pool for Lend_token
+#     pool_owner = accounts[1]
+#     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
+#         'Underwriter Pool A', 'UPA', 50,
+#         {'from': pool_owner, 'gas': 850000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get UnderwriterPool contract
+#     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
+#     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
+#     UnderwriterPool = get_contract(
+#         'contracts/templates/UnderwriterPoolTemplate1.v.py',
+#         interfaces=[
+#             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
+#         ],
+#         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
+#     )
+#     # get UnderwriterPoolCurrency
+#     UnderwriterPoolCurrency = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=UnderwriterPool.pool_currency_address()
+#     )
+#     # pool_owner buys LST from a 3rd party
+#     LST_token.transfer(pool_owner, 1000 * 10 ** 18, {'from': owner})
+#     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
+#     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
+#         {'from': pool_owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
+#     _strike_price = 200 * 10 ** 18
+#     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
+#         _strike_price, {'from': pool_owner, 'gas': 2600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get L_currency_token
+#     L_currency_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
+#     )
+#     # get L_underlying_token
+#     L_underlying_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
+#     )
+#     # assign one of the accounts as a Lender
+#     Lender = accounts[2]
+#     # Lender buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(Lender, 1000 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
+#         {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, 800 * 10 ** 18,
+#         {'from': Lender, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+#     # Lender gets 40000 UnderwriterPoolCurrency tokens
+#     # 800 L_tokens are deposited into UnderwriterPool account
+#     tx_hash = UnderwriterPool.purchase_pool_currency(800 * 10 ** 18, {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # vefiry shield_currency_price is not set
+#     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
+#     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[3], Lend_token.address, H20,
+#         Borrow_token.address, _strike_price)
+#     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
+#     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+#     # 600 L_tokens burned from UnderwriterPool account
+#     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
+#     tx_hash = UnderwriterPool.increment_i_currency_supply(
+#         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
+#         {'from': pool_owner, 'gas': 600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get I_token
+#     I_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
+#     )
+#     S_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
+#     )
+#     U_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
+#     )
+#     # assign one of the accounts as a High_Risk_Insurer
+#     High_Risk_Insurer = accounts[2]
+#     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
+#         _strike_price, 100 * 10 ** 18, 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
+#         _strike_price, 2 * 10 ** 18, 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a Borrower
+#     Borrower = accounts[3]
+#     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
+#     tx_hash = Borrow_token.transfer(Borrower, 10 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Borrow_token.balanceOf(Borrower) == 10 * 10 ** 18
+#     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
+#     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, 3 * (10 ** 18),
+#         {'from': Borrower})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, 3 * 10 ** 18,
+#         {'from': Borrower, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower wishes to avail a loan of 400 Lend_tokens
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
+#     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
+#     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
+#     assert PositionRegistryContract.last_offer_index() == 0
+#     tx_hash = PositionRegistryContract.create_offer(
+#         Lend_token.address, H20, Borrow_token.address, _strike_price,
+#         2, 20, 5 * 10 ** 15,
+#         {'from': High_Risk_Insurer, 'gas': 450000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower purchases this offer for the amount of 0.1 ETH
+#     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
+#     tx_hash = PositionRegistryContract.avail_loan(0,
+#         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify Lend_token balance of Borrower
+#     assert Lend_token.balanceOf(Borrower) == 400 * 10 ** 18
+#     # get Auction contract
+#     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
+#         Lend_token.address, H20, Borrow_token.address
+#     )
+#     Auction = get_contract(
+#         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
+#         interfaces=['ERC20', 'MarketDaoContract'],
+#         address=CollateralAuctionDao.graphs(_loan_market_hash)
+#     )
+#     time_travel(H20)
+#     # update price feed
+#     tx_hash = PriceFeed.set_price(240 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a _loan_market_settler
+#     _loan_market_settler = accounts[3]
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
+#     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 400 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 2 * 10 ** 18
+#     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
+#     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == 240 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == 400 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == 2 * 10 ** 18
+#     # assign one of the accounts as an _auctioned_collateral_purchaser
+#     _auctioned_collateral_purchaser = accounts[4]
+#     # _auctioned_collateral_purchaser buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(_auctioned_collateral_purchaser, 1000 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # _auctioned_collateral_purchaser authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
+#         {'from': _auctioned_collateral_purchaser})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     time_travel(H20 + 10 * 60)
+#     # _auctioned_collateral_purchaser purchases 1.5 Borrow_tokens for 210.6 Lend_tokens
+#     assert Auction.is_active() == True
+#     assert Auction.current_price() == 216.32 * 10 ** 18
+#     assert Auction.currency_value_remaining() == 400 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 0
+#     _underlying_value = Auction.currency_value_remaining() / Auction.current_price()
+#     tx_hash = Auction.purchase(Web3.toWei(_underlying_value, 'ether'), {'from': _auctioned_collateral_purchaser, 'gas': 220000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 400 * 10 ** 18 - Auction.currency_value_remaining()
+#     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == Web3.toWei(_underlying_value, 'ether')
+#     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 0
+#     tx_hash = Auction.purchase_for_remaining_currency({'from': _auctioned_collateral_purchaser, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Auction.is_active() == False
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_CLOSED()
+#     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 400 * 10 ** 18
+#     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == 1849586800695850701
+#     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 216264519107463452257
+#
+#
+# def test_l_token_balances_until_loan_market_settlement_for_expiry_price_below_original_price(accounts, get_contract, get_log_args, time_travel,
+#         LST_token, Lend_token, Borrow_token, Malicious_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceFeed,
+#         PriceOracle,
+#         MarketDaoContract
+#     ):
+#     owner = accounts[0]
+#     _initialize_all_daos(owner, accounts,
+#         LST_token, Lend_token, Borrow_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceOracle,
+#         MarketDaoContract
+#     )
+#     # set_offer_registration_fee_lookup()
+#     _minimum_fee = 100
+#     _minimum_interval = 10
+#     _fee_multiplier = 2000
+#     _fee_multiplier_decimals = 1000
+#     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
+#         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
+#         {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Lend_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Borrow_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # register_pool for Lend_token
+#     pool_owner = accounts[1]
+#     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
+#         'Underwriter Pool A', 'UPA', 50,
+#         {'from': pool_owner, 'gas': 850000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get UnderwriterPool contract
+#     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
+#     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
+#     UnderwriterPool = get_contract(
+#         'contracts/templates/UnderwriterPoolTemplate1.v.py',
+#         interfaces=[
+#             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
+#         ],
+#         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
+#     )
+#     # get UnderwriterPoolCurrency
+#     UnderwriterPoolCurrency = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=UnderwriterPool.pool_currency_address()
+#     )
+#     # pool_owner buys LST from a 3rd party
+#     LST_token.transfer(pool_owner, Web3.toWei(1000, 'ether'), {'from': owner})
+#     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
+#     tx_hash = LST_token.approve(CurrencyDaoContract.address, UnderwriterPoolDaoContract.offer_registration_fee() * (10 ** 18),
+#         {'from': pool_owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
+#     _strike_price = Web3.toWei(200, 'ether')
+#     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
+#         _strike_price, {'from': pool_owner, 'gas': 2600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get L_currency_token
+#     L_currency_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
+#     )
+#     _currency_pool_hash = CurrencyDaoContract.pool_hash(Lend_token.address)
+#     # get L_underlying_token
+#     L_underlying_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
+#     )
+#     _underlying_pool_hash = CurrencyDaoContract.pool_hash(Borrow_token.address)
+#     # assign one of the accounts as a Lender
+#     Lender = accounts[2]
+#     # Lender buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(Lender, Web3.toWei(1000, 'ether'), {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(800, 'ether'),
+#         {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply and lend_currency_balance
+#     assert L_currency_token.totalSupply() == 0
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == 0
+#     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, Web3.toWei(800, 'ether'),
+#         {'from': Lender, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
+#     assert L_currency_token.balanceOf(Lender) == Web3.toWei(800, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == 0
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
+#     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+#     # Lender gets 40000 UnderwriterPoolCurrency tokens
+#     # 800 L_tokens are deposited into UnderwriterPool account
+#     tx_hash = UnderwriterPool.purchase_pool_currency(Web3.toWei(800, 'ether'), {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
+#     assert L_currency_token.balanceOf(Lender) == 0
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(800, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
+#     # vefiry shield_currency_price is not set
+#     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
+#     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[3], Lend_token.address, H20,
+#         Borrow_token.address, _strike_price)
+#     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
+#     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+#     # 600 L_tokens burned from UnderwriterPool account
+#     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
+#     tx_hash = UnderwriterPool.increment_i_currency_supply(
+#         H20, Borrow_token.address, _strike_price, Web3.toWei(600, 'ether'),
+#         {'from': pool_owner, 'gas': 600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
+#     # get I_token
+#     I_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
+#     )
+#     S_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
+#     )
+#     U_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
+#     )
+#     # assign one of the accounts as a High_Risk_Insurer
+#     High_Risk_Insurer = accounts[2]
+#     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
+#         _strike_price, Web3.toWei(100, 'ether'), 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
+#         _strike_price, Web3.toWei(2, 'ether'), 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a Borrower
+#     Borrower = accounts[3]
+#     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
+#     tx_hash = Borrow_token.transfer(Borrower, Web3.toWei(10, 'ether'), {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Borrow_token.balanceOf(Borrower) == Web3.toWei(10, 'ether')
+#     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
+#     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, Web3.toWei(3, 'ether'),
+#         {'from': Borrower})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == 0
+#     assert L_underlying_token.balanceOf(Borrower) == 0
+#     assert L_underlying_token.balanceOf(UnderwriterPool.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == 0
+#     # Borrower deposits 3 Borrow_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, Web3.toWei(3, 'ether'),
+#         {'from': Borrower, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(3, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
+#     # Borrower wishes to avail a loan of 400 Lend_tokens
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
+#     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
+#     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
+#     assert PositionRegistryContract.last_offer_index() == 0
+#     tx_hash = PositionRegistryContract.create_offer(
+#         Lend_token.address, H20, Borrow_token.address, _strike_price,
+#         2, 20, 5 * 10 ** 15,
+#         {'from': High_Risk_Insurer, 'gas': 450000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(800, 'ether')
+#     # Borrower purchases this offer for the amount of 0.1 ETH
+#     # 20 i_tokens and 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
+#     tx_hash = PositionRegistryContract.avail_loan(0,
+#         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
+#     # verify Lend_token balance of Borrower
+#     assert Lend_token.balanceOf(Borrower) == Web3.toWei(400, 'ether')
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
+#     # get Auction contract
+#     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
+#         Lend_token.address, H20, Borrow_token.address
+#     )
+#     Auction = get_contract(
+#         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
+#         interfaces=['ERC20', 'MarketDaoContract'],
+#         address=CollateralAuctionDao.graphs(_loan_market_hash)
+#     )
+#     time_travel(H20)
+#     # update price feed
+#     tx_hash = PriceFeed.set_price(Web3.toWei(150, 'ether'), {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # assign one of the accounts as a _loan_market_settler
+#     _loan_market_settler = accounts[3]
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_OPEN()
+#     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == Web3.toWei(400, 'ether')
+#     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == Web3.toWei(2, 'ether')
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
+#     assert Borrow_token.balanceOf(Auction.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
+#     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
+#     assert MarketDaoContract.loan_markets__currency_value_per_underlying_at_expiry(_loan_market_hash) == Web3.toWei(150, 'ether')
+#     assert MarketDaoContract.loan_markets__total_outstanding_currency_value_at_expiry(_loan_market_hash) == Web3.toWei(400, 'ether')
+#     assert MarketDaoContract.loan_markets__total_outstanding_underlying_value_at_expiry(_loan_market_hash) == Web3.toWei(2, 'ether')
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
+#     assert Borrow_token.balanceOf(Auction.address) == Web3.toWei(2, 'ether')
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
+#     # assign one of the accounts as an _auctioned_collateral_purchaser
+#     _auctioned_collateral_purchaser = accounts[4]
+#     # _auctioned_collateral_purchaser buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(_auctioned_collateral_purchaser, 1000 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # _auctioned_collateral_purchaser authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
+#         {'from': _auctioned_collateral_purchaser})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     time_travel(H20 + 10 * 60)
+#     assert Auction.is_active() == True
+#     assert Auction.current_price() == Web3.toWei(135.2, 'ether')
+#     assert Auction.currency_value_remaining() == Web3.toWei(400, 'ether')
+#     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == 0
+#     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 0
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == Web3.toWei(400, 'ether')
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert Borrow_token.balanceOf(Auction.address) == Web3.toWei(2, 'ether')
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
+#     # _auctioned_collateral_purchaser purchases all of the 2 Borrow_tokens for current price of Lend_tokens
+#     tx_hash = Auction.purchase_for_remaining_currency({'from': _auctioned_collateral_purchaser, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Auction.is_active() == False
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_CLOSED()
+#     assert MarketDaoContract.loan_markets__total_currency_raised_during_auction(_loan_market_hash) == 270330666666666666666
+#     assert MarketDaoContract.loan_markets__total_underlying_sold_during_auction(_loan_market_hash) == Web3.toWei(2, 'ether')
+#     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 135165333333333333333
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == 670330666666666666666
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert Borrow_token.balanceOf(Auction.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
+#
+#
+# def test_close_liquidated_loan_for_settlement_price_below_original_price(accounts, get_contract, get_log_args, time_travel,
+#         LST_token, Lend_token, Borrow_token, Malicious_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceFeed,
+#         PriceOracle,
+#         MarketDaoContract
+#     ):
+#     owner = accounts[0]
+#     _initialize_all_daos(owner, accounts,
+#         LST_token, Lend_token, Borrow_token,
+#         ERC20_library, ERC1155_library,
+#         CurrencyPool_library, CurrencyDaoContract,
+#         InterestPool_library, InterestPoolDaoContract,
+#         UnderwriterPool_library, UnderwriterPoolDaoContract,
+#         CollateralAuctionGraph_Library, CollateralAuctionDao,
+#         ShieldPayoutDaoContract,
+#         PositionRegistryContract,
+#         PriceOracle,
+#         MarketDaoContract
+#     )
+#     # set_offer_registration_fee_lookup()
+#     _minimum_fee = 100
+#     _minimum_interval = 10
+#     _fee_multiplier = 2000
+#     _fee_multiplier_decimals = 1000
+#     tx_hash = UnderwriterPoolDaoContract.set_offer_registration_fee_lookup(_minimum_fee,
+#         _minimum_interval, _fee_multiplier, _fee_multiplier_decimals,
+#         {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Lend_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Lend_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # set_currency_support for Borrow_token in CurrencyDaoContract
+#     tx_hash = CurrencyDaoContract.set_currency_support(Borrow_token.address, True,
+#         {'from': owner, 'gas': 1570000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # register_pool for Lend_token
+#     pool_owner = accounts[1]
+#     tx_hash = UnderwriterPoolDaoContract.register_pool(Lend_token.address,
+#         'Underwriter Pool A', 'UPA', 50,
+#         {'from': pool_owner, 'gas': 850000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get UnderwriterPool contract
+#     logs_8 = get_log_args(tx_hash, UnderwriterPoolDaoContract, "PoolRegistered")
+#     _pool_hash = UnderwriterPoolDaoContract.pool_hash(Lend_token.address, logs_8[0].args._pool_address)
+#     UnderwriterPool = get_contract(
+#         'contracts/templates/UnderwriterPoolTemplate1.v.py',
+#         interfaces=[
+#             'ERC20', 'ERC1155', 'ERC1155TokenReceiver', 'UnderwriterPoolDaoContract'
+#         ],
+#         address=UnderwriterPoolDaoContract.pools__pool_address(_pool_hash)
+#     )
+#     # get UnderwriterPoolCurrency
+#     UnderwriterPoolCurrency = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=UnderwriterPool.pool_currency_address()
+#     )
+#     # pool_owner buys LST from a 3rd party
+#     LST_token.transfer(pool_owner, Web3.toWei(1000, 'ether'), {'from': owner})
+#     # pool_owner authorizes CurrencyDaoContract to spend LST required for offer_registration_fee
+#     tx_hash = LST_token.approve(CurrencyDaoContract.address, Web3.toWei(UnderwriterPoolDaoContract.offer_registration_fee(), 'ether'),
+#         {'from': pool_owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # pool_owner registers an expiry : Last Thursday of December 2019, i.e., December 26th, 2019, i.e., H20
+#     _strike_price = Web3.toWei(200, 'ether')
+#     tx_hash = UnderwriterPool.register_expiry(H20, Borrow_token.address,
+#         _strike_price, {'from': pool_owner, 'gas': 2600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get L_currency_token
+#     L_currency_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Lend_token.address)
+#     )
+#     _currency_pool_hash = CurrencyDaoContract.pool_hash(Lend_token.address)
+#     # get L_underlying_token
+#     L_underlying_token = get_contract(
+#         'contracts/templates/ERC20Template1.v.py',
+#         address=CurrencyDaoContract.currencies__l_currency_address(Borrow_token.address)
+#     )
+#     _underlying_pool_hash = CurrencyDaoContract.pool_hash(Borrow_token.address)
+#     # assign one of the accounts as a Lender
+#     Lender = accounts[2]
+#     # Lender buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(Lender, Web3.toWei(1000, 'ether'), {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(800, 'ether'),
+#         {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Lender deposits 800 Lend_tokens to Currency Pool and gets l_tokens
+#     assert L_currency_token.totalSupply() == 0
+#     assert Lend_token.balanceOf(CurrencyDaoContract.pools__pool_address(_currency_pool_hash)) == 0
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Lend_token.address, Web3.toWei(800, 'ether'),
+#         {'from': Lender, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
+#     assert L_currency_token.balanceOf(Lender) == Web3.toWei(800, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == 0
+#     # Lender purchases UnderwriterPoolCurrency for 800 L_tokens
+#     # Lender gets 40000 UnderwriterPoolCurrency tokens
+#     # 800 L_tokens are deposited into UnderwriterPool account
+#     tx_hash = UnderwriterPool.purchase_pool_currency(Web3.toWei(800, 'ether'), {'from': Lender})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(800, 'ether')
+#     assert L_currency_token.balanceOf(Lender) == 0
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(800, 'ether')
+#     # vefiry shield_currency_price is not set
+#     multi_fungible_addresses = CurrencyDaoContract.multi_fungible_addresses(Lend_token.address)
+#     _s_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[3], Lend_token.address, H20,
+#         Borrow_token.address, _strike_price)
+#     _i_hash = UnderwriterPoolDaoContract.multi_fungible_currency_hash(
+#         multi_fungible_addresses[1], Lend_token.address, H20, ZERO_ADDRESS, 0)
+#     # pool_owner initiates offer of 600 I_tokens from the UnderwriterPool
+#     # 600 L_tokens burned from UnderwriterPool account
+#     # 600 I_tokens, 3 S_tokens, and 3 U_tokens minted to UnderwriterPool account
+#     tx_hash = UnderwriterPool.increment_i_currency_supply(
+#         H20, Borrow_token.address, _strike_price, 600 * 10 ** 18,
+#         {'from': pool_owner, 'gas': 600000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get I_token
+#     I_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__i_currency_address(Lend_token.address)
+#     )
+#     S_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__s_currency_address(Lend_token.address)
+#     )
+#     U_token = get_contract(
+#         'contracts/templates/ERC1155Template2.v.py',
+#         interfaces=['ERC1155TokenReceiver'],
+#         address=CurrencyDaoContract.currencies__u_currency_address(Lend_token.address)
+#     )
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     # verify i_lend_currency supply and i_lend_currency balance
+#     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(600, 'ether')
+#     # verify s_lend_currency supply and s_lend_currency balance
+#     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
+#     # verify u_lend_currency supply and u_lend_currency balance
+#     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
+#     # assign one of the accounts as a High_Risk_Insurer
+#     High_Risk_Insurer = accounts[2]
+#     # High_Risk_Insurer purchases 100 i_tokens from UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_i_currency(H20, Borrow_token.address,
+#         _strike_price, Web3.toWei(100, 'ether'), 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer purchases 2 s_tokens from UnderwriterPool
+#     # The corresponding 2 u_tokens remain in the UnderwriterPool
+#     tx_hash = UnderwriterPool.purchase_s_currency(H20, Borrow_token.address,
+#         _strike_price, Web3.toWei(2, 'ether'), 0, {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify i_lend_currency supply and i_lend_currency balance
+#     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(100, 'ether')
+#     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
+#     # verify s_lend_currency supply and s_lend_currency balance
+#     assert S_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(2, 'ether')
+#     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
+#     # verify u_lend_currency supply and u_lend_currency balance
+#     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
+#     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
+#     # assign one of the accounts as a Borrower
+#     Borrower = accounts[3]
+#     # Borrower purchases 10 Borrow_tokens from a 3rd party exchange
+#     tx_hash = Borrow_token.transfer(Borrower, Web3.toWei(10, 'ether'), {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert Borrow_token.balanceOf(Borrower) == Web3.toWei(10, 'ether')
+#     # Borrower authorizes CurrencyDaoContract to spend 2 Borrow_tokens
+#     tx_hash = Borrow_token.approve(CurrencyDaoContract.address, Web3.toWei(3, 'ether'),
+#         {'from': Borrower})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower deposits 2 Borrow_tokens to Currency Pool and gets l_tokens
+#     tx_hash = CurrencyDaoContract.currency_to_l_currency(Borrow_token.address, Web3.toWei(3, 'ether'),
+#         {'from': Borrower, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower wishes to avail a loan of 400 Lend_tokens
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his S_token
+#     tx_hash = S_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer authorizes CurrencyDaoContract to spend his I_token
+#     tx_hash = I_token.setApprovalForAll(CurrencyDaoContract.address, True,
+#         {'from': High_Risk_Insurer})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # High_Risk_Insurer sets an offer of 2 s_tokens for 20 i_tokens
+#     assert PositionRegistryContract.last_offer_index() == 0
+#     tx_hash = PositionRegistryContract.create_offer(
+#         Lend_token.address, H20, Borrow_token.address, _strike_price,
+#         2, 20, 5 * 10 ** 15,
+#         {'from': High_Risk_Insurer, 'gas': 450000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # Borrower purchases this offer for the amount of 0.1 ETH
+#     # 20 i_tokens are transferred from High_Risk_Insurer account to Borrower
+#     # 2 s_tokens are transferred from High_Risk_Insurer account to MarketDaoContract
+#     tx_hash = PositionRegistryContract.avail_loan(0,
+#         {'from': Borrower, 'value': 10 ** 17, 'gas': 950000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify i_lend_currency supply and i_lend_currency balance
+#     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(80, 'ether')
+#     assert I_token.totalBalanceOf(Borrower) == Web3.toWei(20, 'ether')
+#     assert I_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
+#     # verify s_lend_currency supply and s_lend_currency balance
+#     assert S_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(0, 'ether')
+#     assert S_token.totalBalanceOf(Borrower) == 0
+#     assert S_token.totalBalanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
+#     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
+#     # verify u_lend_currency supply and u_lend_currency balance
+#     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
+#     assert U_token.totalBalanceOf(Borrower) == 0
+#     assert U_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
+#     # verify Lend_token balance of Borrower
+#     assert Lend_token.balanceOf(Borrower) == Web3.toWei(400, 'ether')
+#     # Borrower authorizes CurrencyDaoContract to spend 400 Lend_tokens
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(400, 'ether'),
+#         {'from': Borrower})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # get Auction contract
+#     _loan_market_hash = CollateralAuctionDao.loan_market_hash(
+#         Lend_token.address, H20, Borrow_token.address
+#     )
+#     Auction = get_contract(
+#         'contracts/templates/SimpleCollateralAuctionGraph.v.py',
+#         interfaces=['ERC20', 'MarketDaoContract'],
+#         address=CollateralAuctionDao.graphs(_loan_market_hash)
+#     )
+#     # time passes until loan market expires
+#     time_travel(H20)
+#     # update price feed
+#     tx_hash = PriceFeed.set_price(Web3.toWei(150, 'ether'), {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(3, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
+#     assert Borrow_token.balanceOf(Auction.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(3, 'ether')
+#     # assign one of the accounts as a _loan_market_settler
+#     _loan_market_settler = accounts[3]
+#     # _loan_market_settler initiates loan market settlement
+#     tx_hash = MarketDaoContract.settle_loan_market(_loan_market_hash, {'from': _loan_market_settler, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
+#     assert Borrow_token.balanceOf(Auction.address) == Web3.toWei(2, 'ether')
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
+#     assert MarketDaoContract.loan_markets__status(_loan_market_hash) == MarketDaoContract.LOAN_MARKET_STATUS_SETTLING()
+#     # assign one of the accounts as an _auctioned_collateral_purchaser
+#     _auctioned_collateral_purchaser = accounts[4]
+#     # _auctioned_collateral_purchaser buys 1000 lend token from a 3rd party exchange
+#     tx_hash = Lend_token.transfer(_auctioned_collateral_purchaser, 1000 * 10 ** 18, {'from': owner})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     # _auctioned_collateral_purchaser authorizes CurrencyDaoContract to spend 800 lend currency
+#     tx_hash = Lend_token.approve(CurrencyDaoContract.address, 800 * (10 ** 18),
+#         {'from': _auctioned_collateral_purchaser})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     time_travel(H20 + 10 * 60)
+#     # _auctioned_collateral_purchaser purchases all of the 2 Borrow_tokens for current price of Lend_tokens
+#     tx_hash = Auction.purchase_for_remaining_currency({'from': _auctioned_collateral_purchaser, 'gas': 280000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     assert tx_receipt['status'] == 1
+#     assert MarketDaoContract.loan_markets__underlying_settlement_price_per_currency(_loan_market_hash) == 135165333333333333333
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(Borrower) == 0
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
+#     assert Borrow_token.balanceOf(Auction.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
+#     # verify i_lend_currency supply and i_lend_currency balance
+#     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(80, 'ether')
+#     assert I_token.totalBalanceOf(Borrower) == Web3.toWei(20, 'ether')
+#     assert I_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
+#     # verify s_lend_currency supply and s_lend_currency balance
+#     assert S_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(0, 'ether')
+#     assert S_token.totalBalanceOf(Borrower) == 0
+#     assert S_token.totalBalanceOf(MarketDaoContract.address) == Web3.toWei(2, 'ether')
+#     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
+#     # verify u_lend_currency supply and u_lend_currency balance
+#     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
+#     assert U_token.totalBalanceOf(Borrower) == 0
+#     assert U_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
+#     # Borrower cannot exercise his 2 s_tokens
+#     assert MarketDaoContract.shield_payout(Lend_token.address, H20, Borrow_token.address, _strike_price) == 0
+#     # Borrower closes the liquidated loan
+#     position_id = PositionRegistryContract.borrow_position(Borrower, PositionRegistryContract.borrow_position_count(Borrower))
+#     tx_hash = PositionRegistryContract.close_liquidated_loan(position_id, {'from': Borrower, 'gas': 200000})
+#     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+#     print('\n\n tx_receipt:\n{0}\n\n'.format(tx_receipt))
+#     assert tx_receipt['status'] == 1
+#     # verify l_lend_currency supply, l_lend_currency balance and lend_currency balance
+#     assert L_currency_token.totalSupply() == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(UnderwriterPool.address) == Web3.toWei(200, 'ether')
+#     assert L_currency_token.balanceOf(Borrower) == 0
+#     # verify l_borrow_currency supply, l_borrow_currency balance and borrow_currency balance
+#     assert L_underlying_token.totalSupply() == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(Borrower) == Web3.toWei(1, 'ether')
+#     assert L_underlying_token.balanceOf(MarketDaoContract.address) == 0
+#     assert Borrow_token.balanceOf(CurrencyDaoContract.pools__pool_address(_underlying_pool_hash)) == Web3.toWei(1, 'ether')
+#     # verify i_lend_currency supply and i_lend_currency balance
+#     assert I_token.totalBalanceOf(High_Risk_Insurer) == Web3.toWei(80, 'ether')
+#     assert I_token.totalBalanceOf(Borrower) == Web3.toWei(20, 'ether')
+#     assert I_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert I_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(500, 'ether')
+#     # verify s_lend_currency supply and s_lend_currency balance
+#     assert S_token.totalBalanceOf(High_Risk_Insurer) == 0
+#     assert S_token.totalBalanceOf(Borrower) == 0
+#     assert S_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert S_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(1, 'ether')
+#     # verify u_lend_currency supply and u_lend_currency balance
+#     assert U_token.totalBalanceOf(High_Risk_Insurer) == 0
+#     assert U_token.totalBalanceOf(Borrower) == 0
+#     assert U_token.totalBalanceOf(MarketDaoContract.address) == 0
+#     assert U_token.totalBalanceOf(UnderwriterPool.address) == Web3.toWei(3, 'ether')
