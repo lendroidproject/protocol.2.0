@@ -37,10 +37,10 @@ def test_pause_failed_when_paused(accounts, assert_tx_failed, Deployer, EscapeHa
     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], True, {'from': EscapeHatchManager}))
 
 
-# def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, get_ShieldPayoutDao_contract, ProtocolDaoContract):
-#     anyone = accounts[-1]
-#     ShieldPayoutDaoContract = get_ShieldPayoutDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
-#     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], True, {'from': EscapeHatchManager}))
+def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    ShieldPayoutDaoContract = get_ShieldPayoutDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], True, {'from': EscapeHatchManager}))
 
 
 def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDaoContract):
@@ -59,10 +59,10 @@ def test_unpause_failed_when_paused(accounts, assert_tx_failed, Deployer, Escape
     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], False, {'from': EscapeHatchManager}))
 
 
-# def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDaoContract):
-#     anyone = accounts[-1]
-#     ShieldPayoutDaoContract = get_ShieldPayoutDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
-#     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], False, {'from': EscapeHatchManager}))
+def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    ShieldPayoutDaoContract = get_ShieldPayoutDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT'], False, {'from': EscapeHatchManager}))
 
 
 def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDaoContract):

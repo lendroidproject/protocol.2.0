@@ -39,6 +39,51 @@ def test_pause_and_unpause(accounts, Deployer, EscapeHatchManager, get_PoolNameR
     assert not PoolNameRegistry.paused({'from': anyone})
 
 
+def test_pause_failed_when_paused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+    ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], True, {'from': EscapeHatchManager})
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], True, {'from': EscapeHatchManager}))
+
+
+def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], True, {'from': EscapeHatchManager}))
+#
+#
+def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+    # Tx failed
+    for account in accounts:
+        assert_tx_failed(lambda: PoolNameRegistry.pause({'from': account}))
+
+
+def test_unpause_failed_when_unpaused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], False, {'from': EscapeHatchManager}))
+
+
+def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    assert_tx_failed(lambda: ProtocolDaoContract.toggle_registry_pause(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME'], False, {'from': EscapeHatchManager}))
+
+
+def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_PoolNameRegistry_contract, ProtocolDaoContract):
+    anyone = accounts[-1]
+    PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+    ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+    # Tx failed
+    for account in accounts:
+        assert_tx_failed(lambda: PoolNameRegistry.unpause({'from': account}))
+
+
 def test_set_name_registration_stake_lookup(accounts,
     Deployer, Governor,
     get_PoolNameRegistry_contract, ProtocolDaoContract):
