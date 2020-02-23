@@ -59,7 +59,7 @@ def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed
 def test_unpause_failed_when_unpaused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
     anyone = accounts[-1]
     MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
-    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    ProtocolDaoContract.initialize_market_dao({'from': Deployer})
     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_MARKET'], False, {'from': EscapeHatchManager}))
 
 
@@ -72,7 +72,7 @@ def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer,
 def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_MarketDao_contract, ProtocolDaoContract):
     anyone = accounts[-1]
     MarketDaoContract = get_MarketDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_MARKET']))
-    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    ProtocolDaoContract.initialize_market_dao({'from': Deployer})
     # Tx failed
     for account in accounts:
         assert_tx_failed(lambda: MarketDaoContract.unpause({'from': account}))
