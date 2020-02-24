@@ -148,7 +148,7 @@ def _total_active_contributions() -> uint256:
 def _exchange_rate() -> uint256:
     if (self._total_pool_share_token_supply() == 0) or (as_unitless_number(self._total_active_contributions()) == 0):
         return self.initial_exchange_rate
-    return as_unitless_number(self._total_pool_share_token_supply()) / as_unitless_number(self._total_active_contributions())
+    return (as_unitless_number(self._total_pool_share_token_supply()) * as_unitless_number(DECIMALS)) / as_unitless_number(self._total_active_contributions())
 
 
 @private
@@ -174,7 +174,7 @@ def _s_token_fee(_expiry: timestamp, _underlying: address, _strike_price: uint25
 @private
 @constant
 def _estimated_pool_share_tokens(_l_token_value: uint256) -> uint256:
-    return as_unitless_number(self._exchange_rate()) * as_unitless_number(_l_token_value)
+    return (as_unitless_number(_l_token_value) * as_unitless_number(self._exchange_rate())) / as_unitless_number(DECIMALS)
 
 
 @public
