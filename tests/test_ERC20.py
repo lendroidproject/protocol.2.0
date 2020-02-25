@@ -83,6 +83,8 @@ def test_transfer(accounts, assert_tx_failed, get_ERC20_contract):
     assert_tx_failed(lambda: test_token.transfer(a1, 1, {'from': a2}))
     # Ensure 0-transfer always succeeds
     test_token.transfer(a1, 0, {'from': a2})
+    # Ensure transfer fails when recipient is ZERO_ADDRESS
+    assert_tx_failed(lambda: test_token.transfer(ZERO_ADDRESS, 0, {'from': a2}))
 
 
 def test_maxInts(accounts, assert_tx_failed, get_ERC20_contract):
@@ -136,6 +138,8 @@ def test_transferFrom_and_Allowance(accounts, assert_tx_failed, get_ERC20_contra
     assert_tx_failed(lambda: test_token.transferFrom(a1, a3, 1, {'from': a3}))
     assert test_token.balanceOf(a2) == 1
     test_token.approve(a1, 1, {'from': a2})
+    # Ensure transferFrom fails when recipient is ZERO_ADDRESS
+    assert_tx_failed(lambda: test_token.transferFrom(a2, ZERO_ADDRESS, 1, {'from': a1}))
     test_token.transferFrom(a2, a3, 1, {'from': a1})
     # Allowance should be correctly updated after transferFrom
     assert test_token.allowance(a2, a1) == 0

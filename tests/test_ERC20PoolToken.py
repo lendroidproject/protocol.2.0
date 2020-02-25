@@ -264,77 +264,77 @@ def test_transfer(accounts, assert_tx_failed,
     assert_tx_failed(lambda: test_token.transfer(_pool_owner, Web3.toWei(1, 'ether'), {'from': a2}))
     # Ensure 0-transfer always succeeds
     test_token.transfer(_pool_owner, 0, {'from': a2})
+    # Ensure transfer fails when recipient is ZERO_ADDRESS
+    assert_tx_failed(lambda: test_token.transfer(ZERO_ADDRESS, 0, {'from': a2}))
 
 
-# # def test_maxInts(w3, assert_tx_failed,
-# #         Whale, Deployer, Governor,
-# #         LST_token, Lend_token,
-# #         get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
-# #         get_PoolNameRegistry_contract, get_InterestPool_contract,
-# #         get_CurrencyDao_contract, get_InterestPoolDao_contract,
-# #         ProtocolDaoContract):
-# #     minter, a1, a2 = accounts[0:3]
-# #     # get CurrencyDao
-# #     CurrencyDao = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
-# #     # get InterestPoolDao
-# #     InterestPoolDao = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-# #     # get PoolNameRegistry
-# #     PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
-# #     # assign one of the accounts as _pool_owner
-# #     _pool_owner = accounts[6]
-# #     # initialize PoolNameRegistry
-# #     ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
-# #     # initialize CurrencyDao
-# #     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
-# #     # initialize InterestPoolDao
-# #     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-# #     # set support for Lend_token
-# #     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
-# #     # get L_Lend_token
-# #     L_lend_token = get_ERC20_contract(address=CurrencyDao.token_addresses__l(Lend_token.address))
-# #     # get F_Lend_token
-# #     F_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__f(Lend_token.address))
-# #     # get I_lend_token
-# #     I_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__i(Lend_token.address))
-# #     # _pool_owner buys 1000 lend token from a 3rd party exchange
-# #     Lend_token.transfer(_pool_owner, Web3.toWei(1000, 'ether'), {'from': Whale})
-# #     # _pool_owner authorizes CurrencyDao to spend 800 Lend_token
-# #     Lend_token.approve(CurrencyDao.address, Web3.toWei(800, 'ether'), {'from': _pool_owner})
-# #     # _pool_owner wraps 800 Lend_token to L_lend_token
-# #     CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), {'from': _pool_owner, 'gas': 145000})
-# #     # _pool_owner buys POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token from a 3rd party exchange
-# #     LST_token.transfer(_pool_owner, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Whale})
-# #     # _pool_owner authorizes CurrencyDao to spend POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token
-# #     LST_token.approve(CurrencyDao.address, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': _pool_owner})
-# #     # _pool_owner registers _pool_name POOL_NAME_LIONFURY at the InterestPoolDao
-# #     _pool_name = POOL_NAME_LIONFURY
-# #     InterestPoolDao.register_pool(
-# #         False, Lend_token.address, _pool_name, Web3.toWei(1, 'ether'), 1, 90, {'from': _pool_owner, 'gas': 1200000})
-# #     # get InterestPool
-# #     InterestPool = get_InterestPool_contract(address=InterestPoolDao.pools__address_(_pool_name))
-# #     # get Poolshare_token
-# #     test_token = get_ERC20_Pool_Token_contract(address=InterestPool.pool_share_token())
-# #     tx_hash = InterestPool.contribute(MAX_UINT256, {'from': _pool_owner, 'gas': 400000})
-# #     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-# #     print(tx_receipt)
-# #     assert tx_receipt['status'] == 1
-# #     # Assert that after obtaining max number of tokens, a1 can transfer those but no more
-# #     assert test_token.balanceOf(_pool_owner) == MAX_UINT256
-# #     test_token.transfer(a2, MAX_UINT256, {'from': _pool_owner})
-# #     assert test_token.balanceOf(a2) == MAX_UINT256
-# #     assert test_token.balanceOf(_pool_owner) == 0
-# #     # [ next line should never work in EVM ]
-# #     with pytest.raises(ValidationError):
-# #         test_token.transfer(_pool_owner, MAX_UINT256 + 1, {'from': a2})
-# #     # Check approve/allowance w max possible token values
-# #     assert test_token.balanceOf(a2) == MAX_UINT256
-# #     test_token.approve(_pool_owner, MAX_UINT256, {'from': a2})
-# #     test_token.transferFrom(a2, _pool_owner, MAX_UINT256, {'from': _pool_owner})
-# #     assert test_token.balanceOf(_pool_owner) == MAX_UINT256
-# #     assert test_token.balanceOf(a2) == 0
-# #     # Check that max amount can be burned
-# #     test_token.burn(MAX_UINT256, {'from': _pool_owner})
-# #     assert test_token.balanceOf(_pool_owner) == 0
+# def test_maxInts(accounts, assert_tx_failed,
+#         Whale, Deployer, Governor,
+#         LST_token, Lend_token,
+#         get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
+#         get_PoolNameRegistry_contract, get_InterestPool_contract,
+#         get_CurrencyDao_contract, get_InterestPoolDao_contract,
+#         ProtocolDaoContract):
+#     minter, a1, a2 = accounts[0:3]
+#     anyone = accounts[-1]
+#     # get CurrencyDao
+#     CurrencyDao = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+#     # get InterestPoolDao
+#     InterestPoolDao = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     # get PoolNameRegistry
+#     PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+#     # assign one of the accounts as _pool_owner
+#     _pool_owner = accounts[6]
+#     # initialize PoolNameRegistry
+#     ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+#     # initialize CurrencyDao
+#     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+#     # initialize InterestPoolDao
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     # set support for Lend_token
+#     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
+#     # get L_Lend_token
+#     L_lend_token = get_ERC20_contract(address=CurrencyDao.token_addresses__l(Lend_token.address, {'from': anyone}))
+#     # get F_Lend_token
+#     F_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__f(Lend_token.address, {'from': anyone}))
+#     # get I_lend_token
+#     I_lend_token = get_MFT_contract(address=CurrencyDao.token_addresses__i(Lend_token.address, {'from': anyone}))
+#     # _pool_owner buys 1000 lend token from a 3rd party exchange
+#     Lend_token.transfer(_pool_owner, Web3.toWei(1000, 'ether'), {'from': Whale})
+#     # _pool_owner authorizes CurrencyDao to spend 800 Lend_token
+#     Lend_token.approve(CurrencyDao.address, Web3.toWei(800, 'ether'), {'from': _pool_owner})
+#     # _pool_owner wraps 800 Lend_token to L_lend_token
+#     CurrencyDao.wrap(Lend_token.address, Web3.toWei(800, 'ether'), {'from': _pool_owner, 'gas': 145000})
+#     # _pool_owner buys POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token from a 3rd party exchange
+#     LST_token.transfer(_pool_owner, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Whale})
+#     # _pool_owner authorizes CurrencyDao to spend POOL_NAME_REGISTRATION_MIN_STAKE_LST LST_token
+#     LST_token.approve(CurrencyDao.address, Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': _pool_owner})
+#     # _pool_owner registers _pool_name POOL_NAME_LIONFURY at the InterestPoolDao
+#     _pool_name = POOL_NAME_LIONFURY
+#     InterestPoolDao.register_pool(
+#         False, Lend_token.address, _pool_name, Web3.toWei(1, 'ether'), 1, 90, {'from': _pool_owner, 'gas': 1200000})
+#     # get InterestPool
+#     InterestPool = get_InterestPool_contract(address=InterestPoolDao.pools__address_(_pool_name, {'from': anyone}))
+#     # get Poolshare_token
+#     test_token = get_ERC20_Pool_Token_contract(address=InterestPool.pool_share_token({'from': anyone}))
+#     InterestPool.contribute(MAX_UINT256, {'from': _pool_owner, 'gas': 400000})
+#     # Assert that after obtaining max number of tokens, a1 can transfer those but no more
+#     assert test_token.balanceOf(_pool_owner) == MAX_UINT256
+#     test_token.transfer(a2, MAX_UINT256, {'from': _pool_owner})
+#     assert test_token.balanceOf(a2) == MAX_UINT256
+#     assert test_token.balanceOf(_pool_owner) == 0
+#     # [ next line should never work in EVM ]
+#     with pytest.raises(OverflowError):
+#         test_token.transfer(_pool_owner, MAX_UINT256 + 1, {'from': a2})
+#     # Check approve/allowance w max possible token values
+#     assert test_token.balanceOf(a2) == MAX_UINT256
+#     test_token.approve(_pool_owner, MAX_UINT256, {'from': a2})
+#     test_token.transferFrom(a2, _pool_owner, MAX_UINT256, {'from': _pool_owner})
+#     assert test_token.balanceOf(_pool_owner) == MAX_UINT256
+#     assert test_token.balanceOf(a2) == 0
+#     # Check that max amount can be burned
+#     test_token.burn(MAX_UINT256, {'from': _pool_owner})
+#     assert test_token.balanceOf(_pool_owner) == 0
 
 
 def test_transferFrom_and_Allowance(accounts, assert_tx_failed,
@@ -402,6 +402,8 @@ def test_transferFrom_and_Allowance(accounts, assert_tx_failed,
     assert_tx_failed(lambda: test_token.transferFrom(_pool_owner, a3, 1, {'from': a3}))
     assert test_token.balanceOf(a2, {'from': anyone}) == 1
     test_token.approve(_pool_owner, 1, {'from': a2})
+    # Ensure transferFrom fails when recipient is ZERO_ADDRESS
+    assert_tx_failed(lambda: test_token.transferFrom(a2, ZERO_ADDRESS, 1, {'from': _pool_owner}))
     test_token.transferFrom(a2, a3, 1, {'from': _pool_owner})
     # Allowance should be correctly updated after transferFrom
     assert test_token.allowance(a2, _pool_owner, {'from': anyone}) == 0

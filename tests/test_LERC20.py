@@ -147,47 +147,50 @@ def test_transfer(accounts, assert_tx_failed, get_ERC20_contract, get_CurrencyDa
     assert_tx_failed(lambda: test_token.transfer(_lend_token_holder, Web3.toWei(1, 'ether'), {'from': a2}))
     # Ensure 0-transfer always succeeds
     test_token.transfer(_lend_token_holder, 0, {'from': a2})
+    # Ensure transfer fails when recipient is ZERO_ADDRESS
+    assert_tx_failed(lambda: test_token.transfer(ZERO_ADDRESS, 0, {'from': a2}))
 
 
-# def test_maxInts(accounts, assert_tx_failed, get_ERC20_contract, get_CurrencyDao_contract, Deployer, Governor,
-#     Whale, Lend_token_With_Max_Supply,
-#     ProtocolDaoContract):
-#     Lend_token = Lend_token_With_Max_Supply
-#     minter, a1, a2 = accounts[0:3]
-#     anyone = accounts[-1]
-#     # get CurrencyDaoContract
-#     CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
-#     # assign one of the accounts as _lend_token_holder
-#     _lend_token_holder = accounts[5]
-#     # initialize CurrencyDaoContract
-#     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
-#     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2100000})
-#     # Whale mints MAX_UINT256 Lend_tokens
-#     Lend_token.mint(Whale, MAX_UINT256, {'from': Whale})
-#     # _lend_token_holder buys 1000 lend token from a 3rd party exchange
-#     Lend_token.transfer(_lend_token_holder, MAX_UINT256, {'from': Whale})
-#     # _lend_token_holder authorizes CurrencyDaoContract to spend MAX_UINT256 Lend_token
-#     Lend_token.approve(CurrencyDaoContract.address, MAX_UINT256, {'from': _lend_token_holder})
-#     # get L_Lend_token
-#     test_token = get_ERC20_contract(address=CurrencyDaoContract.token_addresses__l(Lend_token.address, {'from': anyone}))
-#     CurrencyDaoContract.wrap(Lend_token.address, MAX_UINT256, {'from': _lend_token_holder, 'gas': 145000})
-#     # Assert that after obtaining max number of tokens, a1 can transfer those but no more
-#     assert test_token.balanceOf(_lend_token_holder, {'from': anyone}) == MAX_UINT256
-#     test_token.transfer(a2, MAX_UINT256, {'from': _lend_token_holder})
-#     assert test_token.balanceOf(a2, {'from': anyone}) == MAX_UINT256
-#     assert test_token.balanceOf(_lend_token_holder, {'from': anyone}) == 0
-#     # [ next line should never work in EVM ]
-#     with pytest.raises(ValidationError):
-#         test_token.transfer(_lend_token_holder, MAX_UINT256 + 1, {'from': a2})
-#     # Check approve/allowance w max possible token values
-#     assert test_token.balanceOf(a2, {'from': anyone}) == MAX_UINT256
-#     test_token.approve(_lend_token_holder, MAX_UINT256, {'from': a2})
-#     test_token.transferFrom(a2, _lend_token_holder, MAX_UINT256, {'from': _lend_token_holder})
-#     assert test_token.balanceOf(_lend_token_holder, {'from': anyone}) == MAX_UINT256
-#     assert test_token.balanceOf(a2, {'from': anyone}) == 0
-#     # Check that max amount can be burned
-#     test_token.burn(MAX_UINT256, {'from': _lend_token_holder})
-#     assert test_token.balanceOf(_lend_token_holder, {'from': anyone}) == 0
+def test_maxInts(accounts, assert_tx_failed, get_ERC20_contract, get_CurrencyDao_contract, Deployer, Governor,
+    Whale, Test_token_With_Zero_Supply,
+    ProtocolDaoContract):
+    Test_token = Test_token_With_Zero_Supply
+    minter, a1, a2 = accounts[0:3]
+    anyone = accounts[-1]
+    # get CurrencyDaoContract
+    CurrencyDaoContract = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+    # assign one of the accounts as _test_token_holder
+    _test_token_holder = accounts[5]
+    # initialize CurrencyDaoContract
+    ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+    ProtocolDaoContract.set_token_support(Test_token.address, True, {'from': Governor, 'gas': 2100000})
+    # Whale mints MAX_UINT256 Lend_tokens
+    Test_token.mint(Whale, MAX_UINT256, {'from': Whale})
+    # _test_token_holder buys 1000 lend token from a 3rd party exchange
+    Test_token.transfer(_test_token_holder, MAX_UINT256, {'from': Whale})
+    # _test_token_holder authorizes CurrencyDaoContract to spend MAX_UINT256 Test_token
+    Test_token.approve(CurrencyDaoContract.address, MAX_UINT256, {'from': _test_token_holder})
+    # get L_Test_token
+    test_token = get_ERC20_contract(address=CurrencyDaoContract.token_addresses__l(Test_token.address, {'from': anyone}))
+    CurrencyDaoContract.wrap(Test_token.address, MAX_UINT256, {'from': _test_token_holder, 'gas': 150000})
+    # Assert that after obtaining max number of tokens, a1 can transfer those but no more
+    assert test_token.balanceOf(_test_token_holder, {'from': anyone}) == MAX_UINT256
+    test_token.transfer(a2, MAX_UINT256, {'from': _test_token_holder})
+    assert test_token.balanceOf(a2, {'from': anyone}) == MAX_UINT256
+    assert test_token.balanceOf(_test_token_holder, {'from': anyone}) == 0
+    # [ next line should never work in EVM ]
+    assert_tx_failed(lambda: test_token.mint(a2, 1, {'from': minter}))
+    with pytest.raises(OverflowError):
+        test_token.transfer(_test_token_holder, MAX_UINT256 + 1, {'from': a2})
+    # Check approve/allowance w max possible token values
+    assert test_token.balanceOf(a2, {'from': anyone}) == MAX_UINT256
+    test_token.approve(_test_token_holder, MAX_UINT256, {'from': a2})
+    test_token.transferFrom(a2, _test_token_holder, MAX_UINT256, {'from': _test_token_holder})
+    assert test_token.balanceOf(_test_token_holder, {'from': anyone}) == MAX_UINT256
+    assert test_token.balanceOf(a2, {'from': anyone}) == 0
+    # Check that max amount can be burned
+    test_token.burn(MAX_UINT256, {'from': _test_token_holder})
+    assert test_token.balanceOf(_test_token_holder, {'from': anyone}) == 0
 
 
 def test_transferFrom_and_Allowance(accounts, assert_tx_failed, get_ERC20_contract, get_CurrencyDao_contract,
@@ -225,6 +228,8 @@ def test_transferFrom_and_Allowance(accounts, assert_tx_failed, get_ERC20_contra
     assert_tx_failed(lambda: test_token.transferFrom(_lend_token_holder, a3, 1, {'from': a3}))
     assert test_token.balanceOf(a2, {'from': anyone}) == 1
     test_token.approve(_lend_token_holder, 1, {'from': a2})
+    # Ensure transferFrom fails when recipient is ZERO_ADDRESS
+    assert_tx_failed(lambda: test_token.transferFrom(a2, ZERO_ADDRESS, 1, {'from': _lend_token_holder}))
     test_token.transferFrom(a2, a3, 1, {'from': _lend_token_holder})
     # Allowance should be correctly updated after transferFrom
     assert test_token.allowance(a2, _lend_token_holder, {'from': anyone}) == 0
