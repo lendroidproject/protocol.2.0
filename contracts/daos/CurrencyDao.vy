@@ -240,7 +240,7 @@ def _wrap(_token: address, _from: address, _to: address, _value: uint256):
     # deposit currency from _from address
     self._deposit_token_to_pool(_token, _from, _value)
     # mint currency l_token to _to address
-    assert_modifiable(ERC20Interface(self.token_addresses[_token].l).mintAndAuthorizeMinter(_to, _value))
+    assert_modifiable(LERC20Interface(self.token_addresses[_token].l).mintAndAuthorizeMinter(_to, _value))
 
 
 @private
@@ -258,7 +258,7 @@ def _unwrap(_token: address, _from: address, _to: address, _value: uint256):
         @return A bool indicating if the unwrap process was successful.
     """
     # burrn currency l_token from _from address
-    assert_modifiable(ERC20Interface(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
+    assert_modifiable(LERC20Interface(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
     # release currency to _to address
     self._withdraw_token_from_pool(_token, _to, _value)
 
