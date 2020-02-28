@@ -37,6 +37,8 @@ def borrowable_amount() -> uint256:
 def release(_to: address, _value: uint256) -> bool:
     assert self.initialized
     assert msg.sender == self.owner
+    # verify _value is not 0
+    assert as_unitless_number(_value) > 0
     assert_modifiable(ERC20Interface(self.token).transfer(_to, _value))
 
     return True

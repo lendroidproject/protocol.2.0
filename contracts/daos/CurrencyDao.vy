@@ -219,6 +219,7 @@ def _withdraw_token_from_pool(_token: address, _to: address, _value: uint256):
     # validate currency address
     _pool_hash: bytes32 = self._pool_hash(_token)
     assert self.pools[_pool_hash].address_.is_contract, "token is not supported"
+    assert as_unitless_number(_value) > 0, "token value can not be 0"
     # release token from token pool
     assert_modifiable(ERC20TokenPoolInterface(self.pools[_pool_hash].address_).release(_to, _value))
 
@@ -257,10 +258,10 @@ def _unwrap(_token: address, _from: address, _to: address, _value: uint256):
         @param _value The amount of original and L tokens.
         @return A bool indicating if the unwrap process was successful.
     """
-    # burrn currency l_token from _from address
-    assert_modifiable(LERC20Interface(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
     # release currency to _to address
     self._withdraw_token_from_pool(_token, _to, _value)
+    # burn currency l_token from _from address
+    assert_modifiable(LERC20Interface(self.token_addresses[_token].l).burnAsAuthorizedMinter(_from, _value))
 
 
 @private
@@ -515,9 +516,9 @@ def set_token_support(_token: address, _is_active: bool) -> bool:
 
     else:
         assert not self.pools[_pool_hash].address_ == ZERO_ADDRESS, "currency pool does not exist"
+        assert_modifiable(ERC20TokenPoolInterface(self.pools[_pool_hash].address_).destroy())
         clear(self.pools[_pool_hash].address_)
         clear(self.pools[_pool_hash].name)
-        assert_modifiable(ERC20TokenPoolInterface(self.pools[_pool_hash].address_).destroy())
 
     return True
 
