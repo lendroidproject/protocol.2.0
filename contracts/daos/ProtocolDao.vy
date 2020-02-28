@@ -285,9 +285,9 @@ def change_governor(_address: address) -> bool:
 @public
 def change_escape_hatch_manager(_address: address) -> bool:
     """
-        @dev Function to change the Governor of the system.
+        @dev Function to change the Escape Hatch Manager of the system.
              Only the Governor can call this function.
-        @param _address The address of the new Esape Hatch Manager.
+        @param _address The address of the new Escape Hatch Manager.
         @return A bool with a value of "True" indicating the change has been made.
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
@@ -302,9 +302,9 @@ def change_escape_hatch_manager(_address: address) -> bool:
 @public
 def change_escape_hatch_token_holder(_address: address) -> bool:
     """
-        @dev Function to change the Governor of the system.
+        @dev Function to change the Escape Hatch Token Holder of the system.
              Only the Governor can call this function.
-        @param _address The address of the new Esape Hatch Token Holder.
+        @param _address The address of the new Escape Hatch Token Holder.
         @return A bool with a value of "True" indicating the change has been made.
     """
     self._validate_caller(msg.sender, CALLER_GOVERNOR)

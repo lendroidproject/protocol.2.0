@@ -158,8 +158,8 @@ def _i_token_fee(_expiry: timestamp, _underlying: address, _strike_price: uint25
         return 0
     else:
         _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-        return (self.markets[_market_hash].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
-
+        # return (self.markets[_market_hash].i_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
+        return self.markets[_market_hash].i_cost_per_day
 
 @private
 @constant
@@ -168,8 +168,8 @@ def _s_token_fee(_expiry: timestamp, _underlying: address, _strike_price: uint25
         return 0
     else:
         _market_hash: bytes32 = self._market_hash(_expiry, _underlying, _strike_price)
-        return (self.markets[_market_hash].s_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
-
+        # return (self.markets[_market_hash].s_cost_per_day * (as_unitless_number(_expiry) - as_unitless_number(block.timestamp))) / as_unitless_number(SECONDS_PER_DAY)
+        return self.markets[_market_hash].s_cost_per_day
 
 @private
 @constant
@@ -597,7 +597,7 @@ def purchase_i_tokens(_expiry: timestamp, _underlying: address, _strike_price: u
     # validate _i_token_value
     assert as_unitless_number(_fee_in_l_token) > 0
     assert as_unitless_number(self._i_token_fee(_expiry, _underlying, _strike_price)) > 0
-    _i_token_value: uint256 = as_unitless_number(_fee_in_l_token) / as_unitless_number(self._i_token_fee(_expiry, _underlying, _strike_price))
+    _i_token_value: uint256 = (as_unitless_number(_fee_in_l_token) * DECIMALS) / as_unitless_number(self._i_token_fee(_expiry, _underlying, _strike_price))
     assert as_unitless_number(self.i_balance[self.markets[_market_hash].i_id]) >= _i_token_value
     # calculate operator fee
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_i_token) / 100
@@ -629,7 +629,7 @@ def purchase_s_tokens(_expiry: timestamp, _underlying: address, _strike_price: u
     # validate _s_token_value
     assert as_unitless_number(_fee_in_l_token) > 0
     assert as_unitless_number(self._s_token_fee(_expiry, _underlying, _strike_price)) > 0
-    _s_token_value: uint256 = as_unitless_number(_fee_in_l_token) / as_unitless_number(self._s_token_fee(_expiry, _underlying, _strike_price))
+    _s_token_value: uint256 = (as_unitless_number(_fee_in_l_token) * DECIMALS) / as_unitless_number(self._s_token_fee(_expiry, _underlying, _strike_price))
     assert as_unitless_number(self.s_balance[self.markets[_market_hash].s_id]) >= _s_token_value
     # calculate operator fee
     _operator_fee: uint256 = (as_unitless_number(_fee_in_l_token) * self.fee_percentage_per_s_token) / 100
