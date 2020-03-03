@@ -49,8 +49,6 @@ templates: public(map(int128, address))
 public_contributions_activated: public(bool)
 non_standard_expiries_activated: public(bool)
 
-initialized: public(bool)
-
 # Constants used throughout the System
 
 DAO_CURRENCY: constant(int128) = 1
@@ -138,8 +136,6 @@ def __init__(
     assert _template_mft.is_contract
     assert _template_lerc20.is_contract
     assert _template_erc20_pool_token.is_contract
-    assert not self.initialized
-    self.initialized = True
 
     self.LST = _LST
 
@@ -256,7 +252,6 @@ def _validate_caller(_caller: address, _caller_type: int128):
         @param _caller The address of the caller.
         @param _caller_type The type of caller supported by the system.
     """
-    assert self.initialized
     assert _caller == self.authorized_callers[_caller_type]
 
 
@@ -548,7 +543,7 @@ def set_registry(_dao_type: int128, _registry_type: int128, _address: address) -
     assert _address.is_contract
     self._validate_caller(msg.sender, CALLER_GOVERNOR)
 
-    if _dao_type == DAO_MARKET and _registry_type == REGISTRY_POSITION:
+    if _dao_type == DAO_MARKET:
         assert_modifiable(MarketDaoInterface(self.daos[_dao_type]).set_registry(_registry_type, _address))
 
     log.SystemSettingsUpdated(msg.sender)

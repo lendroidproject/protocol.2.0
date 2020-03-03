@@ -219,7 +219,6 @@ def _withdraw_token_from_pool(_token: address, _to: address, _value: uint256):
     # validate currency address
     _pool_hash: bytes32 = self._pool_hash(_token)
     assert self.pools[_pool_hash].address_.is_contract, "token is not supported"
-    assert as_unitless_number(_value) > 0, "token value can not be 0"
     # release token from token pool
     assert_modifiable(ERC20TokenPoolInterface(self.pools[_pool_hash].address_).release(_to, _value))
 
