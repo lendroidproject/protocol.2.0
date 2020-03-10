@@ -75,7 +75,7 @@ def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_fail
         assert_tx_failed(lambda: InterestPoolDaoContract.unpause({'from': account}))
 
 
-def test_split(accounts,
+def test_split(accounts, assert_tx_failed,
         Whale, Deployer, Governor,
         Lend_token,
         get_ERC20_contract, get_MFT_contract,
@@ -88,6 +88,8 @@ def test_split(accounts,
     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
     # assign one of the accounts as _lend_token_holder
     _lend_token_holder = accounts[5]
+    # Tx fails when calling split() and InterestPoolDaoContract is not initialized
+    assert_tx_failed(lambda: InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # initialize CurrencyDao
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize InterestPoolDaoContract
@@ -112,6 +114,8 @@ def test_split(accounts,
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == Web3.toWei(800, 'ether')
     # _lend_token_holder splits 600 L_lend_tokens into 600 F_lend_tokens and 600 I_lend_tokens for H20
     InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 700000})
+    # # Tx fails when calling split() and InterestPoolDaoContract is paused
+    # assert_tx_failed(lambda: InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == Web3.toWei(200, 'ether')
     _f_id = F_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_id = I_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
