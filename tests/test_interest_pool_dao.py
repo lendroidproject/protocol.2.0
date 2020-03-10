@@ -136,6 +136,8 @@ def test_fuse(accounts,
     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
     # assign one of the accounts as _lend_token_holder
     _lend_token_holder = accounts[5]
+    # # Tx fails when calling fuse() and InterestPoolDaoContract is not initialized
+    # assert_tx_failed(lambda: InterestPoolDaoContract.fuse(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # initialize CurrencyDao
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize InterestPoolDaoContract
