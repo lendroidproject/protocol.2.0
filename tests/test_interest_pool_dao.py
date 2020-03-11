@@ -11,68 +11,68 @@ from conftest import (
 )
 
 
-def test_initialize(accounts, Deployer, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    assert not InterestPoolDaoContract.initialized({'from': anyone})
-    ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-    assert InterestPoolDaoContract.initialized({'from': anyone})
-
-
-def test_pause_and_unpause(accounts, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-    assert not InterestPoolDaoContract.paused({'from': anyone})
-    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager})
-    assert InterestPoolDaoContract.paused({'from': anyone})
-    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, {'from': EscapeHatchManager})
-    assert not InterestPoolDaoContract.paused({'from': anyone})
-
-
-def test_pause_failed_when_paused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager})
-    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager}))
-
-
-def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager}))
-
-
-def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-    # Tx failed
-    for account in accounts:
-        assert_tx_failed(lambda: InterestPoolDaoContract.pause({'from': account}))
-
-
-def test_unpause_failed_when_unpaused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, {'from': EscapeHatchManager}))
-
-
-def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, {'from': EscapeHatchManager}))
-
-
-def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
-    anyone = accounts[-1]
-    InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
-    ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
-    # Tx failed
-    for account in accounts:
-        assert_tx_failed(lambda: InterestPoolDaoContract.unpause({'from': account}))
+# def test_initialize(accounts, Deployer, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     assert not InterestPoolDaoContract.initialized({'from': anyone})
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     assert InterestPoolDaoContract.initialized({'from': anyone})
+#
+#
+# def test_pause_and_unpause(accounts, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     assert not InterestPoolDaoContract.paused({'from': anyone})
+#     ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager})
+#     assert InterestPoolDaoContract.paused({'from': anyone})
+#     ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, {'from': EscapeHatchManager})
+#     assert not InterestPoolDaoContract.paused({'from': anyone})
+#
+#
+# def test_pause_failed_when_paused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager})
+#     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager}))
+#
+#
+# def test_pause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], True, {'from': EscapeHatchManager}))
+#
+#
+# def test_pause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     # Tx failed
+#     for account in accounts:
+#         assert_tx_failed(lambda: InterestPoolDaoContract.pause({'from': account}))
+#
+#
+# def test_unpause_failed_when_unpaused(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, {'from': EscapeHatchManager}))
+#
+#
+# def test_unpause_failed_when_uninitialized(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     assert_tx_failed(lambda: ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL'], False, {'from': EscapeHatchManager}))
+#
+#
+# def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_InterestPoolDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     InterestPoolDaoContract = get_InterestPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_INTEREST_POOL']))
+#     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+#     # Tx failed
+#     for account in accounts:
+#         assert_tx_failed(lambda: InterestPoolDaoContract.unpause({'from': account}))
 
 
 def test_split(accounts, assert_tx_failed,
@@ -94,6 +94,8 @@ def test_split(accounts, assert_tx_failed,
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize InterestPoolDaoContract
     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+    # Tx fails when calling split() and Lend_token is not supported
+    assert_tx_failed(lambda: InterestPoolDaoContract.split(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # set support for Lend_token
     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
     # get L_Lend_token
@@ -144,6 +146,8 @@ def test_fuse(accounts,
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize InterestPoolDaoContract
     ProtocolDaoContract.initialize_interest_pool_dao({'from': Deployer})
+    # Tx fails when calling split() and Lend_token is not supported
+    assert_tx_failed(lambda: InterestPoolDaoContract.fuse(Lend_token.address, H20, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # set support for Lend_token
     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
     # get L_Lend_token
