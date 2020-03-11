@@ -77,8 +77,8 @@ def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_fail
         assert_tx_failed(lambda: UnderwriterPoolDaoContract.unpause({'from': account}))
 
 
-def test_split(accounts,
-        Whale, Deployer, Governor,
+def test_split(accounts, assert_tx_failed,
+        Whale, Deployer, EscapeHatchManager, Governor,
         Lend_token, Borrow_token,
         get_ERC20_contract, get_MFT_contract,
         get_CurrencyDao_contract, get_UnderwriterPoolDao_contract,
@@ -90,6 +90,8 @@ def test_split(accounts,
     UnderwriterPoolDaoContract = get_UnderwriterPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL']))
     # assign one of the accounts as _lend_token_holder
     _lend_token_holder = accounts[5]
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # initialize CurrencyDao
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize UnderwriterPoolDaoContract
@@ -125,10 +127,14 @@ def test_split(accounts,
     assert I_lend_token.balanceOf(_lend_token_holder, _i_id, {'from': anyone}) == Web3.toWei(600, 'ether')
     assert S_lend_token.balanceOf(_lend_token_holder, _s_id, {'from': anyone}) == Web3.toWei(600, 'ether')
     assert U_lend_token.balanceOf(_lend_token_holder, _u_id, {'from': anyone}) == Web3.toWei(600, 'ether')
+    # EscapeHatchManager pauses UnderwriterPoolDaoContract
+    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], True, {'from': EscapeHatchManager})
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is paused
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
 
 
-def test_fuse(accounts,
-        Whale, Deployer, Governor,
+def test_fuse(accounts, assert_tx_failed,
+        Whale, Deployer, EscapeHatchManager, Governor,
         Lend_token, Borrow_token,
         get_ERC20_contract, get_MFT_contract,
         get_CurrencyDao_contract, get_UnderwriterPoolDao_contract,
@@ -140,6 +146,8 @@ def test_fuse(accounts,
     UnderwriterPoolDaoContract = get_UnderwriterPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL']))
     # assign one of the accounts as _lend_token_holder
     _lend_token_holder = accounts[5]
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.fuse(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # initialize CurrencyDao
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize UnderwriterPoolDaoContract
@@ -184,6 +192,10 @@ def test_fuse(accounts,
     assert I_lend_token.balanceOf(_lend_token_holder, _i_id, {'from': anyone}) == Web3.toWei(200, 'ether')
     assert S_lend_token.balanceOf(_lend_token_holder, _s_id, {'from': anyone}) == Web3.toWei(200, 'ether')
     assert U_lend_token.balanceOf(_lend_token_holder, _u_id, {'from': anyone}) == Web3.toWei(200, 'ether')
+    # EscapeHatchManager pauses UnderwriterPoolDaoContract
+    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], True, {'from': EscapeHatchManager})
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is paused
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.fuse(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
 
 
 def test_register_pool(accounts, get_log_args,
