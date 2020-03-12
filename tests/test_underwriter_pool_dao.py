@@ -96,8 +96,12 @@ def test_split(accounts, assert_tx_failed,
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize UnderwriterPoolDaoContract
     ProtocolDaoContract.initialize_underwriter_pool_dao({'from': Deployer})
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # set support for Lend_token
     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # set support for Borrow_token
     ProtocolDaoContract.set_token_support(Borrow_token.address, True, {'from': Governor, 'gas': 2000000})
     # get L_Lend_token
@@ -152,8 +156,12 @@ def test_fuse(accounts, assert_tx_failed,
     ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
     # initialize UnderwriterPoolDaoContract
     ProtocolDaoContract.initialize_underwriter_pool_dao({'from': Deployer})
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.fuse(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # set support for Lend_token
     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
+    # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.fuse(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
     # set support for Borrow_token
     ProtocolDaoContract.set_token_support(Borrow_token.address, True, {'from': Governor, 'gas': 2000000})
     # get L_Lend_token
