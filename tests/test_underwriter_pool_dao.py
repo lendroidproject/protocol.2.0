@@ -77,6 +77,34 @@ def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_fail
         assert_tx_failed(lambda: UnderwriterPoolDaoContract.unpause({'from': account}))
 
 
+def test_deposit_l(accounts, assert_tx_failed,
+        Whale, Deployer, EscapeHatchManager, Governor,
+        Lend_token, Borrow_token, UnderwriterPoolDao,
+        get_ERC20_contract, get_MFT_contract, get_PoolNameRegistry_contract,
+        get_CurrencyDao_contract, get_UnderwriterPoolDao_contract,
+        ProtocolDaoContract):
+        anyone = accounts[-1]
+        # get CurrencyDao
+        CurrencyDao = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+        # get UnderwriterPoolDaoContract
+        UnderwriterPoolDaoContract = get_UnderwriterPoolDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL']))
+        # get PoolNameRegistry
+        PoolNameRegistry = get_PoolNameRegistry_contract(address=ProtocolDaoContract.registries(PROTOCOL_CONSTANTS['REGISTRY_POOL_NAME']))
+        # assign one of the accounts as _lend_token_holder
+        _lend_token_holder = accounts[5]
+        # assign one of the accounts as _pool_owner
+        _pool_owner = accounts[6]
+        # initialize PoolNameRegistry
+        ProtocolDaoContract.initialize_pool_name_registry(Web3.toWei(POOL_NAME_REGISTRATION_MIN_STAKE_LST, 'ether'), {'from': Deployer})
+        # initialize CurrencyDao
+        ProtocolDaoContract.initialize_currency_dao({'from': Deployer})
+        # initialize UnderwriterPoolDaoContract
+        ProtocolDaoContract.initialize_underwriter_pool_dao({'from': Deployer})
+        # set support for Lend_token
+        ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
+        assert_tx_failed(lambda: UnderwriterPoolDaoContract.deposit_l(POOL_NAME_LIONFURY, _pool_owner, Web3.toWei(800, 'ether'), {'from': _pool_owner}))
+
+
 def test_split(accounts, assert_tx_failed,
         Whale, Deployer, EscapeHatchManager, Governor,
         Lend_token, Borrow_token,
@@ -134,7 +162,7 @@ def test_split(accounts, assert_tx_failed,
     # EscapeHatchManager pauses UnderwriterPoolDaoContract
     ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], True, {'from': EscapeHatchManager})
     # Tx fails when calling split() and UnderwriterPoolDaoContract is paused
-    assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
+    assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(100, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
 
 
 def test_fuse(accounts, assert_tx_failed,

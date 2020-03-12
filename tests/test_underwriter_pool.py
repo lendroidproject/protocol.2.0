@@ -51,9 +51,9 @@ def test_initialize(accounts,
     assert UnderwriterPoolContract.initialized({'from': anyone})
 
 
-def test_contribute(accounts,
+def test_contribute(accounts, assert_tx_failed,
         Whale, Deployer, Governor,
-        LST_token, Lend_token,
+        LST_token, Lend_token, EscapeHatchManager,
         get_ERC20_contract, get_ERC20_Pool_Token_contract, get_MFT_contract,
         get_PoolNameRegistry_contract, get_UnderwriterPool_contract,
         get_CurrencyDao_contract, get_UnderwriterPoolDao_contract,
@@ -120,6 +120,26 @@ def test_contribute(accounts,
     assert UnderwriterPoolContract.l_token_balance({'from': anyone}) == Web3.toWei(700, 'ether')
     assert UnderwriterPoolContract.total_pool_share_token_supply({'from': anyone}) == Web3.toWei(35000, 'ether')
     assert Poolshare_token.balanceOf(_pool_owner, {'from': anyone}) == Web3.toWei(35000, 'ether')
+    # EscapeHatchManager pauses UnderwriterPoolContract
+    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], True, {'from': EscapeHatchManager})
+    # Tx fails when calling contribute() and UnderwriterPoolContract is paused
+    assert_tx_failed(lambda: UnderwriterPoolContract.contribute(Web3.toWei(100, 'ether'), {'from': _pool_owner, 'gas': 300000}))
+    # EscapeHatchManager unpause UnderwriterPoolContract
+    ProtocolDaoContract.toggle_dao_pause(PROTOCOL_CONSTANTS['DAO_UNDERWRITER_POOL'], False, {'from': EscapeHatchManager})
+    # assign one of the accounts as _lend_token_holder
+    _lend_token_holder = accounts[5]
+    # _lend_token_holder buys 1000 lend token from a 3rd party exchange
+    Lend_token.transfer(_lend_token_holder, Web3.toWei(1000, 'ether'), {'from': Whale})
+    # _lend_token_holder authorizes CurrencyDaoContract to spend 800 Lend_token
+    Lend_token.approve(CurrencyDaoContract.address, Web3.toWei(800, 'ether'), {'from': _lend_token_holder})
+    # _lend_token_holder wraps 800 Lend_token to L_lend_token
+    CurrencyDaoContract.wrap(Lend_token.address, Web3.toWei(800, 'ether'), {'from': _lend_token_holder, 'gas': 145000})
+    assert_tx_failed(lambda: UnderwriterPoolContract.contribute(Web3.toWei(100, 'ether'), {'from': _lend_token_holder, 'gas': 300000}))
+    assert_tx_failed(lambda: UnderwriterPoolContract.contribute(Web3.toWei(0, 'ether'), {'from': _pool_owner, 'gas': 300000}))
+    assert_tx_failed(lambda: UnderwriterPoolContract.contribute(Web3.toWei(10000, 'ether'), {'from': _pool_owner, 'gas': 300000}))
+    # remove support for Lend_token
+    ProtocolDaoContract.set_token_support(Lend_token.address, False, {'from': Governor, 'gas': 2000000})
+    assert_tx_failed(lambda: UnderwriterPoolContract.contribute(Web3.toWei(500, 'ether'), {'from': _pool_owner, 'gas': 300000}))
 
 
 def test_withdraw_contribution_sans_i_token_and_s_token_purchase(accounts,
