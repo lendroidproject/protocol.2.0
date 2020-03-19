@@ -156,6 +156,12 @@ def test_split(accounts, assert_tx_failed,
     _i_id = I_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _s_id = S_lend_token.id(Lend_token.address, H20, Borrow_token.address, STRIKE_150, {'from': anyone})
     _u_id = U_lend_token.id(Lend_token.address, H20, Borrow_token.address, STRIKE_150, {'from': anyone})
+    _u_token_address_from_currency_dao, _u_token_id_from_currency_dao = CurrencyDao.u_token(Lend_token.address, H20, Borrow_token.address, STRIKE_150, {'from': anyone})
+    assert _u_token_address_from_currency_dao == U_lend_token.address
+    assert _u_token_id_from_currency_dao == _u_id
+    _s_token_address_from_currency_dao, _s_token_id_from_currency_dao = CurrencyDao.s_token(Lend_token.address, H20, Borrow_token.address, STRIKE_150, {'from': anyone})
+    assert _s_token_address_from_currency_dao == S_lend_token.address
+    assert _s_token_id_from_currency_dao == _s_id
     assert I_lend_token.balanceOf(_lend_token_holder, _i_id, {'from': anyone}) == Web3.toWei(600, 'ether')
     assert S_lend_token.balanceOf(_lend_token_holder, _s_id, {'from': anyone}) == Web3.toWei(600, 'ether')
     assert U_lend_token.balanceOf(_lend_token_holder, _u_id, {'from': anyone}) == Web3.toWei(600, 'ether')

@@ -119,6 +119,12 @@ def test_split(accounts, assert_tx_failed,
     assert L_lend_token.balanceOf(_lend_token_holder, {'from': anyone}) == Web3.toWei(200, 'ether')
     _f_id = F_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
     _i_id = I_lend_token.id(Lend_token.address, H20, ZERO_ADDRESS, 0, {'from': anyone})
+    _f_token_address_from_currency_dao, _f_token_id_from_currency_dao = CurrencyDao.f_token(Lend_token.address, H20, {'from': anyone})
+    assert _f_token_address_from_currency_dao == F_lend_token.address
+    assert _f_token_id_from_currency_dao == _f_id
+    _i_token_address_from_currency_dao, _i_token_id_from_currency_dao = CurrencyDao.i_token(Lend_token.address, H20, {'from': anyone})
+    assert _i_token_address_from_currency_dao == I_lend_token.address
+    assert _i_token_id_from_currency_dao == _i_id
     assert F_lend_token.balanceOf(_lend_token_holder, _f_id, {'from': anyone}) == Web3.toWei(600, 'ether')
     assert I_lend_token.balanceOf(_lend_token_holder, _i_id, {'from': anyone}) == Web3.toWei(600, 'ether')
     # EscapeHatchManager pauses InterestPoolDaoContract

@@ -74,6 +74,31 @@ def test_unpause_failed_when_called_by_non_protocol_dao(accounts, assert_tx_fail
         assert_tx_failed(lambda: ShieldPayoutDaoContract.unpause({'from': account}))
 
 
+# def test_exercise_s(accounts, assert_tx_failed, Deployer, EscapeHatchManager, get_ShieldPayoutDao_contract, ProtocolDaoContract):
+#     anyone = accounts[-1]
+#     # get CurrencyDao
+#     CurrencyDao = get_CurrencyDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_CURRENCY']))
+#     # get ShieldPayoutDaoContract
+#     ShieldPayoutDaoContract = get_ShieldPayoutDao_contract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+#     # assign one of the accounts as _lend_token_holder
+#     _lend_token_holder = accounts[5]
+#     # Tx fails when calling split() and ShieldPayoutDaoContract is not initialized
+#     assert_tx_failed(lambda: ShieldPayoutDaoContract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+#     # initialize ShieldPayoutDaoContract
+#     ShieldPayoutDaoContract.initialize_shield_payout_dao({'from': Deployer})
+#     # Tx fails when ShieldPayoutDaoContract is not initialized
+#     assert_tx_failed(lambda: ShieldPayoutDaoContract(address=ProtocolDaoContract.daos(PROTOCOL_CONSTANTS['DAO_SHIELD_PAYOUT']))
+#     # set support for Lend_token
+#     ProtocolDaoContract.set_token_support(Lend_token.address, True, {'from': Governor, 'gas': 2000000})
+#     # Tx fails when calling split() and UnderwriterPoolDaoContract is not initialized
+#     assert_tx_failed(lambda: UnderwriterPoolDaoContract.split(Lend_token.address, H20, Borrow_token.address, STRIKE_150, Web3.toWei(600, 'ether'), {'from': _lend_token_holder, 'gas': 145000}))
+
+
+
+
+
+
+
 # def test_register_shield_market(w3, get_contract, get_logs,
 #         LST_token, Lend_token, Borrow_token, Malicious_token,
 #         ERC20_library, ERC1155_library,
