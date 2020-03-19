@@ -295,7 +295,9 @@ def test_increment_i_tokens(accounts,
     # _pool_owner authorizes CurrencyDaoContract to spend INTEREST_POOL_DAO_MIN_MFT_FEE LST_token
     LST_token.approve(CurrencyDaoContract.address, Web3.toWei(INTEREST_POOL_DAO_MIN_MFT_FEE, 'ether'), {'from': _pool_owner})
     # set support for MFT H20
+    assert InterestPoolDaoContract.LST_stake_value(_pool_name, {'from': anyone}) == Web3.toWei(INTEREST_POOL_DAO_MIN_MFT_FEE, 'ether')
     InterestPoolContract.support_mft(H20, Web3.toWei(0.01, 'ether'), {'from': _pool_owner, 'gas': 2500000})
+    assert InterestPoolDaoContract.LST_stake_value(_pool_name, {'from': anyone}) == Web3.toWei(INTEREST_POOL_DAO_MIN_MFT_FEE * (1 + INTEREST_POOL_DAO_FEE_MULTIPLIER_PER_MFT_COUNT / 100), 'ether')
     _market_hash = InterestPoolContract.market_hash(H20, {'from': anyone})
     _f_id = InterestPoolContract.markets__f_id(_market_hash, {'from': anyone})
     _i_id = InterestPoolContract.markets__i_id(_market_hash, {'from': anyone})

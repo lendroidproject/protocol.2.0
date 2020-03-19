@@ -89,6 +89,8 @@ MFT_TYPE_U: constant(int128) = 4
 initialized: public(bool)
 paused: public(bool)
 
+DECIMALS: constant(uint256) = 10 ** 18
+
 
 @public
 def initialize(
@@ -188,7 +190,8 @@ def _LST_stake_value(_name: string[64]) -> uint256:
     _multiplier: uint256 = self.fee_multiplier_per_mft_count[self.pools[_name].mft_count]
     if _multiplier == 0:
         _multiplier = self.fee_multiplier_per_mft_count[0]
-    return as_unitless_number(self.minimum_mft_fee) + as_unitless_number(as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier) / as_unitless_number(FEE_MULTIPLIER_DECIMALS))
+    _addendum: uint256 = as_unitless_number(self.minimum_mft_fee) * as_unitless_number(self.pools[_name].mft_count) * as_unitless_number(_multiplier) / as_unitless_number(FEE_MULTIPLIER_DECIMALS)
+    return as_unitless_number(self.minimum_mft_fee) + (as_unitless_number(_addendum) / as_unitless_number(DECIMALS))
 
 
 @private
